@@ -206,6 +206,7 @@
     .badge-blue{background:var(--color-blue-hl);color:var(--color-blue);}
     .badge-green{background:var(--color-success-hl);color:var(--color-success);}
     .badge-orange{background:var(--color-orange-hl);color:var(--color-orange);}
+    .badge-muted{background:var(--color-surface-offset);color:var(--color-text-muted);}
 
     /* ── Tableau ─────────────────────────────────────────────── */
     .table-wrap{overflow-x:auto;}
@@ -215,13 +216,23 @@
     tr:hover td{background:var(--color-primary-hl);}
     tr.sel td{background:var(--color-primary-hl);font-weight:600;}
 
-    /* ── Alerte/info ─────────────────────────────────────────── */
-    .info-bar{
-      display:flex;align-items:flex-start;gap:.5rem;padding:var(--space-3) var(--space-4);
-      background:var(--color-orange-hl);border:1px solid rgba(218,113,1,.2);
-      border-radius:var(--radius-lg);font-size:var(--text-xs);color:var(--color-text-muted);
-      margin-bottom:var(--space-4);
+    /* ── NASA indisponible ───────────────────────────────────── */
+    .nasa-unavailable{
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:var(--space-3);padding:var(--space-10) var(--space-6);
+      background:var(--color-surface-2);border:1px solid var(--color-border);
+      border-radius:var(--radius-lg);text-align:center;
     }
+    .nasa-unavailable .icon{font-size:2rem;opacity:.5;}
+    .nasa-unavailable h3{font-size:var(--text-base);font-weight:600;color:var(--color-text);}
+    .nasa-unavailable p{font-size:var(--text-xs);color:var(--color-text-muted);max-width:42ch;line-height:1.6;}
+    .nasa-unavailable code{
+      font-size:var(--text-xs);background:var(--color-surface-offset);
+      padding:.2rem .5rem;border-radius:var(--radius-sm);
+      border:1px solid var(--color-border);font-family:monospace;
+    }
+
+    /* ── Alerte/info ─────────────────────────────────────────── */
     .divider{font-size:var(--text-xs);color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.1em;padding:.75rem 0 .4rem;border-bottom:1px solid var(--color-border);margin-bottom:var(--space-3);}
 
     /* ── Skeleton ────────────────────────────────────────────── */
@@ -289,6 +300,12 @@
         <span class="badge badge-orange">CERES/GHI</span>
       </div>
       <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-3);line-height:1.5;">Fenêtre glissante 24h (12h passées + 12h à venir). Cache 15 min par zone. Auto-refresh toutes les 15 min.</p>
+    </div>
+
+    <!-- Statut NASA -->
+    <div id="nasaStatusSidebar" style="display:none;">
+      <div class="section-label">Statut NASA POWER</div>
+      <div id="nasaStatusBox" style="font-size:var(--text-xs);padding:var(--space-3);background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);color:var(--color-text-muted);line-height:1.6;"></div>
     </div>
   </aside>
 
@@ -376,16 +393,8 @@
 
       <!-- Panel NASA POWER -->
       <div id="panel-nasa" class="charts-panel">
-        <div id="nasaWarnBar" class="info-bar" style="display:none;">
-          ⚠️ NASA POWER : données non disponibles pour cette zone (proxy CORS). Vérifiez la console ou utilisez un backend dédié.
-        </div>
-        <div>
-          <div class="chart-title">☀️ Irradiance solaire GHI (Wh/m²) — NASA POWER CERES</div>
-          <div class="chart-wrap"><canvas id="ghiChart"></canvas></div>
-        </div>
-        <div>
-          <div class="chart-title">💨 Vent 50m (m/s) &amp; Humidité spécifique (g/kg) — NASA POWER MERRA-2</div>
-          <div class="chart-wrap"><canvas id="windNasaChart"></canvas></div>
+        <div id="nasaPanelContent" style="grid-column:1/-1;">
+          <!-- contenu injecté dynamiquement -->
         </div>
       </div>
     </section>
@@ -438,7 +447,13 @@ const ZONES = [
 
 const CACHE_TTL = 15*60*1000;
 const AUTO_MS   = 15*60*1000;
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
+/* ── Proxies CORS — liste de fallback dans l'ordre de préférence ── */
+const CORS_PROXIES = [
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://cors-anywhere.herokuapp.com/${url}`,
+];
 
 const OM_CURRENT = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m';
 const OM_HOURLY  = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m';
@@ -447,7 +462,9 @@ const NASA_PARAMS = 'ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,WS50M,QV2M,T2M,RH2M,PRE
 const state = {
   zone:'Kribi Centre', om:{}, nasa:{},
   map:null, baseLayers:{}, markers:[],
-  charts:{}, nextRefresh:null, cdi:null, activeTab:'om'
+  charts:{}, nextRefresh:null, cdi:null, activeTab:'om',
+  nasaProxy: null,        // proxy qui a fonctionné en dernier
+  nasaAvailable: null,    // true | false | null (inconnu)
 };
 
 /* ── Helpers date ──────────────────────────────────────────────── */
@@ -459,40 +476,75 @@ function nasaDates() {
   return { start: fmt(prev), end: fmt(now) };
 }
 
-/* ── URLs ──────────────────────────────────────────────────────── */
-const omUrl = z =>
-  `https://api.open-meteo.com/v1/forecast?latitude=${z.lat}&longitude=${z.lon}`+
-  `&current=${OM_CURRENT}&hourly=${OM_HOURLY}&past_hours=12&forecast_hours=12&timezone=auto`;
-
-function nasaUrl(z) {
+/* ── URL NASA POWER (sans proxy) ──────────────────────────────── */
+function nasaBaseUrl(z) {
   const { start, end } = nasaDates();
-  const base = `https://power.larc.nasa.gov/api/temporal/hourly/point`+
+  return `https://power.larc.nasa.gov/api/temporal/hourly/point`+
     `?parameters=${NASA_PARAMS}&community=ag`+
     `&longitude=${z.lon}&latitude=${z.lat}`+
     `&start=${start}&end=${end}&format=json&time-standard=LST`;
-  return CORS_PROXY + encodeURIComponent(base);
 }
+
+/* ── URL Open-Meteo ───────────────────────────────────────────── */
+const omUrl = z =>
+  `https://api.open-meteo.com/v1/forecast?latitude=${z.lat}&longitude=${z.lon}`+
+  `&current=${OM_CURRENT}&hourly=${OM_HOURLY}&past_hours=12&forecast_hours=12&timezone=auto`;
 
 /* ── Cache ─────────────────────────────────────────────────────── */
 const isFresh = (s,n) => s[n] && (Date.now()-s[n].fetchedAt) < CACHE_TTL;
 const getData = (s,n) => s[n]?.data ?? null;
 const delay   = ms => new Promise(r=>setTimeout(r,ms));
 
-/* ── Fetch NASA avec parsing robuste ───────────────────────────── */
-async function fetchNasa(z) {
-  try {
-    const r = await fetch(nasaUrl(z));
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    const text = await r.text();
-    let p;
-    try { p = JSON.parse(text); } catch(e) { throw new Error('JSON invalide'); }
-    if (p?.contents) p = JSON.parse(p.contents);
-    if (!p?.properties?.parameter) throw new Error('Structure NASA inattendue');
-    return p;
-  } catch(e) {
-    console.warn(`NASA POWER [${z.name}]:`, e.message);
-    return null;
+/* ── Parse réponse NASA (supporte allorigins wrapper) ─────────── */
+function parseNasaResponse(text) {
+  let p;
+  try { p = JSON.parse(text); } catch(e) { throw new Error('JSON invalide'); }
+  // allorigins enveloppe dans { contents: "..." }
+  if (p?.contents) {
+    try { p = JSON.parse(p.contents); } catch(e) { throw new Error('JSON invalide (allorigins)'); }
   }
+  if (!p?.properties?.parameter) throw new Error('Structure NASA inattendue');
+  return p;
+}
+
+/* ── Fetch NASA avec rotation de proxies ───────────────────────── */
+async function fetchNasa(z) {
+  const rawUrl = nasaBaseUrl(z);
+
+  // 1. Essai direct (NASA POWER supporte CORS sur certains endpoints)
+  try {
+    const r = await fetch(rawUrl, { signal: AbortSignal.timeout(8000) });
+    if (r.ok) {
+      const data = parseNasaResponse(await r.text());
+      state.nasaProxy = 'direct';
+      state.nasaAvailable = true;
+      return data;
+    }
+  } catch(e) { /* CORS ou timeout — on tente les proxies */ }
+
+  // 2. Rotation proxies
+  const proxiesToTry = state.nasaProxy
+    ? [state.nasaProxy, ...CORS_PROXIES.filter(p=>p!==state.nasaProxy)]
+    : CORS_PROXIES;
+
+  for (const proxyFn of proxiesToTry) {
+    if (typeof proxyFn !== 'function') continue;
+    try {
+      const proxyUrl = proxyFn(rawUrl);
+      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const data = parseNasaResponse(await r.text());
+      state.nasaProxy = proxyFn;
+      state.nasaAvailable = true;
+      return data;
+    } catch(e) {
+      console.warn(`NASA proxy échoué [${z.name}]:`, e.message);
+    }
+  }
+
+  // 3. Tous les proxies ont échoué
+  state.nasaAvailable = false;
+  return null;
 }
 
 /* ── Fetch toutes les zones ────────────────────────────────────── */
@@ -510,17 +562,34 @@ async function fetchAll(force=false) {
     }
     if (force || !isFresh(state.nasa, z.name)) {
       state.nasa[z.name] = { data: await fetchNasa(z), fetchedAt: Date.now() };
-      await delay(500);
+      await delay(400);
     }
   }
   setStatus('ok','Mis à jour : '+new Date().toLocaleTimeString('fr-FR'));
-  state.nextRefresh = Date.now()+AUTO_MS;
+  updateNasaStatusSidebar();
 }
 
 function setStatus(type, msg) {
   const c = document.getElementById('statusChip');
   c.className = 'status-chip '+(type==='ok'?'':'loading');
   document.getElementById('statusTxt').textContent = msg;
+}
+
+/* ── Statut NASA dans la sidebar ───────────────────────────────── */
+function updateNasaStatusSidebar() {
+  const box = document.getElementById('nasaStatusBox');
+  const wrap = document.getElementById('nasaStatusSidebar');
+  wrap.style.display = 'block';
+  if (state.nasaAvailable === true) {
+    const src = state.nasaProxy === 'direct' ? 'Accès direct' : 'Via proxy CORS';
+    box.innerHTML = `<span style="color:var(--color-success)">✓ Disponible</span><br>${src}`;
+  } else if (state.nasaAvailable === false) {
+    box.innerHTML = `<span style="color:var(--color-error)">✗ Inaccessible</span><br>
+      Tous les proxies CORS ont échoué. Les données NASA POWER ne sont pas disponibles depuis ce navigateur sans backend dédié.<br><br>
+      <strong>Solution :</strong> déployez le backend Python inclus dans le dépôt (<code>backend/</code>).`;
+  } else {
+    box.innerHTML = `<span style="color:var(--color-text-muted)">— En attente</span>`;
+  }
 }
 
 /* ── Countdown ─────────────────────────────────────────────────── */
@@ -567,7 +636,7 @@ function renderKPI() {
     { lbl:'Zones suivies',    val:ZONES.length,                    meta:'Points autour de Kribi',         icon:'📍' },
     { lbl:'Température moy.', val:avg('temperature_2m')+' °C',    meta:'Open-Meteo — 8 zones',           icon:'🌡' },
     { lbl:'Humidité moy.',    val:avg('relative_humidity_2m')+' %', meta:'Open-Meteo — humidité relative', icon:'💧' },
-    { lbl:'GHI solaire moy.', val:ghiAvg+' Wh/m²',                meta:'NASA POWER CERES',               icon:'☀️' },
+    { lbl:'GHI solaire moy.', val:ghiAvg+' Wh/m²',                meta: ghiVals.length ? 'NASA POWER CERES' : 'NASA POWER indisponible', icon:'☀️' },
   ].map(k=>`
     <div class="kpi">
       <div class="kpi-icon">${k.icon}</div>
@@ -613,8 +682,14 @@ function renderSummary() {
         <div class="sum-item"><div class="sum-lbl">Coordonnées</div><div class="sum-val" style="font-size:var(--text-sm)">${z.lat.toFixed(2)}°N ${z.lon.toFixed(2)}°E</div></div>
       </div>`;
   } else {
-    html += `<p class="divider" style="margin-top:var(--space-4)"><span class="badge badge-blue">NASA POWER</span></p>
-      <p style="font-size:var(--text-xs);color:var(--color-text-muted);">Données non disponibles pour cette zone (proxy CORS).</p>`;
+    html += `
+      <p class="divider" style="margin-top:var(--space-4)"><span class="badge badge-muted">NASA POWER</span></p>
+      <div class="nasa-unavailable">
+        <div class="icon">🛰</div>
+        <h3>Données NASA POWER indisponibles</h3>
+        <p>L'API NASA POWER bloque les requêtes directes depuis le navigateur (CORS). Les données Open-Meteo restent disponibles.</p>
+        <p>Pour activer NASA POWER, déployez le backend Python du dépôt :<br><code>cd backend &amp;&amp; python proxy.py</code></p>
+      </div>`;
   }
   document.getElementById('zoneSummary').innerHTML = html || '<p style="color:var(--color-text-muted);font-size:var(--text-sm)">Données indisponibles.</p>';
 }
@@ -698,7 +773,7 @@ function updateMapPopups() {
     const ghi= nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : null;
     const ghiStr = ghi!==null ? `<br>☀️ GHI : <strong>${ghi.toFixed(0)} Wh/m²</strong>` : '';
     marker.bindPopup(c
-      ? `<strong>${name}</strong><br>🌡 ${c.temperature_2m}°C · 💧${c.relative_humidity_2m}%<br>🌧 ${c.precipitation}mm · 💨${c.wind_speed_10m}km/h · ☁ ${c.cloud_cover}%${ghiStr}<br><small style="color:#888">Open-Meteo + NASA POWER</small>`
+      ? `<strong>${name}</strong><br>🌡 ${c.temperature_2m}°C · 💧${c.relative_humidity_2m}%<br>🌧 ${c.precipitation}mm · 💨${c.wind_speed_10m}km/h · ☁ ${c.cloud_cover}%${ghiStr}<br><small style="color:#888">Open-Meteo${nd?' + NASA POWER':''}</small>`
       : `<strong>${name}</strong><br>Données indisponibles`);
   });
 }
@@ -783,11 +858,69 @@ function baseOpts(col,y1=false){
   };
 }
 
+/* ── Rendu panel NASA ──────────────────────────────────────────── */
+function renderNasaPanel(nasaD, col) {
+  const container = document.getElementById('nasaPanelContent');
+
+  if (!nasaD) {
+    container.innerHTML = `
+      <div class="nasa-unavailable">
+        <div class="icon">🛰</div>
+        <h3>Données NASA POWER non disponibles</h3>
+        <p>L'API NASA POWER ne peut pas être interrogée directement depuis un navigateur en raison des restrictions CORS.
+           Les données Open-Meteo (onglet ⛅) sont entièrement fonctionnelles.</p>
+        <p><strong>Pour débloquer NASA POWER :</strong> démarrez le backend proxy Python du dépôt :<br>
+           <code>cd backend &amp;&amp; python proxy.py</code><br>
+           puis rechargez le dashboard.</p>
+      </div>`;
+    return;
+  }
+
+  // Données disponibles → injecter les canvas et construire les graphiques
+  container.innerHTML = `
+    <div class="charts-panel visible" style="display:grid;">
+      <div>
+        <div class="chart-title">☀️ Irradiance solaire GHI (Wh/m²) — NASA POWER CERES</div>
+        <div class="chart-wrap"><canvas id="ghiChart"></canvas></div>
+      </div>
+      <div>
+        <div class="chart-title">💨 Vent 50m (m/s) &amp; Humidité spécifique (g/kg) — NASA POWER MERRA-2</div>
+        <div class="chart-wrap"><canvas id="windNasaChart"></canvas></div>
+      </div>
+    </div>`;
+
+  const ghiH  = nasaHourly(nasaD,'ALLSKY_SFC_SW_DWN');
+  const clrH  = nasaHourly(nasaD,'CLRSKY_SFC_SW_DWN');
+  const ws50H = nasaHourly(nasaD,'WS50M');
+  const qv2mH = nasaHourly(nasaD,'QV2M');
+
+  if (ghiH.times.length) {
+    const labels=makeLabels(ghiH.times), ni=nowIndex(ghiH.times), np=nowPlugin(ni,col);
+    state.charts.ghi = new Chart(document.getElementById('ghiChart'),{
+      type:'line', plugins:[np],
+      data:{labels,datasets:[
+        {label:'GHI all-sky (Wh/m²)',data:ghiH.values,borderColor:col.yellow,backgroundColor:col.yellow+'28',tension:.35,fill:true,pointRadius:2},
+        {label:'GHI ciel clair (Wh/m²)',data:clrH.values,borderColor:col.orange,backgroundColor:'transparent',tension:.35,pointRadius:2,borderDash:[4,3]}
+      ]},
+      options:baseOpts(col)
+    });
+  }
+  if (ws50H.times.length) {
+    const labels=makeLabels(ws50H.times), ni=nowIndex(ws50H.times), np=nowPlugin(ni,col);
+    state.charts.windNasa = new Chart(document.getElementById('windNasaChart'),{
+      type:'line', plugins:[np],
+      data:{labels,datasets:[
+        {label:'Vent 50m (m/s)',data:ws50H.values,borderColor:col.blue,backgroundColor:col.blue+'22',tension:.3,fill:true,pointRadius:2,yAxisID:'y'},
+        {label:'Hum. spécifique (g/kg)',data:qv2mH.values,borderColor:col.green,backgroundColor:'transparent',tension:.3,pointRadius:2,yAxisID:'y1'}
+      ]},
+      options:baseOpts(col,true)
+    });
+  }
+}
+
 function rebuildCharts() {
   ['temp','rain','ghi','windNasa'].forEach(k=>{ if(state.charts[k]){state.charts[k].destroy();delete state.charts[k];} });
   const col=getColors(), omD=getData(state.om,state.zone), nasaD=getData(state.nasa,state.zone);
-
-  document.getElementById('nasaWarnBar').style.display = !nasaD ? 'flex':'none';
 
   if (omD?.hourly) {
     const labels=makeLabels(omD.hourly.time), ni=nowIndex(omD.hourly.time), np=nowPlugin(ni,col);
@@ -806,31 +939,12 @@ function rebuildCharts() {
     });
   }
 
-  if (nasaD) {
-    const ghiH=nasaHourly(nasaD,'ALLSKY_SFC_SW_DWN'), clrH=nasaHourly(nasaD,'CLRSKY_SFC_SW_DWN');
-    const ws50H=nasaHourly(nasaD,'WS50M'), qv2mH=nasaHourly(nasaD,'QV2M');
-    if (ghiH.times.length) {
-      const labels=makeLabels(ghiH.times), ni=nowIndex(ghiH.times), np=nowPlugin(ni,col);
-      state.charts.ghi = new Chart(document.getElementById('ghiChart'),{
-        type:'line', plugins:[np],
-        data:{labels,datasets:[
-          {label:'GHI all-sky (Wh/m²)',data:ghiH.values,borderColor:col.yellow,backgroundColor:col.yellow+'28',tension:.35,fill:true,pointRadius:2},
-          {label:'GHI ciel clair (Wh/m²)',data:clrH.values,borderColor:col.orange,backgroundColor:'transparent',tension:.35,pointRadius:2,borderDash:[4,3]}
-        ]},
-        options:baseOpts(col)
-      });
-    }
-    if (ws50H.times.length) {
-      const labels=makeLabels(ws50H.times), ni=nowIndex(ws50H.times), np=nowPlugin(ni,col);
-      state.charts.windNasa = new Chart(document.getElementById('windNasaChart'),{
-        type:'line', plugins:[np],
-        data:{labels,datasets:[
-          {label:'Vent 50m (m/s)',data:ws50H.values,borderColor:col.blue,backgroundColor:col.blue+'22',tension:.3,fill:true,pointRadius:2,yAxisID:'y'},
-          {label:'Hum. spécifique (g/kg)',data:qv2mH.values,borderColor:col.green,backgroundColor:'transparent',tension:.3,pointRadius:2,yAxisID:'y1'}
-        ]},
-        options:baseOpts(col,true)
-      });
-    }
+  // Rendu du panel NASA (avec ou sans données)
+  if (state.activeTab === 'nasa') {
+    renderNasaPanel(nasaD, col);
+  } else {
+    // Préparer le contenu NASA en arrière-plan pour le prochain clic d'onglet
+    document.getElementById('nasaPanelContent').dataset.needsRebuild = '1';
   }
 }
 
@@ -842,6 +956,15 @@ function initTabs() {
       document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
       document.getElementById('panel-om').classList.toggle('visible',t==='om');
       document.getElementById('panel-nasa').classList.toggle('visible',t==='nasa');
+
+      // Construire le panel NASA au premier affichage
+      if (t==='nasa') {
+        const pc = document.getElementById('nasaPanelContent');
+        if (!pc.dataset.needsRebuild) return;
+        delete pc.dataset.needsRebuild;
+        const col=getColors(), nasaD=getData(state.nasa,state.zone);
+        renderNasaPanel(nasaD, col);
+      }
     });
   });
 }
