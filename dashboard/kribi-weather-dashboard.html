@@ -3,238 +3,401 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard météo - Kribi</title>
-  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
-  <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <title>Kribi Weather — Surveillance météo satellite</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
-    :root {
-      --text-xs:clamp(0.75rem,0.7rem + 0.25vw,0.875rem);
-      --text-sm:clamp(0.875rem,0.8rem + 0.35vw,1rem);
-      --text-base:clamp(1rem,0.95rem + 0.25vw,1.125rem);
-      --text-lg:clamp(1.125rem,1rem + 0.75vw,1.5rem);
+    /* ── Design tokens ──────────────────────────────────────────────── */
+    :root,[data-theme="light"]{
+      --text-xs:clamp(0.75rem,.7rem + .25vw,.875rem);
+      --text-sm:clamp(0.875rem,.8rem + .35vw,1rem);
+      --text-base:clamp(1rem,.95rem + .25vw,1.125rem);
+      --text-lg:clamp(1.125rem,1rem + .75vw,1.5rem);
       --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
       --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;
-      --space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;
-      --radius-sm:.375rem;--radius-md:.5rem;--radius-lg:.75rem;--radius-xl:1rem;
+      --space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;
+      --radius-sm:.375rem;--radius-md:.5rem;--radius-lg:.75rem;--radius-xl:1rem;--radius-full:9999px;
       --color-bg:#f7f6f2;--color-surface:#f9f8f5;--color-surface-2:#fbfbf9;
-      --color-border:#d4d1ca;--color-text:#28251d;--color-text-muted:#7a7974;
-      --color-text-faint:#bab9b4;--color-primary:#01696f;--color-primary-hover:#0c4e54;
-      --color-success:#437a22;--color-error:#a12c7b;--color-orange:#da7101;
-      --color-blue:#006494;
-      --shadow-sm:0 1px 2px rgba(40,37,29,.06);--shadow-md:0 8px 24px rgba(40,37,29,.08);
+      --color-surface-offset:#f3f0ec;--color-border:#d4d1ca;
+      --color-text:#28251d;--color-text-muted:#7a7974;--color-text-faint:#bab9b4;
+      --color-primary:#01696f;--color-primary-hover:#0c4e54;--color-primary-hl:rgba(1,105,111,.1);
+      --color-success:#437a22;--color-success-hl:rgba(67,122,34,.12);
+      --color-error:#a12c7b;--color-error-hl:rgba(161,44,123,.1);
+      --color-orange:#da7101;--color-orange-hl:rgba(218,113,1,.1);
+      --color-blue:#006494;--color-blue-hl:rgba(0,100,148,.1);
+      --color-gold:#d19900;
+      --shadow-sm:0 1px 2px rgba(40,37,29,.06);
+      --shadow-md:0 4px 16px rgba(40,37,29,.09);
+      --shadow-lg:0 12px 40px rgba(40,37,29,.13);
       --font-body:'Satoshi',sans-serif;
+      --transition:180ms cubic-bezier(.16,1,.3,1);
     }
-    [data-theme="dark"] {
+    [data-theme="dark"]{
       --color-bg:#171614;--color-surface:#1c1b19;--color-surface-2:#201f1d;
-      --color-border:#393836;--color-text:#cdccca;--color-text-muted:#9a9996;
-      --color-text-faint:#5a5957;--color-primary:#4f98a3;--color-primary-hover:#227f8b;
-      --color-success:#6daa45;--color-error:#d163a7;--color-orange:#fdab43;
-      --color-blue:#5591c7;
-      --shadow-sm:0 1px 2px rgba(0,0,0,.2);--shadow-md:0 12px 32px rgba(0,0,0,.35);
+      --color-surface-offset:#1d1c1a;--color-border:#393836;
+      --color-text:#cdccca;--color-text-muted:#797876;--color-text-faint:#5a5957;
+      --color-primary:#4f98a3;--color-primary-hover:#227f8b;--color-primary-hl:rgba(79,152,163,.12);
+      --color-success:#6daa45;--color-success-hl:rgba(109,170,69,.12);
+      --color-error:#d163a7;--color-error-hl:rgba(209,99,167,.1);
+      --color-orange:#fdab43;--color-orange-hl:rgba(253,171,67,.1);
+      --color-blue:#5591c7;--color-blue-hl:rgba(85,145,199,.1);
+      --color-gold:#e8af34;
+      --shadow-sm:0 1px 2px rgba(0,0,0,.2);
+      --shadow-md:0 4px 16px rgba(0,0,0,.32);
+      --shadow-lg:0 12px 40px rgba(0,0,0,.45);
     }
-    *{box-sizing:border-box;margin:0;padding:0;}
+
+    /* ── Reset ────────────────────────────────────────────────────── */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth;}
     body{font-family:var(--font-body);font-size:var(--text-base);color:var(--color-text);background:var(--color-bg);min-height:100vh;}
-    button,select{font:inherit;}
-    .app{display:grid;grid-template-columns:300px 1fr;min-height:100vh;}
-    .sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5);}
-    .brand{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);}
-    .brand-mark{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--color-primary),#5db7be);display:grid;place-items:center;color:white;box-shadow:var(--shadow-md);flex-shrink:0;}
-    .brand-title{font-size:var(--text-lg);font-weight:700;}
-    .brand-sub{color:var(--color-text-muted);font-size:var(--text-xs);}
-    .theme-toggle{width:38px;height:38px;border:1px solid var(--color-border);background:var(--color-surface-2);border-radius:999px;color:var(--color-text);cursor:pointer;display:grid;place-items:center;flex-shrink:0;}
-    .panel{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-4);box-shadow:var(--shadow-sm);}
-    .panel h3{font-size:var(--text-xs);margin-bottom:var(--space-3);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.08em;}
-    .zone-list{display:flex;flex-direction:column;gap:var(--space-1);max-height:220px;overflow:auto;}
-    .zone-option{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:transparent;cursor:pointer;border:1px solid transparent;width:100%;text-align:left;color:var(--color-text);font-size:var(--text-sm);}
-    .zone-option:hover,.zone-option.active{background:rgba(1,105,111,.08);border-color:rgba(1,105,111,.18);}
-    .dot{width:9px;height:9px;border-radius:999px;background:var(--color-primary);flex-shrink:0;}
-    .main{padding:var(--space-6);display:grid;gap:var(--space-5);}
+    button,select,input{font:inherit;color:inherit;}
+    img{display:block;max-width:100%;}
+
+    /* ── Layout principal ─────────────────────────────────────────── */
+    .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh;}
+
+    /* ── Sidebar ────────────────────────────────────────────────────── */
+    .sidebar{
+      background:var(--color-surface);
+      border-right:1px solid var(--color-border);
+      padding:var(--space-5) var(--space-4);
+      display:flex;flex-direction:column;gap:var(--space-4);
+      position:sticky;top:0;height:100vh;overflow-y:auto;
+    }
+    .brand{display:flex;align-items:center;gap:var(--space-3);padding-bottom:var(--space-4);border-bottom:1px solid var(--color-border);}
+    .brand-logo{
+      width:40px;height:40px;border-radius:10px;flex-shrink:0;
+      background:linear-gradient(135deg,var(--color-primary) 0%,#5db7be 100%);
+      display:grid;place-items:center;color:white;
+      box-shadow:var(--shadow-md);
+    }
+    .brand-name{font-size:var(--text-base);font-weight:700;line-height:1.2;}
+    .brand-sub{font-size:var(--text-xs);color:var(--color-text-muted);}
+    .theme-btn{
+      margin-left:auto;width:34px;height:34px;border-radius:var(--radius-full);
+      border:1px solid var(--color-border);background:var(--color-surface-2);
+      cursor:pointer;display:grid;place-items:center;
+      transition:background var(--transition),border-color var(--transition);flex-shrink:0;
+    }
+    .theme-btn:hover{background:var(--color-surface-offset);}
+
+    .section-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--space-2);}
+    .sidebar-panel{display:flex;flex-direction:column;gap:var(--space-1);}
+
+    .zone-btn{
+      display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);
+      border-radius:var(--radius-lg);border:1px solid transparent;
+      background:transparent;cursor:pointer;text-align:left;
+      font-size:var(--text-sm);color:var(--color-text);
+      transition:background var(--transition),border-color var(--transition);
+    }
+    .zone-btn:hover{background:var(--color-primary-hl);}
+    .zone-btn.active{background:var(--color-primary-hl);border-color:rgba(1,105,111,.25);}
+    .zone-btn .zdot{width:8px;height:8px;border-radius:50%;background:var(--color-primary);flex-shrink:0;}
+    .zone-btn .zname{flex:1;}
+    .zone-btn .ztemp{font-size:var(--text-xs);color:var(--color-text-muted);font-weight:600;}
+
+    .layer-toggle{
+      display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);
+      padding:var(--space-2) var(--space-3);border-radius:var(--radius-md);
+      background:var(--color-surface-2);border:1px solid var(--color-border);
+      font-size:var(--text-xs);cursor:pointer;
+    }
+    .layer-toggle input[type=radio]{accent-color:var(--color-primary);cursor:pointer;}
+
+    /* ── Main ─────────────────────────────────────────────────────── */
+    .main{padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5);min-width:0;}
+
+    /* ── Topbar ───────────────────────────────────────────────────── */
     .topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-4);flex-wrap:wrap;}
-    .title h1{font-size:var(--text-xl);line-height:1.05;margin-bottom:var(--space-2);}
-    .title p{color:var(--color-text-muted);max-width:70ch;font-size:var(--text-sm);}
-    .actions{display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap;}
-    .btn{border-radius:999px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);padding:.6rem 1.2rem;cursor:pointer;font-size:var(--text-sm);}
-    .select{border-radius:var(--radius-lg);border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-text);padding:.6rem 1rem;font-size:var(--text-sm);}
+    .topbar-title h1{font-size:var(--text-xl);font-weight:700;line-height:1.1;}
+    .topbar-title p{font-size:var(--text-sm);color:var(--color-text-muted);margin-top:var(--space-1);max-width:60ch;}
+    .topbar-actions{display:flex;gap:var(--space-2);align-items:center;flex-wrap:wrap;}
+    .btn{
+      border-radius:var(--radius-full);border:1px solid var(--color-border);
+      background:var(--color-surface);padding:.5rem 1.1rem;cursor:pointer;
+      font-size:var(--text-sm);font-weight:500;
+      transition:background var(--transition),box-shadow var(--transition);
+    }
+    .btn:hover{background:var(--color-surface-offset);}
     .btn.primary{background:var(--color-primary);color:white;border-color:var(--color-primary);}
     .btn.primary:hover{background:var(--color-primary-hover);}
-    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4);}
-    .metric-card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-5);box-shadow:var(--shadow-sm);}
-    .metric-label{font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-2);text-transform:uppercase;letter-spacing:.05em;}
-    .metric-value{font-size:var(--text-xl);font-weight:700;line-height:1.1;}
-    .metric-meta{margin-top:var(--space-2);color:var(--color-text-muted);font-size:var(--text-xs);}
-    .content-grid{display:grid;grid-template-columns:1.3fr 0.7fr;gap:var(--space-4);}
-    .card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-5);box-shadow:var(--shadow-sm);}
-    .card-header{display:flex;justify-content:space-between;gap:var(--space-3);align-items:flex-start;margin-bottom:var(--space-4);flex-wrap:wrap;}
-    .card-header h2{font-size:var(--text-lg);font-weight:700;}
-    .card-header p{color:var(--color-text-muted);font-size:var(--text-xs);margin-top:var(--space-1);}
-    #map{height:400px;border-radius:var(--radius-lg);overflow:hidden;}
-    .zone-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);}
-    .summary-item{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);}
-    .summary-item-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--space-1);}
-    .summary-item-value{font-size:var(--text-lg);font-weight:700;}
-    .tabs{display:flex;gap:var(--space-2);margin-bottom:var(--space-4);}
-    .tab{border-radius:999px;border:1px solid var(--color-border);background:var(--color-surface-2);color:var(--color-text-muted);padding:.45rem 1rem;cursor:pointer;font-size:var(--text-xs);font-weight:600;}
+    .status-chip{
+      display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .8rem;
+      border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:600;
+      background:var(--color-success-hl);color:var(--color-success);
+    }
+    .status-chip.loading{background:var(--color-blue-hl);color:var(--color-blue);}
+    .status-chip.error{background:var(--color-error-hl);color:var(--color-error);}
+    .countdown{font-size:var(--text-xs);color:var(--color-text-muted);}
+
+    /* ── KPI cards ───────────────────────────────────────────────── */
+    .kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4);}
+    .kpi{
+      background:var(--color-surface);border:1px solid var(--color-border);
+      border-radius:var(--radius-xl);padding:var(--space-5);
+      box-shadow:var(--shadow-sm);
+    }
+    .kpi-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2);}
+    .kpi-value{font-size:var(--text-xl);font-weight:700;line-height:1;}
+    .kpi-meta{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-2);}
+    .kpi-icon{float:right;margin-top:-2px;opacity:.35;font-size:1.4rem;}
+
+    /* ── Grid contenu ───────────────────────────────────────────── */
+    .content-grid{display:grid;grid-template-columns:1.5fr .7fr;gap:var(--space-4);}
+    .card{
+      background:var(--color-surface);border:1px solid var(--color-border);
+      border-radius:var(--radius-xl);padding:var(--space-5);box-shadow:var(--shadow-sm);
+    }
+    .card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:var(--space-3);margin-bottom:var(--space-4);flex-wrap:wrap;}
+    .card-head h2{font-size:var(--text-lg);font-weight:700;}
+    .card-head p{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;}
+
+    /* ── Carte Leaflet ─────────────────────────────────────────── */
+    #map{height:420px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-border);}
+
+    /* ── Panneau satellite infos ────────────────────────────────── */
+    .sat-info{
+      display:flex;flex-direction:column;gap:var(--space-3);
+      background:var(--color-surface-2);border-radius:var(--radius-lg);
+      padding:var(--space-4);border:1px solid var(--color-border);margin-bottom:var(--space-4);
+    }
+    .sat-row{display:flex;justify-content:space-between;align-items:center;font-size:var(--text-xs);}
+    .sat-row span:first-child{color:var(--color-text-muted);}
+    .sat-row span:last-child{font-weight:600;}
+
+    /* ── Summary grid ───────────────────────────────────────────── */
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);}
+    .sum-item{
+      background:var(--color-surface-2);border:1px solid var(--color-border);
+      border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4);
+    }
+    .sum-lbl{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:var(--space-1);}
+    .sum-val{font-size:var(--text-lg);font-weight:700;}
+    .sum-src{font-size:var(--text-xs);color:var(--color-text-faint);margin-top:2px;}
+
+    /* ── Onglets ───────────────────────────────────────────────── */
+    .tabs{display:flex;gap:var(--space-2);}
+    .tab{
+      border-radius:var(--radius-full);border:1px solid var(--color-border);
+      background:var(--color-surface-2);color:var(--color-text-muted);
+      padding:.4rem 1rem;cursor:pointer;font-size:var(--text-xs);font-weight:600;
+      transition:background var(--transition),color var(--transition);
+    }
+    .tab:hover{background:var(--color-primary-hl);color:var(--color-primary);}
     .tab.active{background:var(--color-primary);color:white;border-color:var(--color-primary);}
-    .charts-panel{display:none;}
-    .charts-panel.visible{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);}
-    .chart-wrap{position:relative;height:280px;}
-    .source-badge{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .65rem;border-radius:999px;font-size:var(--text-xs);font-weight:700;margin-right:.4rem;}
-    .badge-teal{background:rgba(1,105,111,.12);color:var(--color-primary);}
-    .badge-blue{background:rgba(0,100,148,.12);color:var(--color-blue);}
-    .badge-green{background:rgba(67,122,34,.12);color:var(--color-success);}
-    .badge-warn{background:rgba(218,113,1,.12);color:var(--color-orange);}
+
+    /* ── Graphiques ───────────────────────────────────────────── */
+    .charts-panel{display:none;grid-template-columns:1fr 1fr;gap:var(--space-4);}
+    .charts-panel.visible{display:grid;}
+    .chart-wrap{position:relative;height:260px;}
+    .chart-title{font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-3);}
+
+    /* ── Badge source ─────────────────────────────────────────── */
+    .badge{
+      display:inline-flex;align-items:center;gap:.3rem;
+      padding:.2rem .6rem;border-radius:var(--radius-full);
+      font-size:var(--text-xs);font-weight:700;
+    }
+    .badge-teal{background:var(--color-primary-hl);color:var(--color-primary);}
+    .badge-blue{background:var(--color-blue-hl);color:var(--color-blue);}
+    .badge-green{background:var(--color-success-hl);color:var(--color-success);}
+    .badge-orange{background:var(--color-orange-hl);color:var(--color-orange);}
+
+    /* ── Tableau ─────────────────────────────────────────────── */
     .table-wrap{overflow-x:auto;}
     table{width:100%;border-collapse:collapse;}
-    th,td{text-align:left;padding:.85rem .75rem;border-bottom:1px solid var(--color-border);font-size:var(--text-sm);white-space:nowrap;}
-    th{color:var(--color-text-muted);font-weight:600;font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;}
-    tr:hover td{background:rgba(1,105,111,.04);}
-    tr.selected td{background:rgba(1,105,111,.08);font-weight:600;}
-    .status-bar{display:inline-flex;align-items:center;gap:.45rem;padding:.4rem .8rem;border-radius:999px;background:rgba(67,122,34,.12);color:var(--color-success);font-size:var(--text-xs);font-weight:600;}
-    .status-bar.loading{background:rgba(0,100,148,.1);color:var(--color-blue);}
-    .status-bar.error{background:rgba(161,44,123,.1);color:var(--color-error);}
-    .countdown{font-size:var(--text-xs);color:var(--color-text-muted);padding:.4rem .8rem;border-radius:999px;border:1px solid var(--color-border);}
-    .loading-text{color:var(--color-text-muted);font-style:italic;}
-    .nasa-warn{display:flex;align-items:flex-start;gap:.5rem;padding:var(--space-3) var(--space-4);background:rgba(218,113,1,.08);border:1px solid rgba(218,113,1,.2);border-radius:var(--radius-lg);font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-4);}
-    .section-divider{font-size:var(--text-xs);color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.1em;margin:var(--space-4) 0 var(--space-2);padding-bottom:var(--space-2);border-bottom:1px solid var(--color-border);}
-    @media(max-width:1200px){.metrics{grid-template-columns:1fr 1fr;}.content-grid{grid-template-columns:1fr;}.charts-panel.visible{grid-template-columns:1fr;}}
-    @media(max-width:900px){.app{grid-template-columns:1fr;}.sidebar{border-right:none;border-bottom:1px solid var(--color-border);}}
-    @media(max-width:600px){.metrics{grid-template-columns:1fr;}.zone-summary-grid{grid-template-columns:1fr;}.main{padding:var(--space-4);}}
+    th,td{text-align:left;padding:.8rem .75rem;border-bottom:1px solid var(--color-border);font-size:var(--text-sm);white-space:nowrap;}
+    th{color:var(--color-text-muted);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+    tr:hover td{background:var(--color-primary-hl);}
+    tr.sel td{background:var(--color-primary-hl);font-weight:600;}
+
+    /* ── Alerte/info ─────────────────────────────────────────── */
+    .info-bar{
+      display:flex;align-items:flex-start;gap:.5rem;padding:var(--space-3) var(--space-4);
+      background:var(--color-orange-hl);border:1px solid rgba(218,113,1,.2);
+      border-radius:var(--radius-lg);font-size:var(--text-xs);color:var(--color-text-muted);
+      margin-bottom:var(--space-4);
+    }
+    .divider{font-size:var(--text-xs);color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.1em;padding:.75rem 0 .4rem;border-bottom:1px solid var(--color-border);margin-bottom:var(--space-3);}
+
+    /* ── Skeleton ────────────────────────────────────────────── */
+    @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+    .skel{
+      background:linear-gradient(90deg,var(--color-surface-offset) 25%,var(--color-border) 50%,var(--color-surface-offset) 75%);
+      background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;
+      border-radius:var(--radius-sm);height:1em;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media(max-width:1200px){.kpi-row{grid-template-columns:1fr 1fr;}.content-grid{grid-template-columns:1fr;}.charts-panel.visible{grid-template-columns:1fr;}}
+    @media(max-width:860px){.app{grid-template-columns:1fr;}.sidebar{height:auto;position:static;border-right:none;border-bottom:1px solid var(--color-border);padding:var(--space-4);}}
+    @media(max-width:580px){.kpi-row{grid-template-columns:1fr;}.main{padding:var(--space-4);}.summary-grid{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
 <div class="app">
+
+  <!-- ══════════════ SIDEBAR ══════════════ -->
   <aside class="sidebar">
     <div class="brand">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div class="brand-mark">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-label="Logo météo Kribi">
-            <path d="M4 14c0-2.2 1.8-4 4-4 .5-2.8 2.8-5 5.8-5 3.2 0 5.9 2.6 5.9 5.9 1.3.3 2.3 1.5 2.3 2.9 0 1.7-1.3 3.1-3.1 3.1H8.2C5.9 17 4 15.7 4 14Z"/>
-            <path d="M8 20l1-2M12 20l1-2M16 20l1-2"/>
-          </svg>
-        </div>
-        <div>
-          <div class="brand-title">Kribi Weather</div>
-          <div class="brand-sub">Open-Meteo + NASA POWER</div>
-        </div>
+      <div class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-label="Logo SAMCAM">
+          <path d="M3 14c0-2.2 1.8-4 4-4 .4-2.8 2.8-5 5.8-5 3.2 0 5.8 2.6 5.8 5.9 1.3.3 2.4 1.4 2.4 2.9 0 1.7-1.4 3.1-3.2 3.1H7.2C5 17 3 15.7 3 14z"/>
+          <path d="M15 6.5l2.5-2.5M17.5 4l1.5 1.5M16 5l1 1"/>
+        </svg>
       </div>
-      <button class="theme-toggle" data-theme-toggle aria-label="Changer de thème"></button>
+      <div>
+        <div class="brand-name">SAMCAM</div>
+        <div class="brand-sub">Open-Meteo · NASA POWER</div>
+      </div>
+      <button class="theme-btn" data-theme-toggle aria-label="Changer de thème"></button>
     </div>
 
-    <section class="panel">
-      <h3>Zone active</h3>
-      <select id="zoneSelect" class="select" style="width:100%;"></select>
-    </section>
+    <!-- Zone select -->
+    <div>
+      <div class="section-label">Zone active</div>
+      <select id="zoneSelect" style="width:100%;padding:.55rem .75rem;border-radius:var(--radius-lg);border:1px solid var(--color-border);background:var(--color-surface-2);font-size:var(--text-sm);color:var(--color-text);cursor:pointer;"></select>
+    </div>
 
-    <section class="panel">
-      <h3>Zones couvertes</h3>
-      <div id="zoneList" class="zone-list"></div>
-    </section>
+    <!-- Liste zones -->
+    <div>
+      <div class="section-label">Toutes les zones</div>
+      <div class="sidebar-panel" id="zoneList"></div>
+    </div>
 
-    <section class="panel">
-      <h3>Sources de données</h3>
-      <div class="section-divider">Open-Meteo (temps réel)</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
-        <span class="source-badge badge-teal">Température</span>
-        <span class="source-badge badge-teal">Humidité</span>
-        <span class="source-badge badge-teal">Précipitations</span>
-        <span class="source-badge badge-teal">Vent 10m</span>
-        <span class="source-badge badge-teal">Pression</span>
-        <span class="source-badge badge-teal">Nébulosité</span>
+    <!-- Couches carte -->
+    <div>
+      <div class="section-label">Fond de carte</div>
+      <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+        <label class="layer-toggle"><span>🗺 Carte OSM</span><input type="radio" name="basemap" value="osm" checked></label>
+        <label class="layer-toggle"><span>🛰 Satellite Esri</span><input type="radio" name="basemap" value="sat"></label>
+        <label class="layer-toggle"><span>🌙 Fond sombre</span><input type="radio" name="basemap" value="dark"></label>
       </div>
-      <div class="section-divider">NASA POWER / MERRA-2 + CERES</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.4rem;">
-        <span class="source-badge badge-blue">Irradiance solaire</span>
-        <span class="source-badge badge-blue">Ciel dégagé</span>
-        <span class="source-badge badge-blue">Vent 50m</span>
-        <span class="source-badge badge-blue">Hum. spécifique</span>
-        <span class="source-badge badge-blue">Pluie MERRA-2</span>
-      </div>
-    </section>
+    </div>
 
-    <section class="panel">
-      <h3>Fréquence</h3>
-      <p class="brand-sub">Fenêtre glissante 24h (12h passées + 12h à venir).<br>Cache 15 min par zone et par source.<br>Auto-refresh toutes les 15 min.</p>
-    </section>
+    <!-- Sources -->
+    <div>
+      <div class="section-label">Sources de données</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem;">
+        <span class="badge badge-teal">Open-Meteo</span>
+        <span class="badge badge-blue">NASA POWER</span>
+        <span class="badge badge-green">MERRA-2</span>
+        <span class="badge badge-orange">CERES/GHI</span>
+      </div>
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-3);line-height:1.5;">Fenêtre glissante 24h (12h passées + 12h à venir). Cache 15 min par zone. Auto-refresh toutes les 15 min.</p>
+    </div>
   </aside>
 
+  <!-- ══════════════ MAIN ══════════════ -->
   <main class="main">
+
+    <!-- Topbar -->
     <div class="topbar">
-      <div class="title">
+      <div class="topbar-title">
         <h1>Surveillance météo — Kribi et alentours</h1>
-        <p>Données Open-Meteo (temps réel) et NASA POWER (MERRA-2/CERES) sur 8 zones. Sélectionnez une zone via la liste, la carte ou le menu.</p>
+        <p>Données temps réel Open-Meteo + imagerie satellite NASA POWER sur 8 zones du littoral camerounais.</p>
       </div>
-      <div class="actions">
+      <div class="topbar-actions">
         <button class="btn primary" id="refreshBtn">⟳ Actualiser</button>
         <span class="countdown" id="countdown"></span>
-        <div class="status-bar loading" id="statusBar"><span id="updateStatus">Chargement...</span></div>
+        <span class="status-chip loading" id="statusChip"><span id="statusTxt">Chargement…</span></span>
       </div>
     </div>
 
-    <section class="metrics" id="metrics"></section>
+    <!-- KPI -->
+    <div class="kpi-row" id="kpiRow">
+      <div class="kpi"><div class="kpi-label">Zones suivies</div><div class="kpi-value skel" style="height:2rem;width:3rem;margin-top:4px;"></div></div>
+      <div class="kpi"><div class="kpi-label">Temp. moyenne</div><div class="kpi-value skel" style="height:2rem;width:5rem;margin-top:4px;"></div></div>
+      <div class="kpi"><div class="kpi-label">Humidité moy.</div><div class="kpi-value skel" style="height:2rem;width:5rem;margin-top:4px;"></div></div>
+      <div class="kpi"><div class="kpi-label">GHI solaire moy.</div><div class="kpi-value skel" style="height:2rem;width:6rem;margin-top:4px;"></div></div>
+    </div>
 
-    <section class="content-grid">
+    <!-- Carte + résumé -->
+    <div class="content-grid">
       <article class="card">
-        <div class="card-header">
-          <div><h2>Carte des zones</h2><p>Cliquez sur un marqueur pour sélectionner une zone.</p></div>
+        <div class="card-head">
+          <div>
+            <h2>Carte des zones</h2>
+            <p>Cliquez sur un marqueur pour sélectionner la zone. Changez le fond via la barre latérale.</p>
+          </div>
+          <div id="mapLayerBadge" class="badge badge-teal">🗺 OSM</div>
         </div>
         <div id="map"></div>
       </article>
-      <article class="card">
-        <div class="card-header">
-          <div><h2 id="summaryTitle">Résumé zone</h2><p>Mesures actuelles — Open-Meteo + NASA POWER.</p></div>
-        </div>
-        <div id="zoneSummary"><p class="loading-text">Chargement des données...</p></div>
-      </article>
-    </section>
 
-    <!-- Graphiques avec onglets Open-Meteo / NASA POWER -->
+      <article class="card">
+        <div class="card-head">
+          <div>
+            <h2 id="summaryTitle">Résumé zone</h2>
+            <p id="summaryTime">Dernière mise à jour : —</p>
+          </div>
+        </div>
+
+        <!-- Infos satellite statiques -->
+        <div class="sat-info">
+          <div class="sat-row"><span>🛰 Source imagerie</span><span>NASA POWER / CERES</span></div>
+          <div class="sat-row"><span>📡 Résolution spatiale</span><span>~0.5° × 0.625°</span></div>
+          <div class="sat-row"><span>⏱ Latence données</span><span>~1–3 jours (MERRA-2)</span></div>
+          <div class="sat-row"><span>🌍 Projection</span><span>Geographic WGS 84</span></div>
+        </div>
+
+        <div id="zoneSummary"><p style="color:var(--color-text-muted);font-size:var(--text-sm);">Chargement des données…</p></div>
+      </article>
+    </div>
+
+    <!-- Graphiques -->
     <section class="card">
-      <div class="card-header">
-        <div><h2>Graphiques 24h glissantes</h2><p id="chartZoneLabel">Zone sélectionnée</p></div>
+      <div class="card-head">
+        <div>
+          <h2>Séries temporelles — 24h glissantes</h2>
+          <p id="chartZoneLabel">Zone sélectionnée</p>
+        </div>
         <div class="tabs">
-          <button class="tab active" data-tab="om">Open-Meteo</button>
-          <button class="tab" data-tab="nasa">NASA POWER</button>
+          <button class="tab active" data-tab="om">⛅ Open-Meteo</button>
+          <button class="tab" data-tab="nasa">🛰 NASA POWER</button>
         </div>
       </div>
 
       <!-- Panel Open-Meteo -->
       <div id="panel-om" class="charts-panel visible">
-        <article>
-          <div style="margin-bottom:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);">Température (°C)</div>
+        <div>
+          <div class="chart-title">🌡 Température (°C) — Open-Meteo</div>
           <div class="chart-wrap"><canvas id="tempChart"></canvas></div>
-        </article>
-        <article>
-          <div style="margin-bottom:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);">Précipitations (mm) &amp; Humidité (%)</div>
+        </div>
+        <div>
+          <div class="chart-title">🌧 Précipitations (mm) &amp; Humidité (%) — Open-Meteo</div>
           <div class="chart-wrap"><canvas id="rainChart"></canvas></div>
-        </article>
+        </div>
       </div>
 
       <!-- Panel NASA POWER -->
       <div id="panel-nasa" class="charts-panel">
-        <div class="nasa-warn" id="nasaWarn" style="display:none;">
-          ⚠️ NASA POWER : données non disponibles pour cette zone. Les requêtes passent via un proxy CORS (allorigins.win). Si la bannière persiste, vérifiez la console ou utilisez un backend dédié.
+        <div id="nasaWarnBar" class="info-bar" style="display:none;">
+          ⚠️ NASA POWER : données non disponibles pour cette zone (proxy CORS). Vérifiez la console ou utilisez un backend dédié.
         </div>
-        <article>
-          <div style="margin-bottom:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);">Irradiance solaire GHI (Wh/m²) — CERES</div>
+        <div>
+          <div class="chart-title">☀️ Irradiance solaire GHI (Wh/m²) — NASA POWER CERES</div>
           <div class="chart-wrap"><canvas id="ghiChart"></canvas></div>
-        </article>
-        <article>
-          <div style="margin-bottom:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted);">Vent 50m (m/s) &amp; Humidité spécifique (g/kg) — MERRA-2</div>
+        </div>
+        <div>
+          <div class="chart-title">💨 Vent 50m (m/s) &amp; Humidité spécifique (g/kg) — NASA POWER MERRA-2</div>
           <div class="chart-wrap"><canvas id="windNasaChart"></canvas></div>
-        </article>
+        </div>
       </div>
     </section>
 
     <!-- Tableau comparatif -->
     <section class="card">
-      <div class="card-header">
+      <div class="card-head">
         <div>
           <h2>Tableau comparatif — 8 zones</h2>
-          <p>Open-Meteo : mesures actuelles + <span class="source-badge badge-blue" style="font-size:.7rem;">NASA POWER</span> irradiance solaire dernière heure.</p>
+          <p>Open-Meteo (temps réel) + <span class="badge badge-blue" style="vertical-align:middle;">NASA POWER</span> GHI dernière heure.</p>
         </div>
+        <button class="btn" id="exportBtn">⬇ Exporter CSV</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -245,20 +408,23 @@
               <th>Humidité (%)</th>
               <th>Pluie (mm)</th>
               <th>Vent (km/h)</th>
-              <th>Dir. (°)</th>
+              <th>Dir. vent (°)</th>
               <th>Pression (hPa)</th>
-              <th>Nébul. (%)</th>
-              <th>GHI (Wh/m²)</th>
+              <th>Nébulosité (%)</th>
+              <th>GHI Wh/m² ☀️</th>
             </tr>
           </thead>
           <tbody id="zonesTable"></tbody>
         </table>
       </div>
     </section>
+
   </main>
 </div>
 
+<!-- ══════════════ SCRIPT ══════════════ -->
 <script>
+/* ── Zones géographiques ──────────────────────────────────────── */
 const ZONES = [
   { name:'Kribi Centre', lat:2.9397, lon:9.9132 },
   { name:'Kribi Port',   lat:2.9500, lon:9.9200 },
@@ -270,32 +436,22 @@ const ZONES = [
   { name:'Ebolowa',      lat:2.9000, lon:11.1500 }
 ];
 
-const CACHE_TTL = 15 * 60 * 1000;
-const AUTO_MS   = 15 * 60 * 1000;
-
-// ── Variables API ──────────────────────────────────────────────────────
-const OM_CURRENT = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m';
-const OM_HOURLY  = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m';
-
-// NASA POWER : paramètres disponibles en horaire (ALLSKY_SFC_UV_INDEX retiré — daily seulement)
-const NASA_PARAMS    = 'ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,WS50M,QV2M,T2M,RH2M,PRECTOTCORR';
-const NASA_COMMUNITY = 'ag';
-
-// ── Proxy CORS pour NASA POWER ─────────────────────────────────────────
-// NASA POWER ne renvoie pas Access-Control-Allow-Origin depuis le navigateur.
-// allorigins.win est un proxy public CORS qui encapsule la réponse dans { contents: "..." }.
+const CACHE_TTL = 15*60*1000;
+const AUTO_MS   = 15*60*1000;
 const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
 
+const OM_CURRENT = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m';
+const OM_HOURLY  = 'temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m';
+const NASA_PARAMS = 'ALLSKY_SFC_SW_DWN,CLRSKY_SFC_SW_DWN,WS50M,QV2M,T2M,RH2M,PRECTOTCORR';
+
 const state = {
-  zone:'Kribi Centre',
-  om:{}, nasa:{},
-  map:null, markers:[], charts:{},
-  nextRefresh:null, cdi:null,
-  activeTab:'om'
+  zone:'Kribi Centre', om:{}, nasa:{},
+  map:null, baseLayers:{}, markers:[],
+  charts:{}, nextRefresh:null, cdi:null, activeTab:'om'
 };
 
-// ── Helpers date ───────────────────────────────────────────────────────
-function pad(n){ return String(n).padStart(2,'0'); }
+/* ── Helpers date ──────────────────────────────────────────────── */
+const pad = n => String(n).padStart(2,'0');
 function nasaDates() {
   const now  = new Date();
   const prev = new Date(now); prev.setDate(now.getDate()-1);
@@ -303,52 +459,43 @@ function nasaDates() {
   return { start: fmt(prev), end: fmt(now) };
 }
 
-// ── URLs ───────────────────────────────────────────────────────────────
-function omUrl(z) {
-  return `https://api.open-meteo.com/v1/forecast`
-    +`?latitude=${z.lat}&longitude=${z.lon}`
-    +`&current=${OM_CURRENT}&hourly=${OM_HOURLY}`
-    +`&past_hours=12&forecast_hours=12&timezone=auto`;
-}
+/* ── URLs ──────────────────────────────────────────────────────── */
+const omUrl = z =>
+  `https://api.open-meteo.com/v1/forecast?latitude=${z.lat}&longitude=${z.lon}`+
+  `&current=${OM_CURRENT}&hourly=${OM_HOURLY}&past_hours=12&forecast_hours=12&timezone=auto`;
+
 function nasaUrl(z) {
   const { start, end } = nasaDates();
-  const base = `https://power.larc.nasa.gov/api/temporal/hourly/point`
-    +`?parameters=${NASA_PARAMS}`
-    +`&community=${NASA_COMMUNITY}`
-    +`&longitude=${z.lon}&latitude=${z.lat}`
-    +`&start=${start}&end=${end}`
-    +`&format=json&time-standard=LST`;
+  const base = `https://power.larc.nasa.gov/api/temporal/hourly/point`+
+    `?parameters=${NASA_PARAMS}&community=ag`+
+    `&longitude=${z.lon}&latitude=${z.lat}`+
+    `&start=${start}&end=${end}&format=json&time-standard=LST`;
   return CORS_PROXY + encodeURIComponent(base);
 }
 
-// ── Cache ──────────────────────────────────────────────────────────────
-const isFresh = (store, name) => store[name] && (Date.now()-store[name].fetchedAt) < CACHE_TTL;
-const getData  = (store, name) => store[name]?.data ?? null;
+/* ── Cache ─────────────────────────────────────────────────────── */
+const isFresh = (s,n) => s[n] && (Date.now()-s[n].fetchedAt) < CACHE_TTL;
+const getData = (s,n) => s[n]?.data ?? null;
+const delay   = ms => new Promise(r=>setTimeout(r,ms));
 
-// ── Fetch avec parsing robuste NASA POWER ────────────────────────────
+/* ── Fetch NASA avec parsing robuste ───────────────────────────── */
 async function fetchNasa(z) {
   try {
     const r = await fetch(nasaUrl(z));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    // allorigins renvoie directement le JSON brut quand on utilise /raw
-    // on tente JSON.parse direct, fallback sur .contents si wrappé
+    if (!r.ok) throw new Error('HTTP '+r.status);
     const text = await r.text();
-    let parsed;
-    try { parsed = JSON.parse(text); } catch(e) { throw new Error('JSON invalide'); }
-    // Certains proxies wrappent dans { contents: "..." }
-    if (parsed && typeof parsed.contents === 'string') {
-      parsed = JSON.parse(parsed.contents);
-    }
-    // Vérification : la réponse NASA POWER doit avoir properties.parameter
-    if (!parsed?.properties?.parameter) throw new Error('Structure NASA POWER inattendue');
-    return parsed;
+    let p;
+    try { p = JSON.parse(text); } catch(e) { throw new Error('JSON invalide'); }
+    if (p?.contents) p = JSON.parse(p.contents);
+    if (!p?.properties?.parameter) throw new Error('Structure NASA inattendue');
+    return p;
   } catch(e) {
-    console.warn(`NASA POWER [${z.name}] :`, e.message);
+    console.warn(`NASA POWER [${z.name}]:`, e.message);
     return null;
   }
 }
 
-// ── Fetch séquentiel toutes les zones ────────────────────────────────
+/* ── Fetch toutes les zones ────────────────────────────────────── */
 async function fetchAll(force=false) {
   setStatus('loading','Chargement en cours…');
   for (const z of ZONES) {
@@ -362,24 +509,21 @@ async function fetchAll(force=false) {
       await delay(200);
     }
     if (force || !isFresh(state.nasa, z.name)) {
-      const data = await fetchNasa(z);
-      state.nasa[z.name] = { data, fetchedAt: Date.now() };
-      await delay(500); // NASA POWER rate-limit : espacer les requêtes
+      state.nasa[z.name] = { data: await fetchNasa(z), fetchedAt: Date.now() };
+      await delay(500);
     }
   }
   setStatus('ok','Mis à jour : '+new Date().toLocaleTimeString('fr-FR'));
-  state.nextRefresh = Date.now() + AUTO_MS;
+  state.nextRefresh = Date.now()+AUTO_MS;
 }
-
-function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 function setStatus(type, msg) {
-  const bar = document.getElementById('statusBar');
-  bar.className = 'status-bar ' + (type==='ok'?'':'loading');
-  document.getElementById('updateStatus').textContent = msg;
+  const c = document.getElementById('statusChip');
+  c.className = 'status-chip '+(type==='ok'?'':'loading');
+  document.getElementById('statusTxt').textContent = msg;
 }
 
-// ── Countdown ──────────────────────────────────────────────────────────
+/* ── Countdown ─────────────────────────────────────────────────── */
 function startCountdown() {
   if (state.cdi) clearInterval(state.cdi);
   state.cdi = setInterval(()=>{
@@ -390,102 +534,102 @@ function startCountdown() {
   },1000);
 }
 
-// ── Helpers NASA POWER ─────────────────────────────────────────────────
-// Les clés horaires NASA POWER sont au format YYYYMMDDHH (ex: 2025061014)
-function nasaLastVal(nasaData, param) {
+/* ── Helpers NASA POWER ────────────────────────────────────────── */
+function nasaLastVal(d, param) {
   try {
-    const vals = Object.values(nasaData.properties.parameter[param]);
-    const valid = vals.filter(v => v !== -999 && v !== null && v !== undefined);
-    return valid.length ? valid[valid.length-1] : null;
+    const vals = Object.values(d.properties.parameter[param]);
+    const ok = vals.filter(v => v !== -999 && v != null);
+    return ok.length ? ok[ok.length-1] : null;
   } catch(e) { return null; }
 }
-
-function nasaHourly(nasaData, param) {
-  if (!nasaData?.properties?.parameter?.[param]) return { times:[], values:[] };
-  const entries = Object.entries(nasaData.properties.parameter[param]);
-  const valid   = entries.filter(([,v])=> v !== -999 && v !== null && v !== undefined);
+function nasaHourly(d, param) {
+  if (!d?.properties?.parameter?.[param]) return { times:[], values:[] };
+  const e = Object.entries(d.properties.parameter[param])
+    .filter(([,v]) => v !== -999 && v != null);
   return {
-    // Convertit YYYYMMDDHH → ISO string
-    times:  valid.map(([k])=> k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8)+'T'+k.slice(8,10)+':00'),
-    values: valid.map(([,v])=>v)
+    times:  e.map(([k]) => k.slice(0,4)+'-'+k.slice(4,6)+'-'+k.slice(6,8)+'T'+k.slice(8,10)+':00'),
+    values: e.map(([,v]) => v)
   };
 }
 
-// ── KPI ────────────────────────────────────────────────────────────────
-function renderMetrics() {
+/* ── KPI ───────────────────────────────────────────────────────── */
+function renderKPI() {
   const currents = ZONES.map(z=>getData(state.om,z.name)?.current).filter(Boolean);
   if (!currents.length) return;
-  const avg = k=>(currents.reduce((a,c)=>a+(c[k]||0),0)/currents.length).toFixed(1);
+  const avg = k => (currents.reduce((a,c)=>a+(c[k]||0),0)/currents.length).toFixed(1);
   const ghiVals = ZONES.map(z=>{
-    const nd = getData(state.nasa,z.name);
+    const nd=getData(state.nasa,z.name);
     return nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : null;
-  }).filter(v=>v!==null);
+  }).filter(v=>v!=null);
   const ghiAvg = ghiVals.length ? (ghiVals.reduce((a,v)=>a+v,0)/ghiVals.length).toFixed(0) : '—';
 
-  document.getElementById('metrics').innerHTML = [
-    { label:'Zones suivies',    value:ZONES.length,                   meta:'Points autour de Kribi' },
-    { label:'Température moy.', value:avg('temperature_2m')+' °C',   meta:'Open-Meteo — 8 zones' },
-    { label:'Humidité moy.',    value:avg('relative_humidity_2m')+' %', meta:'Open-Meteo — humidité relative' },
-    { label:'GHI solaire moy.', value:ghiAvg+' Wh/m²',               meta:'NASA POWER CERES — dernière heure' },
-  ].map(m=>`<div class="metric-card"><div class="metric-label">${m.label}</div><div class="metric-value">${m.value}</div><div class="metric-meta">${m.meta}</div></div>`).join('');
+  document.getElementById('kpiRow').innerHTML = [
+    { lbl:'Zones suivies',    val:ZONES.length,                    meta:'Points autour de Kribi',         icon:'📍' },
+    { lbl:'Température moy.', val:avg('temperature_2m')+' °C',    meta:'Open-Meteo — 8 zones',           icon:'🌡' },
+    { lbl:'Humidité moy.',    val:avg('relative_humidity_2m')+' %', meta:'Open-Meteo — humidité relative', icon:'💧' },
+    { lbl:'GHI solaire moy.', val:ghiAvg+' Wh/m²',                meta:'NASA POWER CERES',               icon:'☀️' },
+  ].map(k=>`
+    <div class="kpi">
+      <div class="kpi-icon">${k.icon}</div>
+      <div class="kpi-label">${k.lbl}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-meta">${k.meta}</div>
+    </div>`).join('');
 }
 
-// ── Résumé zone ────────────────────────────────────────────────────────
+/* ── Résumé zone ───────────────────────────────────────────────── */
 function renderSummary() {
-  const omD   = getData(state.om,   state.zone);
-  const nasaD = getData(state.nasa, state.zone);
+  const z    = ZONES.find(z=>z.name===state.zone);
+  const omD  = getData(state.om,   state.zone);
+  const nasaD= getData(state.nasa, state.zone);
   document.getElementById('summaryTitle').textContent = state.zone;
 
   let html = '';
   if (omD?.current) {
     const c = omD.current;
+    document.getElementById('summaryTime').textContent =
+      'Relevé : '+new Date(c.time).toLocaleString('fr-FR');
     html += `
-    <p class="section-divider"><span class="source-badge badge-teal">Open-Meteo</span></p>
-    <div class="zone-summary-grid">
-      <div class="summary-item"><div class="summary-item-label">Température</div><div class="summary-item-value">${c.temperature_2m} °C</div></div>
-      <div class="summary-item"><div class="summary-item-label">Humidité</div><div class="summary-item-value">${c.relative_humidity_2m} %</div></div>
-      <div class="summary-item"><div class="summary-item-label">Précipitations</div><div class="summary-item-value">${c.precipitation} mm</div></div>
-      <div class="summary-item"><div class="summary-item-label">Vent 10m</div><div class="summary-item-value">${c.wind_speed_10m} <span style="font-size:.8em;font-weight:400">km/h · ${c.wind_direction_10m}°</span></div></div>
-      <div class="summary-item"><div class="summary-item-label">Pression</div><div class="summary-item-value">${c.surface_pressure} hPa</div></div>
-      <div class="summary-item"><div class="summary-item-label">Nébulosité</div><div class="summary-item-value">${c.cloud_cover} %</div></div>
-    </div>
-    <p style="margin-top:.75rem;color:var(--color-text-muted);font-size:var(--text-xs);">Relevé : ${new Date(c.time).toLocaleString('fr-FR')}</p>`;
+      <p class="divider"><span class="badge badge-teal">Open-Meteo</span> Temps réel</p>
+      <div class="summary-grid">
+        <div class="sum-item"><div class="sum-lbl">Température</div><div class="sum-val">${c.temperature_2m} °C</div></div>
+        <div class="sum-item"><div class="sum-lbl">Humidité</div><div class="sum-val">${c.relative_humidity_2m} %</div></div>
+        <div class="sum-item"><div class="sum-lbl">Précipitations</div><div class="sum-val">${c.precipitation} mm</div></div>
+        <div class="sum-item"><div class="sum-lbl">Vent 10m</div><div class="sum-val">${c.wind_speed_10m} <small style="font-weight:400">km/h · ${c.wind_direction_10m}°</small></div></div>
+        <div class="sum-item"><div class="sum-lbl">Pression</div><div class="sum-val">${c.surface_pressure} hPa</div></div>
+        <div class="sum-item"><div class="sum-lbl">Nébulosité</div><div class="sum-val">${c.cloud_cover} %</div></div>
+      </div>`;
   }
   if (nasaD) {
-    const ghi  = nasaLastVal(nasaD,'ALLSKY_SFC_SW_DWN');
-    const clr  = nasaLastVal(nasaD,'CLRSKY_SFC_SW_DWN');
-    const ws50 = nasaLastVal(nasaD,'WS50M');
-    const qv   = nasaLastVal(nasaD,'QV2M');
-    const prec = nasaLastVal(nasaD,'PRECTOTCORR');
-    const fmt  = v => v !== null ? v.toFixed(1) : '—';
+    const fmt = v => v!==null ? v.toFixed(1) : '—';
     html += `
-    <p class="section-divider" style="margin-top:var(--space-4);"><span class="source-badge badge-blue">NASA POWER</span> MERRA-2 / CERES</p>
-    <div class="zone-summary-grid">
-      <div class="summary-item"><div class="summary-item-label">GHI (All-sky)</div><div class="summary-item-value">${fmt(ghi)} Wh/m²</div></div>
-      <div class="summary-item"><div class="summary-item-label">GHI (ciel clair)</div><div class="summary-item-value">${fmt(clr)} Wh/m²</div></div>
-      <div class="summary-item"><div class="summary-item-label">Vent 50m</div><div class="summary-item-value">${fmt(ws50)} m/s</div></div>
-      <div class="summary-item"><div class="summary-item-label">Hum. spécifique</div><div class="summary-item-value">${fmt(qv)} g/kg</div></div>
-      <div class="summary-item"><div class="summary-item-label">Pluie MERRA-2</div><div class="summary-item-value">${fmt(prec)} mm/h</div></div>
-    </div>`;
+      <p class="divider" style="margin-top:var(--space-4)"><span class="badge badge-blue">NASA POWER</span> MERRA-2 / CERES</p>
+      <div class="summary-grid">
+        <div class="sum-item"><div class="sum-lbl">GHI all-sky</div><div class="sum-val">${fmt(nasaLastVal(nasaD,'ALLSKY_SFC_SW_DWN'))} Wh/m²</div><div class="sum-src">CERES</div></div>
+        <div class="sum-item"><div class="sum-lbl">GHI ciel clair</div><div class="sum-val">${fmt(nasaLastVal(nasaD,'CLRSKY_SFC_SW_DWN'))} Wh/m²</div><div class="sum-src">CERES</div></div>
+        <div class="sum-item"><div class="sum-lbl">Vent 50m</div><div class="sum-val">${fmt(nasaLastVal(nasaD,'WS50M'))} m/s</div><div class="sum-src">MERRA-2</div></div>
+        <div class="sum-item"><div class="sum-lbl">Hum. spécifique</div><div class="sum-val">${fmt(nasaLastVal(nasaD,'QV2M'))} g/kg</div><div class="sum-src">MERRA-2</div></div>
+        <div class="sum-item"><div class="sum-lbl">Pluie MERRA-2</div><div class="sum-val">${fmt(nasaLastVal(nasaD,'PRECTOTCORR'))} mm/h</div><div class="sum-src">MERRA-2</div></div>
+        <div class="sum-item"><div class="sum-lbl">Coordonnées</div><div class="sum-val" style="font-size:var(--text-sm)">${z.lat.toFixed(2)}°N ${z.lon.toFixed(2)}°E</div></div>
+      </div>`;
   } else {
-    html += `<p class="section-divider" style="margin-top:var(--space-4);"><span class="source-badge badge-blue">NASA POWER</span></p>
-    <p class="loading-text" style="font-size:var(--text-xs);">Données NASA POWER non disponibles pour cette zone (CORS proxy — voir console).</p>`;
+    html += `<p class="divider" style="margin-top:var(--space-4)"><span class="badge badge-blue">NASA POWER</span></p>
+      <p style="font-size:var(--text-xs);color:var(--color-text-muted);">Données non disponibles pour cette zone (proxy CORS).</p>`;
   }
-  if (!html) html = '<p class="loading-text">Données indisponibles</p>';
-  document.getElementById('zoneSummary').innerHTML = html;
+  document.getElementById('zoneSummary').innerHTML = html || '<p style="color:var(--color-text-muted);font-size:var(--text-sm)">Données indisponibles.</p>';
 }
 
-// ── Tableau ────────────────────────────────────────────────────────────
+/* ── Tableau ───────────────────────────────────────────────────── */
 function renderTable() {
   document.getElementById('zonesTable').innerHTML = ZONES.map(z=>{
     const c   = getData(state.om,z.name)?.current;
     const nd  = getData(state.nasa,z.name);
     const ghi = nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : null;
-    const ghiS = ghi !== null ? ghi.toFixed(0) : '—';
+    const ghiS= ghi!==null ? ghi.toFixed(0) : '—';
     if (!c) return `<tr><td>${z.name}</td><td colspan="8" style="color:var(--color-text-faint)">—</td></tr>`;
-    const sel = z.name===state.zone ? ' class="selected"':'';
+    const sel = z.name===state.zone?' class="sel"':'';
     return `<tr${sel}>
-      <td>${z.name}</td>
+      <td><strong>${z.name}</strong></td>
       <td>${c.temperature_2m}</td>
       <td>${c.relative_humidity_2m}</td>
       <td>${c.precipitation}</td>
@@ -498,17 +642,41 @@ function renderTable() {
   }).join('');
 }
 
-// ── Carte ──────────────────────────────────────────────────────────────
+/* ── Export CSV ────────────────────────────────────────────────── */
+function exportCSV() {
+  const header = 'Zone,Lat,Lon,Temp (°C),Humidité (%),Pluie (mm),Vent (km/h),Direction (°),Pression (hPa),Nébulosité (%),GHI (Wh/m²)';
+  const rows = ZONES.map(z => {
+    const c   = getData(state.om,z.name)?.current;
+    const nd  = getData(state.nasa,z.name);
+    const ghi = nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : '';
+    if (!c) return [z.name,z.lat,z.lon,'','','','','','','',''].join(',');
+    return [z.name,z.lat,z.lon,c.temperature_2m,c.relative_humidity_2m,c.precipitation,
+            c.wind_speed_10m,c.wind_direction_10m,c.surface_pressure,c.cloud_cover,ghi||''].join(',');
+  });
+  const csv  = [header,...rows].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `kribi_meteo_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+/* ── Carte Leaflet ─────────────────────────────────────────────── */
 function initMap() {
   state.map = L.map('map').setView([2.85,10.2],8);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-    attribution:'© OpenStreetMap contributors', maxZoom:18
-  }).addTo(state.map);
-  state.markers = ZONES.map(z=>{
+
+  state.baseLayers = {
+    osm:  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}),
+    sat:  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{attribution:'© Esri WorldImagery',maxZoom:18}),
+    dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:18}),
+  };
+  state.baseLayers.osm.addTo(state.map);
+
+  state.markers = ZONES.map(z => {
     const icon = L.divIcon({
       className:'',
-      html:`<div style="width:14px;height:14px;background:#01696f;border:2.5px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,.35)"></div>`,
-      iconAnchor:[7,7]
+      html:`<div style="width:16px;height:16px;background:#01696f;border:2.5px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
+      iconAnchor:[8,8]
     });
     const m = L.marker([z.lat,z.lon],{icon}).addTo(state.map);
     m.on('click',()=>selectZone(z.name));
@@ -516,26 +684,40 @@ function initMap() {
   });
 }
 
+function updateBasemap(type) {
+  const labels = {osm:'🗺 OSM', sat:'🛰 Satellite Esri', dark:'🌙 Fond sombre'};
+  Object.values(state.baseLayers).forEach(l=>state.map.removeLayer(l));
+  state.baseLayers[type].addTo(state.map);
+  document.getElementById('mapLayerBadge').textContent = labels[type]||type;
+}
+
 function updateMapPopups() {
   state.markers.forEach(({name,marker})=>{
     const c  = getData(state.om,name)?.current;
     const nd = getData(state.nasa,name);
-    const ghi = nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : null;
-    const ghiStr = ghi!==null ? `<br>☀️ GHI : ${ghi.toFixed(0)} Wh/m²` : '';
+    const ghi= nd ? nasaLastVal(nd,'ALLSKY_SFC_SW_DWN') : null;
+    const ghiStr = ghi!==null ? `<br>☀️ GHI : <strong>${ghi.toFixed(0)} Wh/m²</strong>` : '';
     marker.bindPopup(c
-      ? `<strong>${name}</strong><br>🌡 ${c.temperature_2m}°C · 💧${c.relative_humidity_2m}%<br>🌧 ${c.precipitation}mm · 💨${c.wind_speed_10m}km/h<br>☁ ${c.cloud_cover}%${ghiStr}`
+      ? `<strong>${name}</strong><br>🌡 ${c.temperature_2m}°C · 💧${c.relative_humidity_2m}%<br>🌧 ${c.precipitation}mm · 💨${c.wind_speed_10m}km/h · ☁ ${c.cloud_cover}%${ghiStr}<br><small style="color:#888">Open-Meteo + NASA POWER</small>`
       : `<strong>${name}</strong><br>Données indisponibles`);
   });
 }
 
-// ── Contrôles ──────────────────────────────────────────────────────────
+/* ── Contrôles latéraux ─────────────────────────────────────────── */
 function renderControls() {
   const sel = document.getElementById('zoneSelect');
   sel.innerHTML = ZONES.map(z=>`<option value="${z.name}"${z.name===state.zone?' selected':''}>${z.name}</option>`).join('');
-  sel.onchange = e=>selectZone(e.target.value);
-  document.getElementById('zoneList').innerHTML = ZONES.map(z=>
-    `<button class="zone-option${z.name===state.zone?' active':''}" data-z="${z.name}"><span class="dot"></span><span>${z.name}</span></button>`
-  ).join('');
+  sel.onchange = e => selectZone(e.target.value);
+
+  document.getElementById('zoneList').innerHTML = ZONES.map(z=>{
+    const c = getData(state.om,z.name)?.current;
+    const t = c ? `${c.temperature_2m}°C` : '…';
+    return `<button class="zone-btn${z.name===state.zone?' active':''}" data-z="${z.name}">
+      <span class="zdot"></span>
+      <span class="zname">${z.name}</span>
+      <span class="ztemp">${t}</span>
+    </button>`;
+  }).join('');
   document.querySelectorAll('[data-z]').forEach(b=>b.addEventListener('click',()=>selectZone(b.dataset.z)));
 }
 
@@ -546,149 +728,117 @@ function selectZone(name) {
   renderTable();
   document.getElementById('chartZoneLabel').textContent = name;
   rebuildCharts();
+  const z = ZONES.find(z=>z.name===name);
+  if (z && state.map) state.map.setView([z.lat,z.lon],10,{animate:true});
 }
 
-// ── Graphiques ─────────────────────────────────────────────────────────
+/* ── Graphiques ────────────────────────────────────────────────── */
 function getColors() {
   const dark = document.documentElement.getAttribute('data-theme')==='dark';
   return {
     text:    dark?'#cdccca':'#28251d',
-    grid:    dark?'rgba(205,204,202,.12)':'rgba(40,37,29,.08)',
+    grid:    dark?'rgba(205,204,202,.1)':'rgba(40,37,29,.07)',
     primary: dark?'#4f98a3':'#01696f',
     orange:  dark?'#fdab43':'#da7101',
     green:   dark?'#6daa45':'#437a22',
     blue:    dark?'#5591c7':'#006494',
     yellow:  dark?'#e8af34':'#d19900',
-    now:     dark?'rgba(253,171,67,.8)':'rgba(218,113,1,.8)'
+    now:     dark?'rgba(253,171,67,.7)':'rgba(218,113,1,.7)'
   };
 }
-
 function makeLabels(times) {
   return times.map((t,i)=>{
-    const d = new Date(t), h = d.getHours()+'h';
+    const d=new Date(t), h=d.getHours()+'h';
     if (i===0) return h+'\n'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
-    const prev = new Date(times[i-1]);
-    if (d.getDate()!==prev.getDate()) return h+'\n'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
+    if (d.getDate()!==new Date(times[i-1]).getDate()) return h+'\n'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});
     return h;
   });
 }
-
 function nowIndex(times) {
-  const nowMs = Date.now(); let best=0, bestD=Infinity;
-  times.forEach((t,i)=>{ const df=Math.abs(new Date(t).getTime()-nowMs); if(df<bestD){bestD=df;best=i;} });
+  const now=Date.now(); let best=0,bd=Infinity;
+  times.forEach((t,i)=>{ const df=Math.abs(new Date(t)-now); if(df<bd){bd=df;best=i;} });
   return best;
 }
-
-function nowPlugin(ni, col) {
-  return {
-    id:'nowLine',
-    afterDraw(chart) {
-      const meta = chart.getDatasetMeta(0);
-      if (!meta.data[ni]) return;
-      const ctx = chart.ctx, x = meta.data[ni].x;
-      const { top, bottom } = chart.chartArea;
-      ctx.save();
-      ctx.beginPath(); ctx.moveTo(x,top); ctx.lineTo(x,bottom);
-      ctx.strokeStyle=col.now; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.stroke();
-      ctx.fillStyle=col.now; ctx.font='11px Satoshi,sans-serif';
-      ctx.fillText('Maintenant',x+4,top+14);
-      ctx.restore();
-    }
-  };
+function nowPlugin(ni,col){
+  return {id:'nowLine',afterDraw(chart){
+    const meta=chart.getDatasetMeta(0);
+    if(!meta.data[ni]) return;
+    const ctx=chart.ctx,x=meta.data[ni].x;
+    const{top,bottom}=chart.chartArea;
+    ctx.save();ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bottom);
+    ctx.strokeStyle=col.now;ctx.lineWidth=2;ctx.setLineDash([5,4]);ctx.stroke();
+    ctx.fillStyle=col.now;ctx.font='11px Satoshi,sans-serif';ctx.fillText('Maintenant',x+4,top+14);
+    ctx.restore();
+  }};
 }
-
-function baseOpts(col, y1=false) {
+function baseOpts(col,y1=false){
   return {
-    responsive:true, maintainAspectRatio:false, animation:{duration:350},
-    plugins:{ legend:{ labels:{ color:col.text, font:{size:12} } } },
+    responsive:true,maintainAspectRatio:false,animation:{duration:300},
+    plugins:{legend:{labels:{color:col.text,font:{size:11}}}},
     scales:{
-      x:{ ticks:{ color:col.text, maxTicksLimit:13, maxRotation:0 }, grid:{ color:col.grid } },
-      y:{ ticks:{ color:col.text }, grid:{ color:col.grid } },
-      ...(y1?{ y1:{ position:'right', ticks:{color:col.text}, grid:{drawOnChartArea:false} } }:{})
+      x:{ticks:{color:col.text,maxTicksLimit:13,maxRotation:0},grid:{color:col.grid}},
+      y:{ticks:{color:col.text},grid:{color:col.grid}},
+      ...(y1?{y1:{position:'right',ticks:{color:col.text},grid:{drawOnChartArea:false}}}:{})
     }
   };
 }
 
 function rebuildCharts() {
   ['temp','rain','ghi','windNasa'].forEach(k=>{ if(state.charts[k]){state.charts[k].destroy();delete state.charts[k];} });
-  const col  = getColors();
-  const omD  = getData(state.om,   state.zone);
-  const nasaD= getData(state.nasa, state.zone);
+  const col=getColors(), omD=getData(state.om,state.zone), nasaD=getData(state.nasa,state.zone);
 
-  // Masquer/afficher l'avertissement NASA
-  const nasaWarn = document.getElementById('nasaWarn');
-  nasaWarn.style.display = (!nasaD) ? 'flex' : 'none';
+  document.getElementById('nasaWarnBar').style.display = !nasaD ? 'flex':'none';
 
-  // ── Open-Meteo ──
   if (omD?.hourly) {
-    const labels = makeLabels(omD.hourly.time);
-    const ni = nowIndex(omD.hourly.time);
-    const np = nowPlugin(ni, col);
-
+    const labels=makeLabels(omD.hourly.time), ni=nowIndex(omD.hourly.time), np=nowPlugin(ni,col);
     state.charts.temp = new Chart(document.getElementById('tempChart'),{
       type:'line', plugins:[np],
-      data:{ labels, datasets:[{
-        label:'Température (°C)', data:omD.hourly.temperature_2m,
-        borderColor:col.primary, backgroundColor:col.primary+'30',
-        tension:.35, fill:true, pointRadius:2, pointHoverRadius:5
-      }]},
+      data:{labels,datasets:[{label:'Température (°C)',data:omD.hourly.temperature_2m,borderColor:col.primary,backgroundColor:col.primary+'28',tension:.35,fill:true,pointRadius:2,pointHoverRadius:5}]},
       options:baseOpts(col)
     });
-
     state.charts.rain = new Chart(document.getElementById('rainChart'),{
       plugins:[np],
-      data:{ labels, datasets:[
-        { type:'bar',  label:'Précipitations (mm)', data:omD.hourly.precipitation,          backgroundColor:col.orange+'bb', yAxisID:'y' },
-        { type:'line', label:'Humidité (%)',         data:omD.hourly.relative_humidity_2m,  borderColor:col.green, backgroundColor:'transparent', tension:.3, yAxisID:'y1', pointRadius:2, pointHoverRadius:5 }
+      data:{labels,datasets:[
+        {type:'bar', label:'Précipitations (mm)',data:omD.hourly.precipitation,backgroundColor:col.orange+'bb',yAxisID:'y'},
+        {type:'line',label:'Humidité (%)',data:omD.hourly.relative_humidity_2m,borderColor:col.green,backgroundColor:'transparent',tension:.3,yAxisID:'y1',pointRadius:2,pointHoverRadius:5}
       ]},
-      options:baseOpts(col, true)
+      options:baseOpts(col,true)
     });
   }
 
-  // ── NASA POWER ──
   if (nasaD) {
-    const ghiH  = nasaHourly(nasaD,'ALLSKY_SFC_SW_DWN');
-    const clrH  = nasaHourly(nasaD,'CLRSKY_SFC_SW_DWN');
-    const ws50H = nasaHourly(nasaD,'WS50M');
-    const qv2mH = nasaHourly(nasaD,'QV2M');
-
+    const ghiH=nasaHourly(nasaD,'ALLSKY_SFC_SW_DWN'), clrH=nasaHourly(nasaD,'CLRSKY_SFC_SW_DWN');
+    const ws50H=nasaHourly(nasaD,'WS50M'), qv2mH=nasaHourly(nasaD,'QV2M');
     if (ghiH.times.length) {
-      const labels = makeLabels(ghiH.times);
-      const ni = nowIndex(ghiH.times);
-      const np = nowPlugin(ni, col);
-
+      const labels=makeLabels(ghiH.times), ni=nowIndex(ghiH.times), np=nowPlugin(ni,col);
       state.charts.ghi = new Chart(document.getElementById('ghiChart'),{
         type:'line', plugins:[np],
-        data:{ labels, datasets:[
-          { label:'GHI all-sky (Wh/m²)',    data:ghiH.values,  borderColor:col.yellow, backgroundColor:col.yellow+'30', tension:.35, fill:true, pointRadius:2, pointHoverRadius:5 },
-          { label:'GHI ciel clair (Wh/m²)', data:clrH.values,  borderColor:col.orange, backgroundColor:'transparent', tension:.35, pointRadius:2, borderDash:[4,3] }
+        data:{labels,datasets:[
+          {label:'GHI all-sky (Wh/m²)',data:ghiH.values,borderColor:col.yellow,backgroundColor:col.yellow+'28',tension:.35,fill:true,pointRadius:2},
+          {label:'GHI ciel clair (Wh/m²)',data:clrH.values,borderColor:col.orange,backgroundColor:'transparent',tension:.35,pointRadius:2,borderDash:[4,3]}
         ]},
         options:baseOpts(col)
       });
     }
     if (ws50H.times.length) {
-      const labels = makeLabels(ws50H.times);
-      const ni = nowIndex(ws50H.times);
-      const np = nowPlugin(ni, col);
-
+      const labels=makeLabels(ws50H.times), ni=nowIndex(ws50H.times), np=nowPlugin(ni,col);
       state.charts.windNasa = new Chart(document.getElementById('windNasaChart'),{
         type:'line', plugins:[np],
-        data:{ labels, datasets:[
-          { label:'Vent 50m (m/s)',         data:ws50H.values, borderColor:col.blue,  backgroundColor:col.blue+'25', tension:.3, fill:true, pointRadius:2, yAxisID:'y' },
-          { label:'Hum. spécifique (g/kg)', data:qv2mH.values, borderColor:col.green, backgroundColor:'transparent', tension:.3, pointRadius:2, yAxisID:'y1' }
+        data:{labels,datasets:[
+          {label:'Vent 50m (m/s)',data:ws50H.values,borderColor:col.blue,backgroundColor:col.blue+'22',tension:.3,fill:true,pointRadius:2,yAxisID:'y'},
+          {label:'Hum. spécifique (g/kg)',data:qv2mH.values,borderColor:col.green,backgroundColor:'transparent',tension:.3,pointRadius:2,yAxisID:'y1'}
         ]},
-        options:baseOpts(col, true)
+        options:baseOpts(col,true)
       });
     }
   }
 }
 
-// ── Onglets ────────────────────────────────────────────────────────────
+/* ── Onglets ──────────────────────────────────────────────────── */
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      const t = btn.dataset.tab;
-      state.activeTab = t;
+      const t=btn.dataset.tab; state.activeTab=t;
       document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===t));
       document.getElementById('panel-om').classList.toggle('visible',t==='om');
       document.getElementById('panel-nasa').classList.toggle('visible',t==='nasa');
@@ -696,21 +846,21 @@ function initTabs() {
   });
 }
 
-// ── Thème ──────────────────────────────────────────────────────────────
+/* ── Thème ───────────────────────────────────────────────────── */
 function initTheme() {
   const btn = document.querySelector('[data-theme-toggle]');
   let t = window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
   document.documentElement.setAttribute('data-theme',t);
   const render=()=>btn.innerHTML=t==='dark'
-    ?'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-    :'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+    ?'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+    :'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
   render();
   btn.addEventListener('click',()=>{ t=t==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); render(); rebuildCharts(); });
 }
 
-// ── Rendu global ───────────────────────────────────────────────────────
+/* ── Rendu global ──────────────────────────────────────────────── */
 function renderAll() {
-  renderMetrics();
+  renderKPI();
   renderSummary();
   renderTable();
   renderControls();
@@ -719,16 +869,21 @@ function renderAll() {
   rebuildCharts();
 }
 
-// ── Init ───────────────────────────────────────────────────────────────
+/* ── Init ─────────────────────────────────────────────────────── */
 async function init() {
   initTheme();
   initTabs();
   initMap();
-  document.getElementById('refreshBtn').addEventListener('click', async()=>{
-    await fetchAll(true);
-    renderAll();
-    state.nextRefresh = Date.now()+AUTO_MS;
+
+  document.querySelectorAll('input[name="basemap"]').forEach(r=>{
+    r.addEventListener('change', e => updateBasemap(e.target.value));
   });
+
+  document.getElementById('refreshBtn').addEventListener('click', async()=>{
+    await fetchAll(true); renderAll(); state.nextRefresh=Date.now()+AUTO_MS;
+  });
+  document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
   await fetchAll(false);
   renderAll();
   state.nextRefresh = Date.now()+AUTO_MS;
