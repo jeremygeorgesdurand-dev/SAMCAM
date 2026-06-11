@@ -471,9 +471,10 @@ const state = {
 const pad = n => String(n).padStart(2,'0');
 function nasaDates() {
   const now  = new Date();
-  const prev = new Date(now); prev.setDate(now.getDate()-1);
+  const prev = new Date(now); prev.setDate(now.getDate() - 5); // début : il y a 5 jours
+  const end  = new Date(now); end.setDate(now.getDate() - 2);  // fin : il y a 2 jours ← c'est ça qui manque
   const fmt  = d => d.getFullYear()+''+pad(d.getMonth()+1)+''+pad(d.getDate());
-  return { start: fmt(prev), end: fmt(now) };
+  return { start: fmt(prev), end: fmt(end) }; // ← end utilise la variable end, pas now
 }
 
 /* ── URL NASA POWER (sans proxy) ──────────────────────────────── */
