@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAMCAM V2 — Surveillance climatique multi-risques</title>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <style>
+    :root,[data-theme="light"]{
+      --text-xs:clamp(0.75rem,.7rem + .25vw,.875rem);
+      --text-sm:clamp(0.875rem,.8rem + .35vw,1rem);
+      --text-base:clamp(1rem,.95rem + .25vw,1.125rem);
+      --text-lg:clamp(1.125rem,1rem + .75vw,1.5rem);
+      --text-xl:clamp(1.5rem,1.2rem + 1.25vw,2.25rem);
+      --space-1:.25rem;--space-2:.5rem;--space-3:.75rem;--space-4:1rem;--space-5:1.25rem;--space-6:1.5rem;--space-8:2rem;--space-10:2.5rem;
+      --radius-sm:.375rem;--radius-md:.5rem;--radius-lg:.75rem;--radius-xl:1rem;--radius-full:9999px;
+      --color-bg:#f7f6f2;--color-surface:#f9f8f5;--color-surface-2:#fbfbf9;--color-surface-offset:#f3f0ec;--color-border:#d4d1ca;
+      --color-text:#28251d;--color-text-muted:#7a7974;--color-text-faint:#bab9b4;
+      --color-primary:#01696f;--color-primary-hover:#0c4e54;--color-primary-hl:rgba(1,105,111,.10);
+      --color-success:#437a22;--color-success-hl:rgba(67,122,34,.12);
+      --color-warning:#d19900;--color-warning-hl:rgba(209,153,0,.14);
+      --color-danger:#a12c7b;--color-danger-hl:rgba(161,44,123,.12);
+      --color-blue:#006494;--color-blue-hl:rgba(0,100,148,.10);
+      --color-orange:#da7101;--color-orange-hl:rgba(218,113,1,.10);
+      --shadow-sm:0 1px 2px rgba(40,37,29,.06);--shadow-md:0 4px 16px rgba(40,37,29,.09);
+      --font-body:'Satoshi',sans-serif;--transition:180ms cubic-bezier(.16,1,.3,1);
+    }
+    [data-theme="dark"]{
+      --color-bg:#171614;--color-surface:#1c1b19;--color-surface-2:#201f1d;--color-surface-offset:#1d1c1a;--color-border:#393836;
+      --color-text:#cdccca;--color-text-muted:#979692;--color-text-faint:#5a5957;
+      --color-primary:#4f98a3;--color-primary-hover:#227f8b;--color-primary-hl:rgba(79,152,163,.12);
+      --color-success:#6daa45;--color-success-hl:rgba(109,170,69,.12);
+      --color-warning:#e8af34;--color-warning-hl:rgba(232,175,52,.16);
+      --color-danger:#d163a7;--color-danger-hl:rgba(209,99,167,.12);
+      --color-blue:#5591c7;--color-blue-hl:rgba(85,145,199,.12);
+      --color-orange:#fdab43;--color-orange-hl:rgba(253,171,67,.10);
+      --shadow-sm:0 1px 2px rgba(0,0,0,.22);--shadow-md:0 4px 18px rgba(0,0,0,.34);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+    body{font-family:var(--font-body);font-size:var(--text-base);background:var(--color-bg);color:var(--color-text);min-height:100vh}
+    button,select,input{font:inherit;color:inherit} img,svg,canvas{display:block;max-width:100%}
+    .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+    .sidebar{background:var(--color-surface);border-right:1px solid var(--color-border);padding:var(--space-5) var(--space-4);display:flex;flex-direction:column;gap:var(--space-4);position:sticky;top:0;height:100vh;overflow:auto}
+    .brand{display:flex;align-items:center;gap:var(--space-3);padding-bottom:var(--space-4);border-bottom:1px solid var(--color-border)}
+    .brand-logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--color-primary),#5db7be);display:grid;place-items:center;color:#fff;box-shadow:var(--shadow-md)}
+    .brand-name{font-weight:700}.brand-sub{font-size:var(--text-xs);color:var(--color-text-muted)}
+    .theme-btn{margin-left:auto;width:34px;height:34px;border-radius:var(--radius-full);border:1px solid var(--color-border);background:var(--color-surface-2);display:grid;place-items:center;cursor:pointer}
+    .section-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:var(--space-2)}
+    .sidebar-panel{display:flex;flex-direction:column;gap:var(--space-2)}
+    .zone-btn{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);background:transparent;border:1px solid transparent;cursor:pointer;text-align:left}
+    .zone-btn:hover,.zone-btn.active{background:var(--color-primary-hl)} .zone-btn.active{border-color:rgba(1,105,111,.24)}
+    .zdot{width:8px;height:8px;border-radius:50%;background:var(--color-primary)} .zname{flex:1}.zmeta{font-size:var(--text-xs);color:var(--color-text-muted)}
+    .info-box{font-size:var(--text-xs);padding:var(--space-3);background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);line-height:1.6;color:var(--color-text-muted)}
+    .badge{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .65rem;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:700}
+    .badge-teal{background:var(--color-primary-hl);color:var(--color-primary)} .badge-blue{background:var(--color-blue-hl);color:var(--color-blue)} .badge-orange{background:var(--color-orange-hl);color:var(--color-orange)}
+    .main{padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-5);min-width:0}
+    .topbar{display:flex;justify-content:space-between;gap:var(--space-4);align-items:flex-start;flex-wrap:wrap}
+    .topbar h1{font-size:var(--text-xl);line-height:1.08}.topbar p{margin-top:var(--space-1);font-size:var(--text-sm);color:var(--color-text-muted);max-width:70ch}
+    .topbar-actions{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap}
+    .btn{padding:.55rem 1rem;border-radius:var(--radius-full);border:1px solid var(--color-border);background:var(--color-surface);cursor:pointer}
+    .btn.primary{background:var(--color-primary);color:#fff;border-color:var(--color-primary)} .btn.primary:hover{background:var(--color-primary-hover)}
+    .status-chip{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .8rem;border-radius:var(--radius-full);font-size:var(--text-xs);font-weight:700;background:var(--color-blue-hl);color:var(--color-blue)}
+    .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-4)}
+    .grid2{display:grid;grid-template-columns:1.4fr .8fr;gap:var(--space-4)}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
+    .card{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-xl);padding:var(--space-5);box-shadow:var(--shadow-sm)}
+    .card-head{display:flex;justify-content:space-between;gap:var(--space-3);align-items:flex-start;flex-wrap:wrap;margin-bottom:var(--space-4)}
+    .card-head h2{font-size:var(--text-lg)} .card-head p{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px}
+    .kpi-label{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--space-2)}
+    .kpi-value{font-size:var(--text-xl);font-weight:700;line-height:1}.kpi-meta{font-size:var(--text-xs);color:var(--color-text-muted);margin-top:var(--space-2)}
+    #map{height:420px;border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--color-border)}
+    .risk-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
+    .risk-card{border-radius:var(--radius-lg);padding:var(--space-4);border:1px solid var(--color-border);background:var(--color-surface-2)}
+    .risk-card.low{background:var(--color-success-hl)} .risk-card.medium{background:var(--color-warning-hl)} .risk-card.high{background:var(--color-danger-hl)}
+    .risk-title{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-muted);margin-bottom:var(--space-2)}
+    .risk-value{font-size:var(--text-lg);font-weight:700}.risk-meta{font-size:var(--text-xs);margin-top:var(--space-2);line-height:1.5}
+    .summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+    .sum-item{background:var(--color-surface-2);border:1px solid var(--color-border);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4)}
+    .sum-lbl{font-size:var(--text-xs);color:var(--color-text-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:var(--space-1)}
+    .sum-val{font-size:var(--text-lg);font-weight:700}.sum-src{font-size:var(--text-xs);color:var(--color-text-faint);margin-top:2px}
+    .chart-wrap{position:relative;height:260px}.chart-title{font-size:var(--text-xs);color:var(--color-text-muted);margin-bottom:var(--space-3)}
+    .table-wrap{overflow:auto} table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:.78rem .72rem;border-bottom:1px solid var(--color-border);font-size:var(--text-sm);white-space:nowrap}
+    th{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.06em;color:var(--color-text-muted)} tr.sel td{background:var(--color-primary-hl);font-weight:600}
+    .legend-note{font-size:var(--text-xs);color:var(--color-text-muted);line-height:1.6}
+    @media (max-width:1200px){.grid4,.grid3{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+    @media (max-width:860px){.app{grid-template-columns:1fr}.sidebar{position:static;height:auto;border-right:none;border-bottom:1px solid var(--color-border)}}
+    @media (max-width:580px){.main{padding:var(--space-4)}.grid4,.grid3,.risk-strip,.summary-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 14c0-2.2 1.8-4 4-4 .4-2.8 2.8-5 5.8-5 3.2 0 5.8 2.6 5.8 5.9 1.3.3 2.4 1.4 2.4 2.9 0 1.7-1.4 3.1-3.2 3.1H7.2C5 17 3 15.7 3 14z"/><path d="M15 6.5l2.5-2.5M17.5 4l1.5 1.5M16 5l1 1"/></svg>
+      </div>
+      <div><div class="brand-name">SAMCAM V2</div><div class="brand-sub">Open-Meteo + indicateurs agro-climatiques</div></div>
+      <button class="theme-btn" data-theme-toggle aria-label="Changer de theme"></button>
+    </div>
+
+    <div>
+      <div class="section-label">Zone active</div>
+      <select id="zoneSelect" style="width:100%;padding:.55rem .75rem;border-radius:var(--radius-lg);border:1px solid var(--color-border);background:var(--color-surface-2);cursor:pointer"></select>
+    </div>
+
+    <div>
+      <div class="section-label">Toutes les zones</div>
+      <div class="sidebar-panel" id="zoneList"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Nouveautes V2</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+        <span class="badge badge-teal">Risque pluie</span>
+        <span class="badge badge-orange">Stress chaleur</span>
+        <span class="badge badge-blue">NDVI estime</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Note</div>
+      <div class="info-box">
+        Page dediee V2 — historique V1 conserve dans kribi-weather-dashboard.html. Les niveaux de risque sont des indicateurs visuels calcules a partir des donnees meteo gratuites Open-Meteo.
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>SAMCAM V2 — surveillance climatique multi-risques</h1>
+        <p>Version enrichie pour Kribi et ses alentours avec lecture 24h glissante, auto-refresh 15 min, score pluie, score chaleur et indice de vegetation estime. Zones selectionables, mode sombre et responsive.</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn primary" id="refreshBtn">Actualiser</button>
+        <span id="countdown" class="legend-note"></span>
+        <span class="status-chip" id="statusChip">Chargement...</span>
+      </div>
+    </div>
+
+    <section class="grid4" id="kpis"></section>
+
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Niveaux de risque</h2><p>Codage simple faible / modere / eleve pour la zone selectionnee.</p></div>
+      </div>
+      <div class="risk-strip" id="riskStrip"></div>
+    </section>
+
+    <section class="grid2">
+      <article class="card">
+        <div class="card-head"><div><h2>Carte des zones</h2><p>Cliquez sur un marqueur pour selectionner une zone.</p></div></div>
+        <div id="map"></div>
+      </article>
+      <article class="card">
+        <div class="card-head"><div><h2 id="summaryTitle">Resume zone</h2><p id="summaryTime">—</p></div></div>
+        <div id="zoneSummary"></div>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><div><h2>Series temporelles — 24h glissantes</h2><p id="chartZoneLabel">Zone selectionnee</p></div></div>
+      <div class="grid3">
+        <div><div class="chart-title">Temperature (degC)</div><div class="chart-wrap"><canvas id="tempChart"></canvas></div></div>
+        <div><div class="chart-title">Precipitations (mm) et humidite (%)</div><div class="chart-wrap"><canvas id="rainChart"></canvas></div></div>
+        <div><div class="chart-title">NDVI estime et score de risque global</div><div class="chart-wrap"><canvas id="riskChart"></canvas></div></div>
+      </div>
+      <p class="legend-note" style="margin-top:var(--space-4)">L'indice de vegetation (NDVI estime) est calcule a partir de l'humidite, des precipitations et de la nebulosite disponibles dans Open-Meteo. Il s'agit d'une approximation visuelle de demonstration, pas d'un NDVI satellite reel. La V3 integrera un backend Python avec acces direct aux vraies donnees EO.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Comparatif multi-zones — 8 zones</h2><p>Vue consolidee avec indicateurs de risque V2.</p></div>
+        <button class="btn" id="exportBtn">Exporter CSV</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Zone</th><th>Temp. degC</th><th>Humidite %</th><th>Pluie mm</th><th>Vent km/h</th><th>Nuages %</th><th>NDVI est.</th><th>Risque pluie</th><th>Risque chaleur</th><th>Risque global</th>
+            </tr>
+          </thead>
+          <tbody id="zonesTable"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+<script>
+const ZONES=[
+  {name:'Kribi Centre',lat:2.9397,lon:9.9132},
+  {name:'Kribi Port',lat:2.9500,lon:9.9200},
+  {name:'Campo',lat:2.3667,lon:9.8167},
+  {name:'Bipindi',lat:3.0833,lon:10.4167},
+  {name:'Lokoundje',lat:3.1167,lon:10.3000},
+  {name:'Akom II',lat:3.0000,lon:10.5833},
+  {name:'Lolodorf',lat:3.2333,lon:10.7333},
+  {name:'Ebolowa',lat:2.9000,lon:11.1500}
+];
+const OM_CURRENT='temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m,wind_direction_10m';
+const OM_HOURLY='temperature_2m,relative_humidity_2m,precipitation,cloud_cover,surface_pressure,wind_speed_10m';
+const CACHE_TTL=15*60*1000,AUTO_MS=15*60*1000;
+const state={zone:'Kribi Centre',om:{},map:null,markers:[],charts:{},nextRefresh:null,cdi:null};
+const omUrl=z=>`https://api.open-meteo.com/v1/forecast?latitude=${z.lat}&longitude=${z.lon}&current=${OM_CURRENT}&hourly=${OM_HOURLY}&past_hours=12&forecast_hours=12&timezone=auto`;
+const isFresh=n=>state.om[n]&&(Date.now()-state.om[n].fetchedAt)<CACHE_TTL;
+const getData=n=>state.om[n]?.data??null;
+const delay=ms=>new Promise(r=>setTimeout(r,ms));
+function scoreToLevel(v){return v>=67?'Eleve':v>=34?'Modere':'Faible';}
+function levelClass(l){return l==='Eleve'?'high':l==='Modere'?'medium':'low';}
+function clamp(v,mn,mx){return Math.max(mn,Math.min(mx,v));}
+function avg(a){return a.length?a.reduce((s,b)=>s+b,0)/a.length:0;}
+function computeMetrics(name){
+  const d=getData(name);if(!d?.current||!d?.hourly)return null;
+  const c=d.current,h=d.hourly;
+  const rainR=avg(h.precipitation.slice(0,12));
+  const rainF=avg(h.precipitation.slice(12));
+  const humR=avg(h.relative_humidity_2m.slice(0,12));
+  const cloudR=avg(h.cloud_cover.slice(0,12));
+  const rainRisk=clamp((c.precipitation*30)+(cloudR*0.45)+(humR*0.25)+(rainF*18),0,100);
+  const heatRisk=clamp(((c.temperature_2m-24)*6)+((c.relative_humidity_2m-60)*0.6)+((10-Math.min(c.wind_speed_10m,10))*2),0,100);
+  const ndviEst=clamp(0.18+(humR/100)*0.25+Math.min(rainR,2)*0.08-(cloudR/100)*0.04,0.08,0.86);
+  const floodRisk=clamp(rainRisk*0.7+(c.precipitation*18)+Math.max(0,cloudR-70)*0.35,0,100);
+  const globalRisk=Math.round(clamp((rainRisk*0.45)+(heatRisk*0.25)+(floodRisk*0.30),0,100));
+  return{c,h,rainRisk:Math.round(rainRisk),heatRisk:Math.round(heatRisk),floodRisk:Math.round(floodRisk),globalRisk,ndviEst:+ndviEst.toFixed(2)};
+}
+function getColors(){
+  const dark=document.documentElement.getAttribute('data-theme')==='dark';
+  return{text:dark?'#cdccca':'#28251d',grid:dark?'rgba(205,204,202,.1)':'rgba(40,37,29,.07)',primary:dark?'#4f98a3':'#01696f',orange:dark?'#fdab43':'#da7101',green:dark?'#6daa45':'#437a22',blue:dark?'#5591c7':'#006494',danger:dark?'#d163a7':'#a12c7b'};
+}
+function makeLabels(times){return times.map((t,i)=>{const d=new Date(t),h=d.getHours()+'h';if(i===0)return h+'\n'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});if(d.getDate()!==new Date(times[i-1]).getDate())return h+'\n'+d.toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'});return h;});}
+function baseOpts(col,y1=false){return{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:col.text,font:{size:11}}}},scales:{x:{ticks:{color:col.text,maxTicksLimit:13,maxRotation:0},grid:{color:col.grid}},y:{ticks:{color:col.text},grid:{color:col.grid}},...(y1?{y1:{position:'right',ticks:{color:col.text},grid:{drawOnChartArea:false}}}:{})}};}
+async function fetchAll(force=false){
+  document.getElementById('statusChip').textContent='Chargement...';
+  for(const z of ZONES){
+    if(force||!isFresh(z.name)){
+      try{const r=await fetch(omUrl(z));state.om[z.name]={data:await r.json(),fetchedAt:Date.now()};}catch(e){if(!state.om[z.name])state.om[z.name]={data:null,fetchedAt:0};}
+      await delay(150);
+    }
+  }
+  document.getElementById('statusChip').textContent='Donnees a jour — '+new Date().toLocaleTimeString('fr-FR');
+}
+function renderKpis(){
+  const ms=ZONES.map(z=>computeMetrics(z.name)).filter(Boolean);
+  if(!ms.length){document.getElementById('kpis').innerHTML='<article class="card"><div class="kpi-value">—</div></article>';return;}
+  const card=(lbl,val,meta)=>`<article class="card"><div class="kpi-label">${lbl}</div><div class="kpi-value">${val}</div><div class="kpi-meta">${meta}</div></article>`;
+  document.getElementById('kpis').innerHTML=[
+    card('Zones suivies',ZONES.length,'Kribi et alentours'),
+    card('Temperature moyenne',avg(ms.map(m=>m.c.temperature_2m)).toFixed(1)+' degC','Temps reel Open-Meteo'),
+    card('NDVI estime moyen',avg(ms.map(m=>m.ndviEst)).toFixed(2),'Indicateur V2 de demonstration'),
+    card('Risque global moyen',Math.round(avg(ms.map(m=>m.globalRisk)))+'/100','Agregation pluie + chaleur + inondation')
+  ].join('');
+}
+function renderRiskStrip(){
+  const m=computeMetrics(state.zone);if(!m){document.getElementById('riskStrip').innerHTML='<p>Donnees indisponibles.</p>';return;}
+  const items=[
+    {title:'Risque pluie',value:scoreToLevel(m.rainRisk),score:m.rainRisk,meta:`Pluie actuelle ${m.c.precipitation} mm, humidite ${m.c.relative_humidity_2m}%`},
+    {title:'Stress chaleur',value:scoreToLevel(m.heatRisk),score:m.heatRisk,meta:`Temperature ${m.c.temperature_2m} degC, vent ${m.c.wind_speed_10m} km/h`},
+    {title:'Risque global',value:scoreToLevel(m.globalRisk),score:m.globalRisk,meta:`Inondation ${m.floodRisk}/100 · NDVI est. ${m.ndviEst}`}
+  ];
+  document.getElementById('riskStrip').innerHTML=items.map(i=>`<div class="risk-card ${levelClass(i.value)}"><div class="risk-title">${i.title}</div><div class="risk-value">${i.value} · ${i.score}/100</div><div class="risk-meta">${i.meta}</div></div>`).join('');
+}
+function renderSummary(){
+  const z=ZONES.find(z=>z.name===state.zone),m=computeMetrics(state.zone);
+  document.getElementById('summaryTitle').textContent=state.zone;
+  if(!m){document.getElementById('zoneSummary').innerHTML='<p style="color:var(--color-text-muted)">Donnees indisponibles.</p>';return;}
+  document.getElementById('summaryTime').textContent='Releve : '+new Date(m.c.time).toLocaleString('fr-FR');
+  document.getElementById('zoneSummary').innerHTML=`
+    <div class="summary-grid">
+      <div class="sum-item"><div class="sum-lbl">Temperature</div><div class="sum-val">${m.c.temperature_2m} degC</div></div>
+      <div class="sum-item"><div class="sum-lbl">Humidite</div><div class="sum-val">${m.c.relative_humidity_2m} %</div></div>
+      <div class="sum-item"><div class="sum-lbl">Pluie actuelle</div><div class="sum-val">${m.c.precipitation} mm</div><div class="sum-src">Open-Meteo</div></div>
+      <div class="sum-item"><div class="sum-lbl">NDVI estime</div><div class="sum-val">${m.ndviEst}</div><div class="sum-src">Proxy visuel V2</div></div>
+      <div class="sum-item"><div class="sum-lbl">Risque pluie</div><div class="sum-val">${m.rainRisk}/100</div><div class="sum-src">${scoreToLevel(m.rainRisk)}</div></div>
+      <div class="sum-item"><div class="sum-lbl">Risque chaleur</div><div class="sum-val">${m.heatRisk}/100</div><div class="sum-src">${scoreToLevel(m.heatRisk)}</div></div>
+      <div class="sum-item"><div class="sum-lbl">Risque inondation</div><div class="sum-val">${m.floodRisk}/100</div><div class="sum-src">Score derive V2</div></div>
+      <div class="sum-item"><div class="sum-lbl">Coordonnees</div><div class="sum-val" style="font-size:var(--text-sm)">${z.lat.toFixed(2)}N ${z.lon.toFixed(2)}E</div></div>
+    </div>`;
+}
+function renderTable(){
+  document.getElementById('zonesTable').innerHTML=ZONES.map(z=>{
+    const m=computeMetrics(z.name);if(!m)return`<tr><td>${z.name}</td><td colspan="9" style="color:var(--color-text-faint)">—</td></tr>`;
+    return`<tr${z.name===state.zone?' class="sel"':''}><td><strong>${z.name}</strong></td><td>${m.c.temperature_2m}</td><td>${m.c.relative_humidity_2m}</td><td>${m.c.precipitation}</td><td>${m.c.wind_speed_10m}</td><td>${m.c.cloud_cover}</td><td>${m.ndviEst}</td><td>${m.rainRisk}</td><td>${m.heatRisk}</td><td>${m.globalRisk}</td></tr>`;
+  }).join('');
+}
+function exportCSV(){
+  const header='Zone,Lat,Lon,Temp degC,Humidite %,Pluie mm,Vent km/h,Nuages %,NDVI est.,Risque pluie,Risque chaleur,Risque global';
+  const rows=ZONES.map(z=>{const z2=ZONES.find(zz=>zz.name===z.name),m=computeMetrics(z.name);if(!m)return[z.name,z2.lat,z2.lon,'','','','','','','','',''].join(',');return[z.name,z2.lat,z2.lon,m.c.temperature_2m,m.c.relative_humidity_2m,m.c.precipitation,m.c.wind_speed_10m,m.c.cloud_cover,m.ndviEst,m.rainRisk,m.heatRisk,m.globalRisk].join(',');});
+  const csv=[header,...rows].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`samcam_v2_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+function renderControls(){
+  const sel=document.getElementById('zoneSelect');
+  sel.innerHTML=ZONES.map(z=>`<option value="${z.name}"${z.name===state.zone?' selected':''}>${z.name}</option>`).join('');
+  sel.onchange=e=>selectZone(e.target.value);
+  document.getElementById('zoneList').innerHTML=ZONES.map(z=>{const m=computeMetrics(z.name);return`<button class="zone-btn${z.name===state.zone?' active':''}" data-z="${z.name}"><span class="zdot"></span><span class="zname">${z.name}</span><span class="zmeta">${m?m.globalRisk+'/100':'...'}</span></button>`;}).join('');
+  document.querySelectorAll('[data-z]').forEach(b=>b.addEventListener('click',()=>selectZone(b.dataset.z)));
+}
+function initMap(){
+  state.map=L.map('map').setView([2.85,10.2],8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:18}).addTo(state.map);
+  state.markers=ZONES.map(z=>{
+    const icon=L.divIcon({className:'',html:`<div style="width:16px;height:16px;background:var(--color-primary,#01696f);border:2.5px solid white;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,iconAnchor:[8,8]});
+    const m=L.marker([z.lat,z.lon],{icon}).addTo(state.map);
+    m.on('click',()=>selectZone(z.name));
+    return{name:z.name,marker:m};
+  });
+}
+function updateMapPopups(){
+  state.markers.forEach(({name,marker})=>{
+    const m=computeMetrics(name);
+    marker.bindPopup(m?`<strong>${name}</strong><br>Temp: ${m.c.temperature_2m} degC · Humidite: ${m.c.relative_humidity_2m}%<br>Pluie: ${m.c.precipitation} mm · NDVI est.: ${m.ndviEst}<br>Risque global: ${m.globalRisk}/100`:`<strong>${name}</strong><br>Donnees indisponibles`);
+  });
+}
+function rebuildCharts(){
+  Object.values(state.charts).forEach(c=>{try{c.destroy();}catch(e){}});state.charts={};
+  const m=computeMetrics(state.zone);if(!m)return;
+  const col=getColors(),labels=makeLabels(m.h.time);
+  state.charts.temp=new Chart(document.getElementById('tempChart'),{type:'line',data:{labels,datasets:[{label:'Temperature',data:m.h.temperature_2m,borderColor:col.primary,backgroundColor:col.primary+'22',fill:true,tension:.35,pointRadius:2}]},options:baseOpts(col)});
+  state.charts.rain=new Chart(document.getElementById('rainChart'),{data:{labels,datasets:[{type:'bar',label:'Precipitations',data:m.h.precipitation,backgroundColor:col.orange+'bb',yAxisID:'y'},{type:'line',label:'Humidite',data:m.h.relative_humidity_2m,borderColor:col.green,backgroundColor:'transparent',tension:.35,pointRadius:2,yAxisID:'y1'}]},options:baseOpts(col,true)});
+  const ndviSeries=m.h.relative_humidity_2m.map((rh,i)=>{
+    const rain=m.h.precipitation[i]||0,cloud=m.h.cloud_cover[i]||0;
+    return+clamp(0.18+(rh/100)*0.25+Math.min(rain,2)*0.08-(cloud/100)*0.04,0.08,0.86).toFixed(2);
+  });
+  const globalSeries=m.h.temperature_2m.map((t,i)=>Math.round(clamp(((m.h.precipitation[i]||0)*28)+((m.h.relative_humidity_2m[i]||0)*0.22)+Math.max(0,t-24)*4,0,100)));
+  state.charts.risk=new Chart(document.getElementById('riskChart'),{data:{labels,datasets:[{type:'line',label:'NDVI estime',data:ndviSeries,borderColor:col.blue,backgroundColor:col.blue+'22',fill:true,tension:.35,pointRadius:2,yAxisID:'y'},{type:'line',label:'Risque global',data:globalSeries,borderColor:col.danger,backgroundColor:'transparent',tension:.35,pointRadius:2,yAxisID:'y1'}]},options:baseOpts(col,true)});
+}
+function selectZone(name){
+  state.zone=name;renderControls();renderRiskStrip();renderSummary();renderTable();
+  document.getElementById('chartZoneLabel').textContent=name;rebuildCharts();
+  const z=ZONES.find(z=>z.name===name);if(z&&state.map)state.map.setView([z.lat,z.lon],10,{animate:true});
+}
+function renderAll(){renderKpis();renderControls();renderRiskStrip();renderSummary();renderTable();updateMapPopups();rebuildCharts();}
+function startCountdown(){if(state.cdi)clearInterval(state.cdi);state.cdi=setInterval(()=>{const rem=Math.max(0,state.nextRefresh-Date.now());const mn=Math.floor(rem/60000),s=Math.floor((rem%60000)/1000);document.getElementById('countdown').textContent=`Refresh dans ${mn}m${String(s).padStart(2,'0')}s`;},1000);}
+function initTheme(){
+  const btn=document.querySelector('[data-theme-toggle]');
+  let t=window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light';
+  document.documentElement.setAttribute('data-theme',t);
+  const render=()=>btn.innerHTML=t==='dark'?'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>':'<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  render();
+  btn.addEventListener('click',()=>{t=t==='dark'?'light':'dark';document.documentElement.setAttribute('data-theme',t);render();rebuildCharts();});
+}
+async function init(){
+  initTheme();initMap();
+  document.getElementById('refreshBtn').addEventListener('click',async()=>{await fetchAll(true);renderAll();state.nextRefresh=Date.now()+AUTO_MS;});
+  document.getElementById('exportBtn').addEventListener('click',exportCSV);
+  await fetchAll(false);renderAll();state.nextRefresh=Date.now()+AUTO_MS;startCountdown();
+  setInterval(async()=>{await fetchAll(false);renderAll();state.nextRefresh=Date.now()+AUTO_MS;},AUTO_MS);
+}
+init();
+</script>
+</body>
+</html>
