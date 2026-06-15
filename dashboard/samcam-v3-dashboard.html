@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAMCAM — Dashboard Kribi v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme="light"]{
+  --bg:#f4f6f0;--surface:#ffffff;--surface-2:#f0f3ec;--surface-3:#e8ede2;
+  --border:rgba(0,0,0,0.08);--text:#1a2014;--text-muted:#5a6650;--text-faint:#9aaa8a;
+  --primary:#2d7a3a;--primary-light:#e8f5e9;
+  --vert:#2d7a3a;--vert-bg:#e8f5e9;
+  --jaune:#b07d00;--jaune-bg:#fff8e1;
+  --orange:#c45200;--orange-bg:#fff3e0;
+  --rouge:#b71c1c;--rouge-bg:#ffebee;
+  --shadow:0 2px 12px rgba(0,0,0,0.07),0 1px 3px rgba(0,0,0,0.05);
+  --radius:12px;--radius-sm:8px;
+}
+[data-theme="dark"]{
+  --bg:#0e1410;--surface:#141c12;--surface-2:#1a2318;--surface-3:#202b1e;
+  --border:rgba(255,255,255,0.07);--text:#d4e4cc;--text-muted:#7a9470;--text-faint:#4a6440;
+  --primary:#4caf65;--primary-light:#1a2e1c;
+  --vert:#4caf65;--vert-bg:#1a2e1c;
+  --jaune:#ffd54f;--jaune-bg:#2a2200;
+  --orange:#ff9800;--orange-bg:#2a1800;
+  --rouge:#ef5350;--rouge-bg:#2a0e0e;
+  --shadow:0 2px 12px rgba(0,0,0,0.4);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;scroll-behavior:smooth}
+body{font-family:'Inter',sans-serif;font-size:15px;background:var(--bg);color:var(--text);min-height:100dvh;line-height:1.6}
+button{cursor:pointer;background:none;border:none;font:inherit;color:inherit}
+img{display:block;max-width:100%}
+
+/* ── LAYOUT ───────────────────────────────────── */
+.app{display:grid;grid-template-rows:auto 1fr;min-height:100dvh}
+
+/* ── HEADER ───────────────────────────────────── */
+header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;height:60px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.logo{display:flex;align-items:center;gap:10px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px;letter-spacing:-0.3px}
+.logo-icon{width:32px;height:32px}
+.logo span{color:var(--primary)}
+.header-right{display:flex;align-items:center;gap:12px}
+.date-badge{
+  font-size:13px;color:var(--text-muted);
+  background:var(--surface-2);border:1px solid var(--border);
+  padding:4px 12px;border-radius:20px;
+}
+#theme-toggle{
+  width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);border:1px solid var(--border);
+  transition:background 150ms;
+}
+#theme-toggle:hover{background:var(--surface-3)}
+
+/* ── MAIN ─────────────────────────────────────── */
+main{padding:24px;max-width:1280px;margin:0 auto;width:100%}
+
+/* ── ALERT BANNER ─────────────────────────────── */
+.alert-banner{
+  border-radius:var(--radius);padding:18px 24px;
+  display:flex;align-items:center;gap:16px;
+  margin-bottom:24px;border:1px solid transparent;
+  transition:all 0.3s;
+}
+.alert-banner.vert{background:var(--vert-bg);border-color:var(--vert);color:var(--vert)}
+.alert-banner.jaune{background:var(--jaune-bg);border-color:var(--jaune);color:var(--jaune)}
+.alert-banner.orange{background:var(--orange-bg);border-color:var(--orange);color:var(--orange)}
+.alert-banner.rouge{background:var(--rouge-bg);border-color:var(--rouge);color:var(--rouge)}
+.alert-icon{font-size:28px;flex-shrink:0}
+.alert-text h2{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:600}
+.alert-text p{font-size:13px;opacity:0.85;margin-top:2px}
+.alert-level-tag{
+  margin-left:auto;font-weight:700;font-size:13px;
+  padding:6px 14px;border-radius:20px;border:2px solid currentColor;
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* ── GRID RISQUES ─────────────────────────────── */
+.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+@media(max-width:768px){.risk-grid{grid-template-columns:1fr}}
+
+.risk-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;
+  box-shadow:var(--shadow);transition:transform 0.15s;
+}
+.risk-card:hover{transform:translateY(-2px)}
+.risk-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.risk-title{display:flex;align-items:center;gap:10px}
+.risk-icon{font-size:24px}
+.risk-name{font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:15px}
+.risk-badge{
+  font-size:11px;font-weight:700;padding:4px 10px;
+  border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;
+}
+.badge-vert{background:var(--vert-bg);color:var(--vert)}
+.badge-jaune{background:var(--jaune-bg);color:var(--jaune)}
+.badge-orange{background:var(--orange-bg);color:var(--orange)}
+.badge-rouge{background:var(--rouge-bg);color:var(--rouge)}
+
+.risk-gauge{margin-bottom:16px}
+.gauge-track{height:8px;background:var(--surface-3);border-radius:4px;overflow:hidden}
+.gauge-fill{height:100%;border-radius:4px;transition:width 0.8s cubic-bezier(0.34,1.56,0.64,1)}
+.fill-vert{background:var(--vert)}
+.fill-jaune{background:var(--jaune)}
+.fill-orange{background:var(--orange)}
+.fill-rouge{background:var(--rouge)}
+.gauge-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-faint);margin-top:4px}
+
+.risk-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.metric{
+  background:var(--surface-2);border-radius:var(--radius-sm);
+  padding:10px 12px;
+}
+.metric-label{font-size:11px;color:var(--text-muted);margin-bottom:2px}
+.metric-value{font-size:16px;font-weight:600;font-family:'Space Grotesk',sans-serif}
+.metric-unit{font-size:11px;color:var(--text-faint);font-weight:400}
+
+.risk-advice{
+  background:var(--surface-2);border-radius:var(--radius-sm);
+  padding:12px 14px;
+  font-size:13px;color:var(--text-muted);line-height:1.5;
+  border-left:3px solid var(--border);
+}
+.risk-advice.vert{border-left-color:var(--vert)}
+.risk-advice.jaune{border-left-color:var(--jaune)}
+.risk-advice.orange{border-left-color:var(--orange)}
+.risk-advice.rouge{border-left-color:var(--rouge)}
+
+/* ── BOTTOM GRID ──────────────────────────────── */
+.bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:900px){.bottom-grid{grid-template-columns:1fr}}
+
+/* ── CARDS GÉNÉRIQUES ─────────────────────────── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);
+}
+.card-title{
+  font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:14px;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;
+  margin-bottom:16px;display:flex;align-items:center;gap:8px;
+}
+
+/* ── PRÉVISIONS ───────────────────────────────── */
+.forecast-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+@media(max-width:600px){.forecast-grid{grid-template-columns:repeat(4,1fr)}}
+.forecast-day{
+  background:var(--surface-2);border-radius:var(--radius-sm);
+  padding:10px 6px;text-align:center;
+}
+.fc-date{font-size:10px;color:var(--text-faint);margin-bottom:4px}
+.fc-icon{font-size:18px;margin:4px 0}
+.fc-rain{font-size:12px;font-weight:600;color:var(--primary)}
+.fc-temp{font-size:11px;color:var(--text-muted);margin-top:2px}
+
+/* ── RAPPORT ──────────────────────────────────── */
+.rapport-text{
+  font-size:13px;color:var(--text-muted);line-height:1.7;
+  max-height:300px;overflow-y:auto;
+  white-space:pre-wrap;
+  scrollbar-width:thin;
+}
+
+/* ── INDICATEURS SAT ──────────────────────────── */
+.sat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sat-item{background:var(--surface-2);border-radius:var(--radius-sm);padding:12px}
+.sat-label{font-size:11px;color:var(--text-faint);margin-bottom:4px}
+.sat-value{font-size:20px;font-weight:700;font-family:'Space Grotesk',sans-serif}
+.sat-bar{height:5px;background:var(--surface-3);border-radius:3px;margin-top:8px;overflow:hidden}
+.sat-bar-fill{height:100%;border-radius:3px;background:var(--primary)}
+
+/* ── FOOTER ───────────────────────────────────── */
+footer{
+  text-align:center;padding:16px;font-size:12px;color:var(--text-faint);
+  border-top:1px solid var(--border);margin-top:24px;
+}
+
+/* ── ANIMATIONS ───────────────────────────────── */
+@keyframes fadein{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.risk-card,.card,.alert-banner{animation:fadein 0.4s ease both}
+.risk-card:nth-child(2){animation-delay:0.05s}
+.risk-card:nth-child(3){animation-delay:0.1s}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg class="logo-icon" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="SAMCAM">
+      <circle cx="16" cy="16" r="15" stroke="var(--primary)" stroke-width="2"/>
+      <path d="M8 22 C10 16, 14 10, 16 14 C18 18, 20 10, 24 12" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <circle cx="16" cy="8" r="3" fill="var(--primary)" opacity="0.6"/>
+      <path d="M14 8 L10 16 M18 8 L22 16" stroke="var(--primary)" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+    </svg>
+    <span>SAM</span>CAM
+  </div>
+  <div class="header-right">
+    <div class="date-badge" id="date-badge">—</div>
+    <button id="theme-toggle" aria-label="Basculer le thème">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <!-- ALERT BANNER -->
+  <div class="alert-banner" id="alert-banner">
+    <span class="alert-icon" id="alert-icon">🟢</span>
+    <div class="alert-text">
+      <h2 id="alert-title">Chargement...</h2>
+      <p id="alert-subtitle">Analyse SAMCAM en cours</p>
+    </div>
+    <div class="alert-level-tag" id="alert-tag">—</div>
+  </div>
+
+  <!-- RISQUES -->
+  <div class="risk-grid">
+    <!-- INONDATION -->
+    <div class="risk-card" id="card-inondation">
+      <div class="risk-header">
+        <div class="risk-title">
+          <span class="risk-icon">🌊</span>
+          <span class="risk-name">Inondation</span>
+        </div>
+        <span class="risk-badge" id="badge-inondation">—</span>
+      </div>
+      <div class="risk-gauge">
+        <div class="gauge-track"><div class="gauge-fill" id="gauge-inondation" style="width:0%"></div></div>
+        <div class="gauge-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
+      </div>
+      <div class="risk-metrics">
+        <div class="metric">
+          <div class="metric-label">Pluie 7j observée</div>
+          <div class="metric-value" id="pluie-obs">—<span class="metric-unit"> mm</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Pluie 7j prévue</div>
+          <div class="metric-value" id="pluie-prev">—<span class="metric-unit"> mm</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">NDWI</div>
+          <div class="metric-value" id="ndwi-val">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Humidité sol</div>
+          <div class="metric-value" id="sol-val">—<span class="metric-unit"> m³/m³</span></div>
+        </div>
+      </div>
+      <div class="risk-advice" id="advice-inondation">—</div>
+    </div>
+
+    <!-- SÉCHERESSE -->
+    <div class="risk-card" id="card-secheresse">
+      <div class="risk-header">
+        <div class="risk-title">
+          <span class="risk-icon">🌵</span>
+          <span class="risk-name">Sécheresse</span>
+        </div>
+        <span class="risk-badge" id="badge-secheresse">—</span>
+      </div>
+      <div class="risk-gauge">
+        <div class="gauge-track"><div class="gauge-fill" id="gauge-secheresse" style="width:0%"></div></div>
+        <div class="gauge-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
+      </div>
+      <div class="risk-metrics">
+        <div class="metric">
+          <div class="metric-label">NDVI</div>
+          <div class="metric-value" id="ndvi-val">—</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Déficit hydrique</div>
+          <div class="metric-value" id="deficit-val">—<span class="metric-unit"> mm</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Sol racines</div>
+          <div class="metric-value" id="sol-root">—<span class="metric-unit"> m³/m³</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">NBR</div>
+          <div class="metric-value" id="nbr-val">—</div>
+        </div>
+      </div>
+      <div class="risk-advice" id="advice-secheresse">—</div>
+    </div>
+
+    <!-- VAGUE DE CHALEUR -->
+    <div class="risk-card" id="card-chaleur">
+      <div class="risk-header">
+        <div class="risk-title">
+          <span class="risk-icon">🌡️</span>
+          <span class="risk-name">Vague de chaleur</span>
+        </div>
+        <span class="risk-badge" id="badge-chaleur">—</span>
+      </div>
+      <div class="risk-gauge">
+        <div class="gauge-track"><div class="gauge-fill" id="gauge-chaleur" style="width:0%"></div></div>
+        <div class="gauge-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
+      </div>
+      <div class="risk-metrics">
+        <div class="metric">
+          <div class="metric-label">Temp. max 7j</div>
+          <div class="metric-value" id="temp-max-val">—<span class="metric-unit"> °C</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Temp. moyenne</div>
+          <div class="metric-value" id="temp-moy-val">—<span class="metric-unit"> °C</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Humidité rel.</div>
+          <div class="metric-value" id="humid-val">—<span class="metric-unit"> %</span></div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Vent max</div>
+          <div class="metric-value" id="vent-val">—<span class="metric-unit"> km/h</span></div>
+        </div>
+      </div>
+      <div class="risk-advice" id="advice-chaleur">—</div>
+    </div>
+  </div>
+
+  <!-- BOTTOM -->
+  <div class="bottom-grid">
+    <!-- PRÉVISIONS 7J -->
+    <div class="card">
+      <div class="card-title">📅 Prévisions 7 jours</div>
+      <div class="forecast-grid" id="forecast-grid"></div>
+    </div>
+
+    <!-- INDICES SATELLITES -->
+    <div class="card">
+      <div class="card-title">🛰️ Indices satellitaires</div>
+      <div class="sat-grid" id="sat-grid"></div>
+    </div>
+
+    <!-- RAPPORT PHI-3 -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="card-title">🤖 Analyse Phi-3 mini — <span id="rapport-date" style="font-weight:400;text-transform:none;letter-spacing:0">—</span></div>
+      <div class="rapport-text" id="rapport-text">Aucun rapport disponible. Lance d'abord :<br><code>python3 inference/analyser_kribi.py</code></div>
+    </div>
+  </div>
+</main>
+
+<footer>SAMCAM v3 — Surveillance Automatique Météo-Climatique Cameroun · Kribi · <span id="footer-date"></span></footer>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// THÈME
+// ══════════════════════════════════════════════════════
+const html = document.documentElement;
+const themeBtn = document.getElementById('theme-toggle');
+let currentTheme = 'dark';
+html.setAttribute('data-theme', currentTheme);
+
+themeBtn.addEventListener('click', () => {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', currentTheme);
+  themeBtn.innerHTML = currentTheme === 'dark'
+    ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>'
+    : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+});
+
+// ══════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════
+function getRiskLevel(risqueStr) {
+  if (!risqueStr) return { level: 'vert', label: 'Normal', score: 10 };
+  const s = risqueStr.toLowerCase();
+  if (s.includes('critique') || s.includes('rouge') || s.includes('élevé') || s.includes('eleve')) return { level: 'rouge', label: 'Élevé', score: 85 };
+  if (s.includes('orange') || s.includes('modéré') || s.includes('modere')) return { level: 'orange', label: 'Modéré', score: 60 };
+  if (s.includes('jaune') || s.includes('vigilance') || s.includes('faible')) return { level: 'jaune', label: 'Faible', score: 30 };
+  return { level: 'vert', label: 'Normal', score: 10 };
+}
+
+function applyRisk(cardId, badgeId, gaugeId, adviceId, risqueStr, advice) {
+  const r = getRiskLevel(risqueStr);
+  const badge = document.getElementById(badgeId);
+  const gauge = document.getElementById(gaugeId);
+  const advEl = document.getElementById(adviceId);
+  badge.textContent = r.label;
+  badge.className = 'risk-badge badge-' + r.level;
+  gauge.style.width = r.score + '%';
+  gauge.className = 'gauge-fill fill-' + r.level;
+  if (advEl) { advEl.textContent = advice; advEl.className = 'risk-advice ' + r.level; }
+}
+
+function getWeatherIcon(rain, prob) {
+  if (rain > 20 || prob > 70) return '🌧️';
+  if (rain > 5 || prob > 40)  return '🌦️';
+  if (rain > 0)               return '🌤️';
+  return '☀️';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+// ══════════════════════════════════════════════════════
+// NORMALISATION DES DATES — force la date réelle
+// ══════════════════════════════════════════════════════
+function getTodayISO() {
+  const d = new Date();
+  return d.toISOString().split('T')[0];
+}
+
+// ══════════════════════════════════════════════════════
+// CHARGEMENT DES DONNÉES
+// ══════════════════════════════════════════════════════
+async function loadLatestReport() {
+  const today = getTodayISO();
+  const paths = [
+    `../reports/rapport_kribi_${today}.json`,
+    `../data/kribi_${today}.json`,
+  ];
+
+  // Cherche le rapport JSON du jour (généré par analyser_kribi.py)
+  for (const path of paths) {
+    try {
+      const resp = await fetch(path);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (data.rapport_texte) { renderFromReport(data, today); return; }
+      if (data.indicateurs_risque) { renderFromData(data, today); return; }
+    } catch(e) { continue; }
+  }
+  // Fallback : tente le dernier rapport disponible
+  renderDemo(today);
+}
+
+// ══════════════════════════════════════════════════════
+// RENDU DEPUIS UN RAPPORT (reports/rapport_kribi_*.json)
+// ══════════════════════════════════════════════════════
+function renderFromReport(report, today) {
+  const ind = report.indicateurs || {};
+  const texte = report.rapport_texte || '';
+  render({
+    date: today,                 // ← TOUJOURS la date réelle du navigateur
+    indicateurs: ind,
+    rapport: texte,
+    meteo: null,
+    sat: null,
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// RENDU DEPUIS LES DONNÉES BRUTES (data/kribi_*.json)
+// ══════════════════════════════════════════════════════
+function renderFromData(data, today) {
+  const ind = data.indicateurs_risque || {};
+  render({
+    date: today,
+    indicateurs: ind,
+    rapport: data.contexte_phi3 || '',
+    meteo: data.meteorologie,
+    sat: data.satellitaire,
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// RENDU DÉMO (si aucun fichier trouvé)
+// ══════════════════════════════════════════════════════
+function renderDemo(today) {
+  render({
+    date: today,
+    indicateurs: {
+      risque_inondation_observe: 'faible',
+      risque_inondation_prevu: 'faible',
+      risque_secheresse: 'faible',
+      risque_submersion_cotiere: 'faible',
+      risque_sol_sature: 'faible',
+      ndvi_moyen: 0.72,
+      ndwi_moyen: 0.21,
+      pluie_cumulee_7j_mm: 78,
+      pluie_prevue_7j_mm: 95,
+    },
+    rapport: 'Aucun rapport Phi-3 disponible pour aujourd\'hui.\nLance : python3 inference/analyser_kribi.py\nou : python3 inference/pipeline_complet.py',
+    meteo: null,
+    sat: null,
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// RENDER PRINCIPAL
+// ══════════════════════════════════════════════════════
+function render({ date, indicateurs: ind, rapport, meteo, sat }) {
+  // ── Date ──────────────────────────────────────────
+  const dateStr = formatDate(date);
+  document.getElementById('date-badge').textContent = dateStr;
+  document.getElementById('footer-date').textContent = date;
+  document.getElementById('rapport-date').textContent = date;
+
+  // ── ALERTE GLOBALE ────────────────────────────────
+  const niveaux = [
+    getRiskLevel(ind.risque_inondation_observe),
+    getRiskLevel(ind.risque_inondation_prevu),
+    getRiskLevel(ind.risque_secheresse),
+    getRiskLevel(ind.risque_submersion_cotiere),
+  ];
+  const scores = { vert: 1, jaune: 2, orange: 3, rouge: 4 };
+  const top = niveaux.reduce((a, b) => scores[a.level] >= scores[b.level] ? a : b);
+
+  const banner = document.getElementById('alert-banner');
+  banner.className = 'alert-banner ' + top.level;
+  document.getElementById('alert-icon').textContent =
+    top.level === 'vert' ? '🟢' : top.level === 'jaune' ? '🟡' : top.level === 'orange' ? '🟠' : '🔴';
+  document.getElementById('alert-title').textContent =
+    top.level === 'vert' ? 'Situation normale — Kribi'
+    : top.level === 'jaune' ? 'Légère vigilance — Kribi'
+    : top.level === 'orange' ? 'Vigilance renforcée — Kribi'
+    : 'Alerte active — Kribi';
+  const mois = new Date().toLocaleDateString('fr-FR', { month: 'long' });
+  document.getElementById('alert-subtitle').textContent =
+    `Saison des pluies (${mois}) — Analyse SAMCAM · Phi-3 mini`;
+  document.getElementById('alert-tag').textContent = top.label.toUpperCase();
+
+  // ── MÉTRIQUES COMMUNES ────────────────────────────
+  const pluieObs  = ind.pluie_cumulee_7j_mm  ?? 0;
+  const pluiePrev = ind.pluie_prevue_7j_mm   ?? 0;
+  const ndvi      = ind.ndvi_moyen            ?? 0;
+  const ndwi      = ind.ndwi_moyen            ?? 0;
+
+  // Temp depuis prévisions
+  let tempMax = '—', tempMoy = '—', ventMax = '—', humidite = '—';
+  if (meteo?.previsions_daily) {
+    const p = meteo.previsions_daily;
+    const temps7 = (p.temperature_2m_max || []).slice(0,7).filter(v => v != null);
+    const vents7 = (p.windspeed_10m_max  || []).slice(0,7).filter(v => v != null);
+    if (temps7.length) {
+      tempMax = Math.max(...temps7).toFixed(1);
+      tempMoy = (temps7.reduce((a,b)=>a+b,0)/temps7.length).toFixed(1);
+    }
+    if (vents7.length) ventMax = Math.max(...vents7).toFixed(0);
+  }
+  if (meteo?.historique_recent) {
+    const hr = meteo.historique_recent;
+    const rh = hr.relative_humidity_2m_mean || hr.relativehumidity_2m;
+    if (Array.isArray(rh) && rh.length) {
+      humidite = Math.round(rh.reduce((a,b)=>a+b,0)/rh.length);
+    }
+  }
+
+  // ── INONDATION ────────────────────────────────────
+  const smSurface = sat?.smap?.humidite_sol?.sm_surface ?? null;
+  const risqInond = ind.risque_inondation_prevu || ind.risque_inondation_observe || 'faible';
+  applyRisk('card-inondation', 'badge-inondation', 'gauge-inondation', 'advice-inondation',
+    risqInond,
+    risqInond.includes('faible') || risqInond.includes('vert')
+      ? `Pluies dans les normales de saison (${Math.round(pluieObs)} mm observés). Aucune action requise.`
+      : risqInond.includes('modéré') || risqInond.includes('jaune') || risqInond.includes('orange')
+      ? `Pluies légèrement supérieures aux normales. Surveiller les zones basses et les estuaires.`
+      : `Précipitations anormalement élevées. Mettre en œuvre le plan d'évacuation des zones côtières.`
+  );
+  setText('pluie-obs',  Math.round(pluieObs));
+  setText('pluie-prev', Math.round(pluiePrev));
+  setText('ndwi-val',   ndwi.toFixed ? ndwi.toFixed(2) : ndwi);
+  setText('sol-val',    smSurface != null ? smSurface.toFixed(3) : '—');
+
+  // ── SÉCHERESSE ────────────────────────────────────
+  const risqSec   = ind.risque_secheresse || 'faible';
+  const smRootzone = sat?.smap?.humidite_sol?.sm_rootzone ?? null;
+  const indices2  = sat?.sentinel2?.indices || sat?.modis?.indices || {};
+  const nbrVal    = indices2.NBR_mean != null ? indices2.NBR_mean.toFixed(3) : (ind.nbr_moyen != null ? Number(ind.nbr_moyen).toFixed(3) : '—');
+  const deficit   = Math.max(0, 160 - pluieObs).toFixed(0); // normales juin
+  applyRisk('card-secheresse', 'badge-secheresse', 'gauge-secheresse', 'advice-secheresse',
+    risqSec,
+    risqSec.includes('faible') || risqSec.includes('vert')
+      ? `NDVI (${ndvi.toFixed ? ndvi.toFixed(2) : ndvi}) indique une végétation saine. Sol suffisamment humide.`
+      : `Végétation sous stress. Surveiller les cultures maraîchères et les zones de mangrove.`
+  );
+  setText('ndvi-val',    ndvi.toFixed ? ndvi.toFixed(2) : ndvi);
+  setText('deficit-val', deficit);
+  setText('sol-root',    smRootzone != null ? smRootzone.toFixed(3) : '—');
+  setText('nbr-val',     nbrVal);
+
+  // ── VAGUE DE CHALEUR ──────────────────────────────
+  // Kribi : vague de chaleur si temp. max > 35°C plusieurs jours
+  let risqChaleur = 'faible';
+  if (tempMax !== '—' && parseFloat(tempMax) >= 35) risqChaleur = 'orange';
+  if (tempMax !== '—' && parseFloat(tempMax) >= 38) risqChaleur = 'rouge';
+  applyRisk('card-chaleur', 'badge-chaleur', 'gauge-chaleur', 'advice-chaleur',
+    risqChaleur,
+    risqChaleur === 'faible'
+      ? `Températures dans les normales tropicales (${tempMax}°C max). Pas de vague de chaleur prévue.`
+      : `Températures anormalement élevées. Recommander la restriction des activités en plein air entre 11h-16h.`
+  );
+  setText('temp-max-val', tempMax);
+  setText('temp-moy-val', tempMoy);
+  setText('humid-val',    humidite);
+  setText('vent-val',     ventMax);
+
+  // ── PRÉVISIONS 7J ────────────────────────────────
+  const fg = document.getElementById('forecast-grid');
+  fg.innerHTML = '';
+  if (meteo?.previsions_daily?.time) {
+    const p = meteo.previsions_daily;
+    const days = p.time.slice(0,7);
+    days.forEach((d, i) => {
+      const rain = (p.precipitation_sum?.[i] ?? 0).toFixed(0);
+      const prob = (p.precipitation_probability_max?.[i] ?? 0);
+      const tmax = p.temperature_2m_max?.[i]?.toFixed(1) ?? '—';
+      const icon = getWeatherIcon(parseFloat(rain), prob);
+      const short = new Date(d + 'T00:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' });
+      fg.innerHTML += `<div class="forecast-day"><div class="fc-date">${short}</div><div class="fc-icon">${icon}</div><div class="fc-rain">${rain}mm</div><div class="fc-temp">${tmax}°C</div></div>`;
+    });
+  } else {
+    fg.innerHTML = '<p style="color:var(--text-faint);font-size:13px">Données de prévisions non disponibles dans ce fichier.</p>';
+  }
+
+  // ── INDICES SATELLITES ────────────────────────────
+  const sg = document.getElementById('sat-grid');
+  const satItems = [
+    { label: 'NDVI', value: ndvi.toFixed ? ndvi.toFixed(3) : ndvi, max: 1,   good: v => v > 0.5, unit: '', desc: 'Vég. saine > 0.6' },
+    { label: 'NDWI', value: ndwi.toFixed ? ndwi.toFixed(3) : ndwi, max: 1,   good: v => v < 0.4, unit: '', desc: 'Eau surf. > 0.3' },
+    { label: 'NBR',  value: nbrVal,                                  max: 1,   good: v => v > 0.2, unit: '', desc: 'Brûlures végét.' },
+    { label: 'Sol surface', value: smSurface != null ? smSurface.toFixed(3) : '—', max: 0.6, good: v => v < 0.5, unit: 'm³/m³', desc: 'Saturation > 0.55' },
+  ];
+  sg.innerHTML = '';
+  satItems.forEach(item => {
+    const numVal = parseFloat(item.value);
+    const pct = isNaN(numVal) ? 0 : Math.min(100, Math.round((numVal / item.max) * 100));
+    const ok = isNaN(numVal) ? true : item.good(numVal);
+    const color = ok ? 'var(--vert)' : 'var(--orange)';
+    sg.innerHTML += `
+      <div class="sat-item">
+        <div class="sat-label">${item.label} <span style="color:var(--text-faint);font-size:10px">${item.desc}</span></div>
+        <div class="sat-value">${item.value}<span style="font-size:12px;font-weight:400;color:var(--text-faint)"> ${item.unit}</span></div>
+        <div class="sat-bar"><div class="sat-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+      </div>`;
+  });
+
+  // ── RAPPORT PHI-3 ─────────────────────────────────
+  document.getElementById('rapport-text').textContent = rapport ||
+    'Aucun rapport disponible. Lance : python3 inference/analyser_kribi.py';
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const unit = el.querySelector('.metric-unit');
+  const unitHtml = unit ? unit.outerHTML : '';
+  el.innerHTML = (val ?? '—') + unitHtml;
+}
+
+// ══════════════════════════════════════════════════════
+// LANCEMENT
+// ══════════════════════════════════════════════════════
+loadLatestReport();
+</script>
+</body>
+</html>
