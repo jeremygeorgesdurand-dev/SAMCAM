@@ -1,10 +1,19 @@
 #!/bin/bash
-# SAMCAM — Planificateur de collecte automatique
-# Lance la collecte chaque semaine via cron
+# SAMCAM v2 — Collecte multi-fréquence
 #
-# Pour ajouter au cron (chaque lundi à 6h du matin) :
-#   crontab -e
-#   0 6 * * 1 /chemin/vers/SAMCAM/data_collection/scheduler.sh
+# Fréquences recommandées :
+#   Open-Meteo  : toutes les 6h (données météo courte échéance)
+#   NASA POWER  : 1x/jour (latence ~7 jours côté NASA)
+#   GEE         : 1x/jour (Sentinel-2 revisite ~5 jours + MODIS fallback)
+#
+# Configuration cron (crontab -e) :
+#
+#   # Collecte complète toutes les 6h
+#   0 0,6,12,18 * * * /chemin/vers/SAMCAM/data_collection/scheduler.sh >> /chemin/vers/SAMCAM/logs/collecte.log 2>&1
+#
+#   # Ou collecte légère toutes les 6h (météo seulement) + complète 1x/jour
+#   0 6,12,18 * * * /chemin/vers/SAMCAM/data_collection/scheduler_meteo_only.sh
+#   0 1 * * *       /chemin/vers/SAMCAM/data_collection/scheduler.sh
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$SCRIPT_DIR/.."
@@ -16,16 +25,15 @@ mkdir -p "$PROJECT_DIR/data"
 export EE_PRIVATE_KEY_PATH="$HOME/.config/gee/kribi-key.json"
 
 echo "" >> "$LOG_FILE"
-echo "===== $(date '+%Y-%m-%d %H:%M:%S') - Collecte SAMCAM démarrée =====" >> "$LOG_FILE"
+echo "===== $(date '+%Y-%m-%d %H:%M:%S') — Collecte SAMCAM démarrée ====" >> "$LOG_FILE"
 
 cd "$PROJECT_DIR"
 
-# Activation de l'environnement virtuel si présent
 if [ -f "venv/bin/activate" ]; then
     source venv/bin/activate
 fi
 
-python data_collection/collect_kribi.py --days 7 >> "$LOG_FILE" 2>&1
+python3 data_collection/collect_kribi.py --days 7 >> "$LOG_FILE" 2>&1
 
 EXIT_CODE=$?
 if [ $EXIT_CODE -eq 0 ]; then
@@ -34,4 +42,4 @@ else
     echo "❌ Collecte échouée (code $EXIT_CODE)" >> "$LOG_FILE"
 fi
 
-echo "===== Fin collecte =====" >> "$LOG_FILE"
+echo "===== Fin ====" >> "$LOG_FILE"

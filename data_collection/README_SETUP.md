@@ -1,80 +1,92 @@
-# SAMCAM — Setup de la collecte de données
+# SAMCAM v2 — Setup de la collecte de données
 
 ## Prérequis
 
 ```bash
-pip install -r data_collection/requirements.txt
+pip3 install -r data_collection/requirements.txt
 ```
 
 ## Configuration de la clé GEE
 
-Ne JAMAIS committer la clé JSON sur GitHub.
+⚠️ **Ne JAMAIS committer la clé JSON sur GitHub.**
 
 ```bash
 mkdir -p ~/.config/gee
-mv ~/Téléchargements/samcam-499511-*.json ~/.config/gee/kribi-key.json
+mv ~/Downloads/samcam-499511-*.json ~/.config/gee/kribi-key.json
 chmod 600 ~/.config/gee/kribi-key.json
 ```
 
-Exporte la variable d'environnement (ajoute dans `~/.bashrc` ou `~/.zshrc`) :
+Rends la variable permanente (Mac/zsh) :
 
 ```bash
-export EE_PRIVATE_KEY_PATH="$HOME/.config/gee/kribi-key.json"
-```
-
-## Test d'authentification GEE
-
-```python
-import ee
-import os
-
-credentials = ee.ServiceAccountCredentials(
-    "gee-kribi-bot@samcam-499511.iam.gserviceaccount.com",
-    os.environ["EE_PRIVATE_KEY_PATH"]
-)
-ee.Initialize(credentials, project="samcam-499511")
-print("✅ GEE OK")
+echo 'export EE_PRIVATE_KEY_PATH="$HOME/.config/gee/kribi-key.json"' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ## Lancer la collecte manuellement
 
 ```bash
-python data_collection/collect_kribi.py
-# ou avec 30 jours d'historique :
-python data_collection/collect_kribi.py --days 30
+python3 data_collection/collect_kribi.py
+# avec 30 jours d'historique :
+python3 data_collection/collect_kribi.py --days 30
 ```
 
-## Automatiser avec cron
+## Résultat attendu
+
+```
+============================================================
+SAMCAM v2 — Collecte automatique Kribi
+============================================================
+[1/3] Open-Meteo...
+[Open-Meteo] ✅ Historique 7j + prévisions 16j récupérés
+[2/3] NASA POWER...
+[NASA POWER] ✅ Données 7j récupérées
+[3/3] Google Earth Engine...
+[GEE Sentinel-2] 🛰️  X image(s) trouvée(s) (filtre nuages 80%)
+[GEE SMAP] ✅ Humidité du sol récupérée
+✅ Collecte terminée
+📄 Fichier : data/kribi_2026-06-15.json
+```
+
+Si Sentinel-2 retourne 0 image (couverture nuageuse totale) :
+```
+[GEE Sentinel-2] ⚠️  Aucune image → passage au fallback MODIS
+[GEE MODIS] ✅ NDVI et EVI MODIS récupérés (fallback)
+```
+
+## Automatisation cron (Mac/Linux)
 
 ```bash
 crontab -e
 ```
 
-Ajoute cette ligne pour lancer chaque lundi à 6h :
+Ajoute ces deux lignes :
 
 ```
-0 6 * * 1 /chemin/vers/SAMCAM/data_collection/scheduler.sh
+# Collecte complète 1x/jour à 1h du matin
+0 1 * * * /Users/jeremy/Documents/Cameroun/SAMCAM/data_collection/scheduler.sh
+
+# Collecte météo rapide toutes les 6h (6h, 12h, 18h)
+0 6,12,18 * * * /Users/jeremy/Documents/Cameroun/SAMCAM/data_collection/scheduler_meteo_only.sh
 ```
-
-## Sortie
-
-Chaque collecte génère un fichier dans `data/` :
-
-```
-data/kribi_2026-06-16.json
-```
-
-Ce fichier JSON contient :
-- `meteorologie` — données Open-Meteo (historique + prévisions)
-- `nasa_power` — rayonnement solaire, précipitations NASA
-- `satellitaire` — indices NDVI, NDWI, NBR depuis Sentinel-2 (GEE)
-- `indicateurs_risque` — scores de risque (inondation, sécheresse, submersion)
-- `contexte_phi3` — texte pré-formaté pour l'inférence Phi-3 mini
 
 ## Sources de données
 
-| Source | Données | Clé API |
-|--------|---------|--------|
-| Open-Meteo | Météo historique 1940+ et prévisions 7j | ❌ Aucune |
-| NASA POWER | Rayonnement solaire, humidité, précipitations | ❌ Aucune |
-| Google Earth Engine | Sentinel-2 NDVI/NDWI/NBR, humidité sol SMAP | ✅ Service account |
+| Source | Données | Fréquence recommandée | Clé API |
+|--------|---------|----------------------|--------|
+| Open-Meteo | Météo historique + prévisions 16j | Toutes les 6h | ❌ Aucune |
+| NASA POWER | Rayonnement solaire, humidité, précip | 1x/jour | ❌ Aucune |
+| Sentinel-2 (GEE) | NDVI, NDWI, NBR, NDRE (10-20m) | 1x/jour | ✅ Service account |
+| MODIS (GEE fallback) | NDVI, EVI (500m, 16j) | 1x/jour | ✅ Service account |
+| SMAP (GEE) | Humidité du sol (10km) | 1x/jour | ✅ Service account |
+
+## Fichiers générés
+
+```
+data/
+  kribi_2026-06-15.json        # Collecte complète (GEE + météo + NASA)
+  meteo_only_2026-06-15.json   # Collecte météo rapide (Open-Meteo seul)
+logs/
+  collecte.log                 # Logs collecte complète
+  meteo_only.log               # Logs collecte rapide
+```
