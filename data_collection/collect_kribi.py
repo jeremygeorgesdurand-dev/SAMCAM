@@ -7,10 +7,11 @@ Sources :
 - Google Earth Engine (Sentinel-2 NDVI/NDWI/NBR + fallback MODIS) — via service account
 - NASA POWER (rayonnement solaire, précipitations) — aucune clé API requise
 
-Modifications v2 :
+Modifications v2.1 :
 - Filtre nuages Sentinel-2 élargi à 80% (zone tropicale très nuageuse)
 - Fenêtre temporelle élargie à 60 jours
 - Fallback automatique sur MODIS si 0 image Sentinel-2 utilisable
+- SMAP mis à jour vers NASA/SMAP/SPL4SMGP/008 (ancien dataset déprécié)
 - Meilleure gestion des erreurs et logs
 
 Usage :
@@ -48,7 +49,6 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 def fetch_openmeteo(days_back: int = 7) -> dict:
     today = datetime.date.today()
-    # Open-Meteo archive a 1-2 jours de latence, on recule d'un jour pour éviter les erreurs
     end = today - datetime.timedelta(days=1)
     start = end - datetime.timedelta(days=days_back)
 
@@ -80,7 +80,6 @@ def fetch_openmeteo(days_back: int = 7) -> dict:
     hist_resp.raise_for_status()
     hist_data = hist_resp.json()
 
-    # Prévisions 16 jours (max Open-Meteo)
     fcast_url = "https://api.open-meteo.com/v1/forecast"
     fcast_params = {
         "latitude": LAT,
@@ -123,7 +122,6 @@ def fetch_openmeteo(days_back: int = 7) -> dict:
 
 def fetch_nasa_power(days_back: int = 7) -> dict:
     today = datetime.date.today()
-    # NASA POWER a une latence de ~7 jours
     end = today - datetime.timedelta(days=7)
     start = end - datetime.timedelta(days=days_back)
 
@@ -175,10 +173,10 @@ def _init_gee() -> bool:
 
 def fetch_gee_sentinel2(window_days: int = 60) -> dict:
     """
-    Récupère NDVI, NDWI, NBR depuis Sentinel-2.
+    Récupère NDVI, NDWI, NBR, NDRE depuis Sentinel-2.
     - Filtre nuages élargi à 80% pour zone tropicale très nuageuse
     - Fenêtre temporelle 60 jours par défaut
-    - Masque nuage appliqué pixel par pixel via QA60
+    - Masque nuage pixel par pixel via QA60
     """
     import ee
 
@@ -196,7 +194,6 @@ def fetch_gee_sentinel2(window_days: int = 60) -> dict:
         )
         return image.updateMask(mask).divide(10000)
 
-    # Filtre élargi à 80% (au lieu de 30%) pour Kribi
     collection = (
         ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
         .filterDate(start.isoformat(), today.isoformat())
@@ -217,7 +214,7 @@ def fetch_gee_sentinel2(window_days: int = 60) -> dict:
     ndvi = composite.normalizedDifference(["B8",  "B4"]).rename("NDVI")
     ndwi = composite.normalizedDifference(["B3",  "B8"]).rename("NDWI")
     nbr  = composite.normalizedDifference(["B8",  "B12"]).rename("NBR")
-    ndre = composite.normalizedDifference(["B8",  "B5"]).rename("NDRE")  # Red-Edge utile en zone dense
+    ndre = composite.normalizedDifference(["B8",  "B5"]).rename("NDRE")
 
     indices = composite.addBands([ndvi, ndwi, nbr, ndre])
 
@@ -247,7 +244,6 @@ def fetch_gee_modis_fallback(window_days: int = 60) -> dict:
     """
     Fallback MODIS Terra (MOD13A1) — résolution 500m, mise à jour 16 jours.
     Disponible même par forte couverture nuageuse grâce à la composition temporelle.
-    Fournit NDVI et EVI.
     """
     import ee
 
@@ -272,7 +268,6 @@ def fetch_gee_modis_fallback(window_days: int = 60) -> dict:
             "erreur": "Aucune donnée MODIS disponible",
         }
 
-    # MODIS NDVI/EVI sont stockés ×10000
     composite = modis.mean().multiply(0.0001)
 
     stats = composite.select(["NDVI", "EVI"]).reduceRegion(
@@ -296,7 +291,14 @@ def fetch_gee_modis_fallback(window_days: int = 60) -> dict:
 
 
 def fetch_gee_soil_moisture() -> dict:
-    """Humidité du sol via SMAP (NASA, 10km)."""
+    """
+    Humidité du sol via SMAP Level-4 (NASA/SMAP/SPL4SMGP/008).
+    Remplace l'ancien dataset NASA_USDA/HSL/SMAP10KM_soil_moisture (déprécié).
+    Résolution ~9km, latence ~3 jours.
+    Variables :
+        sm_surface      = humidité 0-5cm (m³/m³)
+        sm_rootzone     = humidité 0-100cm (m³/m³)
+    """
     import ee
 
     today = datetime.date.today()
@@ -306,23 +308,30 @@ def fetch_gee_soil_moisture() -> dict:
 
     try:
         smap = (
-            ee.ImageCollection("NASA_USDA/HSL/SMAP10KM_soil_moisture")
+            ee.ImageCollection("NASA/SMAP/SPL4SMGP/008")
             .filterDate(start.isoformat(), today.isoformat())
             .filterBounds(zone)
-            .select(["ssm", "susm"])
+            .select(["sm_surface", "sm_rootzone"])
             .mean()
         )
         stats = smap.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=zone,
-            scale=10000,
+            scale=9000,
             maxPixels=1e9,
         ).getInfo()
-        print(f"[GEE SMAP] ✅ Humidité du sol récupérée")
-        return {"source": "SMAP-10km", "humidite_sol": stats}
+        print(f"[GEE SMAP] ✅ Humidité du sol récupérée (SPL4SMGP/008)")
+        return {
+            "source": "SMAP-SPL4SMGP-008",
+            "humidite_sol": stats,
+            "legende": {
+                "sm_surface": "humidité 0-5cm (m³/m³)",
+                "sm_rootzone": "humidité 0-100cm (m³/m³)",
+            }
+        }
     except Exception as e:
         print(f"[GEE SMAP] ⚠️  Indisponible : {e}")
-        return {"source": "SMAP-10km", "erreur": str(e)}
+        return {"source": "SMAP-SPL4SMGP-008", "erreur": str(e)}
 
 
 def fetch_gee_all() -> dict:
@@ -330,22 +339,19 @@ def fetch_gee_all() -> dict:
     Orchestre toutes les collectes GEE :
     1. Sentinel-2 (filtre 80%, 60 jours)
     2. Fallback MODIS si Sentinel-2 vide
-    3. SMAP humidité du sol
+    3. SMAP humidité du sol (dataset v008)
     """
     if not _init_gee():
         return {"source": "gee", "erreur": "Initialisation GEE impossible"}
 
     result = {"source": "gee"}
 
-    # Sentinel-2
     s2 = fetch_gee_sentinel2(window_days=60)
     if s2 is not None:
         result["sentinel2"] = s2
     else:
-        # Fallback MODIS
         result["modis"] = fetch_gee_modis_fallback(window_days=60)
 
-    # Humidité du sol SMAP
     result["smap"] = fetch_gee_soil_moisture()
 
     return result
@@ -356,7 +362,6 @@ def fetch_gee_all() -> dict:
 def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
     today = datetime.date.today().isoformat()
 
-    # Pluie cumulée 7j
     pluie_7j = 0.0
     try:
         precips = openmeteo["historique_daily"].get("precipitation_sum", [])
@@ -364,7 +369,6 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
     except Exception:
         pass
 
-    # Pluie prévue 7j
     pluie_prev_7j = 0.0
     try:
         precips_prev = openmeteo["previsions_daily"].get("precipitation_sum", [])
@@ -372,7 +376,6 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
     except Exception:
         pass
 
-    # NDVI / NDWI — Sentinel-2 ou MODIS en fallback
     ndvi_val = None
     ndwi_val = None
     capteur = "inconnu"
@@ -387,23 +390,21 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
     except Exception:
         pass
 
-    # Humidité sol
     humidite_sol = None
     try:
-        humidite_sol = gee["smap"]["humidite_sol"].get("ssm")
+        humidite_sol = gee["smap"]["humidite_sol"].get("sm_surface")
     except Exception:
         pass
 
-    # Scores de risque
-    risque_inondation = "élevé" if pluie_7j > 150 else ("modéré" if pluie_7j > 80 else "faible")
+    risque_inondation      = "élevé" if pluie_7j > 150 else ("modéré" if pluie_7j > 80 else "faible")
     risque_inondation_prev = "élevé" if pluie_prev_7j > 150 else ("modéré" if pluie_prev_7j > 80 else "faible")
-    risque_secheresse = "élevé" if (ndvi_val is not None and ndvi_val < 0.2) else "faible"
-    risque_submersion = "élevé" if (ndwi_val is not None and ndwi_val > 0.3) else "faible"
-    risque_sol_sature = "élevé" if (humidite_sol is not None and humidite_sol > 0.4) else "faible"
+    risque_secheresse      = "élevé" if (ndvi_val is not None and ndvi_val < 0.2) else "faible"
+    risque_submersion      = "élevé" if (ndwi_val is not None and ndwi_val > 0.3) else "faible"
+    risque_sol_sature      = "élevé" if (humidite_sol is not None and humidite_sol > 0.4) else "faible"
 
     payload = {
         "meta": {
-            "version": "2.0",
+            "version": "2.1",
             "date_collecte": today,
             "zone": CITY,
             "latitude": LAT,
@@ -419,7 +420,7 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
             "pluie_prevue_7j_mm": round(pluie_prev_7j, 2),
             "ndvi_moyen": ndvi_val,
             "ndwi_moyen": ndwi_val,
-            "humidite_sol_ssm": humidite_sol,
+            "humidite_sol_sm_surface": humidite_sol,
             "risque_inondation_observe": risque_inondation,
             "risque_inondation_prevu": risque_inondation_prev,
             "risque_secheresse": risque_secheresse,
@@ -433,7 +434,7 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
             f"Pluie prévue 7 prochains jours: {round(pluie_prev_7j,1)} mm. "
             f"Indice végétation NDVI ({capteur}): {ndvi_val}. "
             f"Indice eau NDWI: {ndwi_val}. "
-            f"Humidité sol SMAP: {humidite_sol}. "
+            f"Humidité sol surface SMAP: {humidite_sol} m³/m³. "
             f"Risque inondation observé: {risque_inondation}. "
             f"Risque inondation prévu: {risque_inondation_prev}. "
             f"Risque sécheresse: {risque_secheresse}. "
@@ -453,13 +454,13 @@ def aggregate_and_save(openmeteo: dict, nasa: dict, gee: dict) -> str:
 # ─── 5. POINT D'ENTRÉE ─────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM v2 — Collecte données Kribi")
+    parser = argparse.ArgumentParser(description="SAMCAM v2.1 — Collecte données Kribi")
     parser.add_argument("--days", type=int, default=7,
                         help="Jours d'historique météo (défaut: 7)")
     args = parser.parse_args()
 
     print("=" * 60)
-    print(f"SAMCAM v2 — Collecte automatique {CITY}")
+    print(f"SAMCAM v2.1 — Collecte automatique {CITY}")
     print(f"Date : {datetime.date.today().isoformat()}")
     print("=" * 60)
 
