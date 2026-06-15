@@ -6,7 +6,6 @@
 <title>SAMCAM V4 — Kribi · Surveillance climatique</title>
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
 <style>
-/* ── Tokens ──────────────────────────────────────────────────── */
 :root,[data-theme="light"]{
   --font:'Satoshi',system-ui,sans-serif;
   --bg:#f7f6f2; --surface:#f9f8f5; --surface2:#fbfbf9;
@@ -20,10 +19,9 @@
   --blue:#006494;   --blue-hl:rgba(0,100,148,.1);
   --sh-sm:0 1px 3px rgba(40,37,29,.07);
   --sh-md:0 4px 14px rgba(40,37,29,.10);
-  --r-sm:.375rem; --r-md:.5rem; --r-lg:.75rem; --r-xl:1rem; --r-full:9999px;
+  --r-sm:.375rem; --r-md:.5rem; --r-lg:.75rem; --r-xl:1rem; --r-2xl:1.5rem; --r-full:9999px;
   --tr:160ms cubic-bezier(.16,1,.3,1);
 }
-/* Mode sombre : neutres slate/bleu-gris, pas de vert vif */
 [data-theme="dark"]{
   --bg:#14161a; --surface:#1a1c21; --surface2:#1f2128;
   --offset:#1c1e24; --border:#2e3038;
@@ -42,10 +40,10 @@ html{-webkit-font-smoothing:antialiased}
 body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;transition:background var(--tr),color var(--tr)}
 button,input,select{font:inherit;color:inherit;cursor:pointer}
 
-/* ── App layout : sidebar + main ─────────────────────────────── */
-.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+/* ── App layout ── */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
 
-/* ── Sidebar ──────────────────────────────────────────────────── */
+/* ── Sidebar ── */
 .sidebar{
   background:var(--surface);border-right:1px solid var(--border);
   padding:1.25rem 1rem;display:flex;flex-direction:column;gap:1rem;
@@ -58,79 +56,48 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
   display:grid;place-items:center;color:#fff;box-shadow:var(--sh-md)
 }
 .brand-name{font-size:1rem;font-weight:700;line-height:1.2}
-.brand-sub{font-size:.7rem;color:var(--muted)}
+.brand-sub{font-size:.68rem;color:var(--muted)}
 .theme-btn{
   margin-left:auto;width:32px;height:32px;border-radius:var(--r-full);
   border:1px solid var(--border);background:var(--surface2);
   display:grid;place-items:center;transition:background var(--tr);flex-shrink:0
 }
 .theme-btn:hover{background:var(--offset)}
-
-.sec-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem}
-
-/* Status bloc */
+.sec-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.4rem}
 .status-bloc{
   background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-lg);padding:.75rem 1rem;display:flex;flex-direction:column;gap:.5rem
+  border-radius:var(--r-lg);padding:.75rem;display:flex;flex-direction:column;gap:.45rem
 }
-.status-row{display:flex;justify-content:space-between;align-items:center;font-size:.72rem}
+.status-row{display:flex;justify-content:space-between;align-items:center;font-size:.7rem}
 .status-row span:first-child{color:var(--muted)}
 .status-row span:last-child{font-weight:600}
-.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:.3rem}
-.dot-ok{background:var(--success)}
-.dot-warn{background:var(--warn)}
-.dot-orange{background:var(--orange)}
-.dot-danger{background:var(--danger)}
-
-/* Sources badges */
 .badge-row{display:flex;flex-wrap:wrap;gap:.3rem}
-.badge{
-  display:inline-flex;align-items:center;gap:.25rem;
-  padding:.18rem .55rem;border-radius:var(--r-full);
-  font-size:.68rem;font-weight:700
-}
+.badge{display:inline-flex;align-items:center;gap:.25rem;padding:.18rem .55rem;border-radius:var(--r-full);font-size:.65rem;font-weight:700}
 .badge-teal{background:var(--primary-hl);color:var(--primary)}
 .badge-blue{background:var(--blue-hl);color:var(--blue)}
 .badge-green{background:var(--success-hl);color:var(--success)}
 .badge-muted{background:var(--offset);color:var(--muted)}
-
-/* Rapport résumé dans sidebar */
 .rapport-preview{
   background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-lg);padding:.75rem;
-  font-size:.7rem;line-height:1.65;color:var(--muted);
-  max-height:200px;overflow-y:auto;white-space:pre-wrap
+  border-radius:var(--r-lg);padding:.7rem;
+  font-size:.67rem;line-height:1.6;color:var(--muted);
+  max-height:180px;overflow-y:auto;white-space:pre-wrap
 }
 
-/* ── Main ─────────────────────────────────────────────────────── */
-.main{
-  padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;
-  min-width:0
-}
+/* ── Main ── */
+.main{padding:1.5rem;display:flex;flex-direction:column;gap:1.25rem;min-width:0}
 
-/* ── Topbar ───────────────────────────────────────────────────── */
+/* ── Topbar ── */
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem}
-.topbar-title h1{font-size:clamp(1.35rem,1.1rem + .8vw,1.8rem);font-weight:700;line-height:1.1}
-.topbar-title p{font-size:.8rem;color:var(--muted);margin-top:.3rem}
+.topbar-title h1{font-size:clamp(1.3rem,1rem + .9vw,1.75rem);font-weight:700;line-height:1.1}
+.topbar-title p{font-size:.78rem;color:var(--muted);margin-top:.3rem}
 .topbar-right{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.btn{
-  border-radius:var(--r-full);border:1px solid var(--border);
-  background:var(--surface);padding:.42rem 1rem;
-  font-size:.78rem;font-weight:500;transition:background var(--tr)
-}
-.btn:hover{background:var(--offset)}
-.btn-primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-.btn-primary:hover{background:var(--primary-h)}
-.status-chip{
-  display:inline-flex;align-items:center;gap:.3rem;
-  padding:.35rem .75rem;border-radius:var(--r-full);
-  font-size:.72rem;font-weight:600
-}
+.status-chip{display:inline-flex;align-items:center;gap:.3rem;padding:.35rem .75rem;border-radius:var(--r-full);font-size:.7rem;font-weight:600}
 .chip-ok{background:var(--success-hl);color:var(--success)}
 .chip-load{background:var(--blue-hl);color:var(--blue)}
 .chip-err{background:var(--danger-hl);color:var(--danger)}
 
-/* ── Alert banner ─────────────────────────────────────────────── */
+/* ── Alert banner ── */
 .alert-banner{
   border-radius:var(--r-xl);padding:1rem 1.25rem;
   border:1px solid;display:flex;align-items:center;gap:1rem;flex-wrap:wrap
@@ -139,71 +106,68 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
 .alert-banner.jaune {background:var(--warn-hl);border-color:rgba(180,83,9,.25)}
 .alert-banner.orange{background:var(--orange-hl);border-color:rgba(192,86,33,.25)}
 .alert-banner.rouge {background:var(--danger-hl);border-color:rgba(155,28,78,.25)}
-.alert-dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.alert-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .vert  .alert-dot{background:var(--success)}
 .jaune .alert-dot{background:var(--warn)}
 .orange .alert-dot{background:var(--orange)}
 .rouge  .alert-dot{background:var(--danger)}
 .alert-body{flex:1}
 .alert-title{font-weight:700;font-size:.95rem}
-.alert-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
-.alert-badge{
-  padding:.28rem .85rem;border-radius:var(--r-full);
-  font-size:.72rem;font-weight:700;border:1.5px solid;white-space:nowrap
-}
+.alert-sub{font-size:.7rem;color:var(--muted);margin-top:2px}
+.alert-badge{padding:.28rem .9rem;border-radius:var(--r-full);font-size:.72rem;font-weight:700;border:1.5px solid;white-space:nowrap}
 .vert  .alert-badge{background:var(--success-hl);color:var(--success);border-color:var(--success)}
 .jaune .alert-badge{background:var(--warn-hl);color:var(--warn);border-color:var(--warn)}
 .orange .alert-badge{background:var(--orange-hl);color:var(--orange);border-color:var(--orange)}
 .rouge  .alert-badge{background:var(--danger-hl);color:var(--danger);border-color:var(--danger)}
 
-/* ── KPI row ──────────────────────────────────────────────────── */
-.kpi-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.85rem}
-.kpi{
+/* ── Hero météo (remplacement KPI) ── */
+.weather-hero{
   background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-xl);padding:1rem 1.1rem;box-shadow:var(--sh-sm)
+  border-radius:var(--r-2xl);padding:1.5rem;box-shadow:var(--sh-md);
+  display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:center
 }
-.kpi-icon{font-size:1.2rem;float:right;opacity:.35;margin-top:-2px}
-.kpi-lbl{font-size:.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem}
-.kpi-val{font-size:clamp(1.4rem,1.1rem + .8vw,1.9rem);font-weight:700;line-height:1}
-.kpi-meta{font-size:.68rem;color:var(--muted);margin-top:.3rem}
+.weather-main{display:flex;align-items:center;gap:1.25rem}
+.weather-icon{font-size:4.5rem;line-height:1;filter:drop-shadow(0 2px 8px rgba(0,0,0,.15))}
+.weather-temp-block .temp-big{font-size:clamp(3rem,2rem+2vw,4.5rem);font-weight:700;line-height:1;letter-spacing:-2px}
+.weather-temp-block .temp-feels{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+.weather-temp-block .temp-desc{font-size:.85rem;font-weight:600;color:var(--text);margin-top:.1rem}
+.weather-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem}
+.wg-cell{display:flex;flex-direction:column;gap:.2rem}
+.wg-icon{font-size:1.3rem;opacity:.7}
+.wg-val{font-size:1.05rem;font-weight:700;line-height:1}
+.wg-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 
-/* ── Risk cards ───────────────────────────────────────────────── */
-.risk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem}
+/* ── Risk cards ── */
+.risk-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:.85rem}
 .risk-card{
   background:var(--surface);border:1px solid var(--border);
   border-radius:var(--r-xl);padding:1.1rem;box-shadow:var(--sh-sm);
-  display:flex;flex-direction:column;gap:.75rem
+  display:flex;flex-direction:column;gap:.7rem
 }
 .risk-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
-.risk-name{display:flex;align-items:center;gap:.4rem;font-weight:700;font-size:.9rem}
+.risk-name{display:flex;align-items:center;gap:.4rem;font-weight:700;font-size:.92rem}
 .risk-icon{font-size:1.1rem}
-.risk-badge{
-  padding:.2rem .65rem;border-radius:var(--r-full);
-  font-size:.67rem;font-weight:700;border:1px solid
-}
-/* Couleurs badge par niveau */
+.risk-badge{padding:.2rem .65rem;border-radius:var(--r-full);font-size:.65rem;font-weight:700;border:1px solid}
 .lvl-vert   .risk-badge{background:var(--success-hl);color:var(--success);border-color:var(--success)}
 .lvl-jaune  .risk-badge{background:var(--warn-hl);color:var(--warn);border-color:var(--warn)}
 .lvl-orange .risk-badge{background:var(--orange-hl);color:var(--orange);border-color:var(--orange)}
 .lvl-rouge  .risk-badge{background:var(--danger-hl);color:var(--danger);border-color:var(--danger)}
-/* Barre de progression */
 .risk-bar-wrap{height:5px;background:var(--offset);border-radius:var(--r-full);overflow:hidden}
-.risk-bar-fill{height:100%;border-radius:var(--r-full);transition:width .8s cubic-bezier(.16,1,.3,1)}
+.risk-bar-fill{height:100%;border-radius:var(--r-full);transition:width .9s cubic-bezier(.16,1,.3,1)}
 .lvl-vert   .risk-bar-fill{background:var(--success)}
 .lvl-jaune  .risk-bar-fill{background:var(--warn)}
 .lvl-orange .risk-bar-fill{background:var(--orange)}
 .lvl-rouge  .risk-bar-fill{background:var(--danger)}
-.bar-labels{display:flex;justify-content:space-between;font-size:.6rem;color:var(--faint)}
-/* Data grid 2×2 */
-.risk-data{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.bar-labels{display:flex;justify-content:space-between;font-size:.58rem;color:var(--faint)}
+.risk-data{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem}
 .data-cell{
   background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-lg);padding:.45rem .65rem
+  border-radius:var(--r-lg);padding:.5rem .65rem
 }
-.data-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem}
-.data-val{font-size:clamp(.95rem,.8rem + .4vw,1.2rem);font-weight:700;line-height:1.1}
-.data-unit{font-size:.65rem;color:var(--muted);margin-left:1px}
-/* Conseil */
+.data-lbl{font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem}
+.data-val{font-size:1.05rem;font-weight:700;line-height:1.1}
+.data-unit{font-size:.62rem;color:var(--muted);margin-left:1px}
 .risk-conseil{
   border-radius:var(--r-md);padding:.55rem .75rem;
   font-size:.7rem;line-height:1.6;border-left:3px solid;color:var(--muted)
@@ -213,69 +177,49 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
 .lvl-orange .risk-conseil{background:var(--orange-hl);border-color:var(--orange)}
 .lvl-rouge  .risk-conseil{background:var(--danger-hl);border-color:var(--danger)}
 
-/* ── Bottom grid ──────────────────────────────────────────────── */
-.bottom-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:1.25rem}
-.card{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:var(--r-xl);padding:1.1rem;box-shadow:var(--sh-sm)
-}
-.card-title{
+/* ── Forecast cards visuel ── */
+.forecast-section .sec-title{
   font-size:.67rem;text-transform:uppercase;letter-spacing:.08em;
   color:var(--muted);margin-bottom:.85rem;display:flex;align-items:center;gap:.4rem
 }
-
-/* Forecast table */
-.forecast-table{width:100%;border-collapse:collapse}
-.forecast-table th,.forecast-table td{
-  padding:.5rem .55rem;text-align:left;
-  border-bottom:1px solid var(--border);font-size:.72rem;white-space:nowrap
+.forecast-cards{display:grid;grid-template-columns:repeat(7,1fr);gap:.6rem}
+.fc-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--r-xl);padding:.75rem .6rem;
+  display:flex;flex-direction:column;align-items:center;gap:.4rem;
+  box-shadow:var(--sh-sm);transition:transform var(--tr),box-shadow var(--tr);
+  text-align:center;cursor:default
 }
-.forecast-table th{color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
-.forecast-table tr:last-child td{border-bottom:none}
-.forecast-table tr:hover td{background:var(--primary-hl)}
-.pill{
-  display:inline-block;padding:.12rem .5rem;
-  border-radius:var(--r-full);font-size:.63rem;font-weight:700
-}
-.pill-ok{background:var(--success-hl);color:var(--success)}
-.pill-warn{background:var(--warn-hl);color:var(--warn)}
-.pill-danger{background:var(--danger-hl);color:var(--danger)}
-.pill-muted{background:var(--offset);color:var(--muted)}
-
-/* Météo actuelle */
-.meteo-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
-.meteo-cell{
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--r-lg);padding:.55rem .75rem
-}
-.meteo-lbl{font-size:.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.2rem}
-.meteo-val{font-size:1.05rem;font-weight:700;line-height:1.2}
-.meteo-src{font-size:.58rem;color:var(--faint);margin-top:1px}
+.fc-card:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}
+.fc-card.today{background:var(--primary-hl);border-color:rgba(1,105,111,.3)}
+[data-theme="dark"] .fc-card.today{border-color:rgba(74,158,202,.35)}
+.fc-day{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.fc-card.today .fc-day{color:var(--primary)}
+.fc-date{font-size:.62rem;color:var(--faint)}
+.fc-icon{font-size:1.75rem;line-height:1;margin:.1rem 0}
+.fc-tmax{font-size:.95rem;font-weight:700}
+.fc-tmin{font-size:.7rem;color:var(--muted)}
+/* Barre pluie dans carte */
+.fc-rain-area{width:100%;display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.fc-rain-bar-bg{width:100%;height:36px;background:var(--offset);border-radius:var(--r-sm);overflow:hidden;display:flex;align-items:flex-end}
+.fc-rain-bar{width:100%;border-radius:var(--r-sm) var(--r-sm) 0 0;background:var(--blue);opacity:.7;transition:height .9s cubic-bezier(.16,1,.3,1)}
+.fc-rain-val{font-size:.65rem;font-weight:700;color:var(--blue)}
+.fc-prob{font-size:.58rem;color:var(--muted)}
+.fc-pill{padding:.1rem .45rem;border-radius:var(--r-full);font-size:.58rem;font-weight:700}
+.fc-pill-ok{background:var(--success-hl);color:var(--success)}
+.fc-pill-warn{background:var(--warn-hl);color:var(--warn)}
+.fc-pill-danger{background:var(--danger-hl);color:var(--danger)}
 
 /* Skeleton */
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
-.skel{
-  background:linear-gradient(90deg,var(--offset) 25%,var(--border) 50%,var(--offset) 75%);
-  background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;
-  border-radius:var(--r-sm);height:1.1em
-}
-.loading-text{color:var(--faint);font-size:.72rem;font-style:italic}
+.skel{background:linear-gradient(90deg,var(--offset) 25%,var(--border) 50%,var(--offset) 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:var(--r-sm);height:1em}
 
-/* ── Responsive ───────────────────────────────────────────────── */
-@media(max-width:1200px){
-  .kpi-row{grid-template-columns:1fr 1fr}
-  .bottom-grid{grid-template-columns:1fr}
-}
-@media(max-width:900px){
-  .app{grid-template-columns:1fr}
-  .sidebar{height:auto;position:static;border-right:none;border-bottom:1px solid var(--border)}
-  .risk-grid{grid-template-columns:1fr 1fr}
-}
-@media(max-width:620px){
-  .risk-grid{grid-template-columns:1fr}
-  .kpi-row{grid-template-columns:1fr 1fr}
-  .main{padding:1rem}
-}
+/* ── Responsive ── */
+@media(max-width:1280px){.forecast-cards{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:1100px){.weather-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:960px){.app{grid-template-columns:1fr}.sidebar{height:auto;position:static;border-right:none;border-bottom:1px solid var(--border)}.risk-grid{grid-template-columns:1fr}}
+@media(max-width:680px){.weather-hero{grid-template-columns:1fr}.forecast-cards{grid-template-columns:repeat(4,1fr)}.main{padding:1rem}}
+@media(max-width:480px){.forecast-cards{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
@@ -296,7 +240,6 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
     <button class="theme-btn" data-theme-toggle aria-label="Thème"></button>
   </div>
 
-  <!-- Statut analyse -->
   <div>
     <div class="sec-lbl">Dernière analyse</div>
     <div class="status-bloc">
@@ -307,7 +250,6 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
     </div>
   </div>
 
-  <!-- Sources -->
   <div>
     <div class="sec-lbl">Sources de données</div>
     <div class="badge-row">
@@ -318,16 +260,13 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
     </div>
   </div>
 
-  <!-- Rapport texte -->
   <div style="flex:1;display:flex;flex-direction:column;gap:.4rem;min-height:0">
     <div class="sec-lbl">Rapport Phi-3 mini</div>
     <div class="rapport-preview" id="rapportPreview">Aucun rapport chargé.</div>
   </div>
 
-  <!-- Info JSON export -->
-  <div style="font-size:.65rem;color:var(--faint);line-height:1.55">
-    JSON disponible dans <code style="font-size:.63rem">dashboard/latest_report.json</code>
-    — utilisé par l'app Android.
+  <div style="font-size:.62rem;color:var(--faint);line-height:1.5">
+    JSON → <code style="font-size:.6rem">dashboard/latest_report.json</code>
   </div>
 </aside>
 
@@ -356,30 +295,60 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
     <div class="alert-badge" id="alertBadge">—</div>
   </div>
 
-  <!-- KPI météo actuelle -->
-  <div class="kpi-row" id="kpiRow">
-    <div class="kpi"><div class="kpi-icon">🌡</div><div class="kpi-lbl">Température</div><div class="kpi-val skel" style="height:1.8rem;width:80px"></div><div class="kpi-meta">Open-Meteo temps réel</div></div>
-    <div class="kpi"><div class="kpi-icon">💧</div><div class="kpi-lbl">Humidité</div><div class="kpi-val skel" style="height:1.8rem;width:70px"></div><div class="kpi-meta">Open-Meteo temps réel</div></div>
-    <div class="kpi"><div class="kpi-icon">🌧</div><div class="kpi-lbl">Pluie 7j observée</div><div class="kpi-val skel" style="height:1.8rem;width:80px"></div><div class="kpi-meta">Normale juin : ~160 mm</div></div>
-    <div class="kpi"><div class="kpi-icon">💨</div><div class="kpi-lbl">Vent actuel</div><div class="kpi-val skel" style="height:1.8rem;width:80px"></div><div class="kpi-meta">Open-Meteo temps réel</div></div>
+  <!-- Hero météo actuelle -->
+  <div class="weather-hero" id="weatherHero">
+    <div class="weather-main">
+      <div class="weather-icon" id="heroIcon">⛅</div>
+      <div class="weather-temp-block">
+        <div class="temp-big" id="heroTemp"><span class="skel" style="width:120px;height:3.5rem;display:block"></span></div>
+        <div class="temp-feels" id="heroFeels">Ressenti —</div>
+        <div class="temp-desc" id="heroDesc">Chargement…</div>
+      </div>
+    </div>
+    <div class="weather-grid" id="weatherGrid">
+      <div class="wg-cell"><div class="wg-icon">💧</div><div class="wg-val skel" style="width:50px;height:1rem"></div><div class="wg-lbl">Humidité</div></div>
+      <div class="wg-cell"><div class="wg-icon">💨</div><div class="wg-val skel" style="width:50px;height:1rem"></div><div class="wg-lbl">Vent</div></div>
+      <div class="wg-cell"><div class="wg-icon">🌫</div><div class="wg-val skel" style="width:50px;height:1rem"></div><div class="wg-lbl">Pression</div></div>
+      <div class="wg-cell"><div class="wg-icon">☁️</div><div class="wg-val skel" style="width:50px;height:1rem"></div><div class="wg-lbl">Nébulosité</div></div>
+    </div>
   </div>
 
-  <!-- 3 Risk cards -->
+  <!-- Risk grid : 2 cartes côte à côte -->
   <div class="risk-grid">
 
     <!-- INONDATION -->
     <div class="risk-card lvl-vert" id="cardInondation">
       <div class="risk-head">
-        <div class="risk-name"><span class="risk-icon">🌊</span> Inondation</div>
+        <div class="risk-name"><span class="risk-icon">🌊</span> Risque Inondation</div>
         <div class="risk-badge" id="badgeInondation">—</div>
       </div>
       <div class="risk-bar-wrap"><div class="risk-bar-fill" id="barInondation" style="width:0%"></div></div>
       <div class="bar-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
       <div class="risk-data">
-        <div class="data-cell"><div class="data-lbl">Pluie 7j obs.</div><div class="data-val" id="pluie7j">—<span class="data-unit">mm</span></div></div>
-        <div class="data-cell"><div class="data-lbl">Pluie 7j prév.</div><div class="data-val" id="pluiePrev">—<span class="data-unit">mm</span></div></div>
-        <div class="data-cell"><div class="data-lbl">NDWI (eau surf.)</div><div class="data-val" id="ndwiVal">—</div></div>
-        <div class="data-cell"><div class="data-lbl">Hum. sol surf.</div><div class="data-val" id="humSol">—<span class="data-unit">m³/m³</span></div></div>
+        <div class="data-cell">
+          <div class="data-lbl">Pluie actuelle</div>
+          <div class="data-val" id="pluieActuelle">—<span class="data-unit">mm</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Pluie 24h</div>
+          <div class="data-val" id="pluie24h">—<span class="data-unit">mm</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Cumul 7j</div>
+          <div class="data-val" id="pluie7j">—<span class="data-unit">mm</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Moy. journalière 7j</div>
+          <div class="data-val" id="pluieMoy7j">—<span class="data-unit">mm/j</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Max journalier 7j</div>
+          <div class="data-val" id="pluieMax7j">—<span class="data-unit">mm</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Pluie prévue 7j</div>
+          <div class="data-val" id="pluiePrev7j">—<span class="data-unit">mm</span></div>
+        </div>
       </div>
       <div class="risk-conseil" id="conseilInondation">Calcul en cours…</div>
     </div>
@@ -387,441 +356,302 @@ button,input,select{font:inherit;color:inherit;cursor:pointer}
     <!-- SÉCHERESSE -->
     <div class="risk-card lvl-vert" id="cardSecheresse">
       <div class="risk-head">
-        <div class="risk-name"><span class="risk-icon">🌵</span> Sécheresse</div>
+        <div class="risk-name"><span class="risk-icon">🌵</span> Risque Sécheresse</div>
         <div class="risk-badge" id="badgeSecheresse">—</div>
       </div>
       <div class="risk-bar-wrap"><div class="risk-bar-fill" id="barSecheresse" style="width:0%"></div></div>
       <div class="bar-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
       <div class="risk-data">
-        <div class="data-cell"><div class="data-lbl">NDVI (végétation)</div><div class="data-val" id="ndviVal">—</div></div>
-        <div class="data-cell"><div class="data-lbl">Déficit hydrique</div><div class="data-val" id="deficitHyd">—<span class="data-unit">mm</span></div></div>
-        <div class="data-cell"><div class="data-lbl">Hum. sol racines</div><div class="data-val" id="solRacines">—<span class="data-unit">m³/m³</span></div></div>
-        <div class="data-cell"><div class="data-lbl">NBR (brûlures)</div><div class="data-val" id="nbrVal">—</div></div>
+        <div class="data-cell">
+          <div class="data-lbl">Humidité air</div>
+          <div class="data-val" id="dryHum">—<span class="data-unit">%</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Temp. max 7j</div>
+          <div class="data-val" id="dryTempMax">—<span class="data-unit">°C</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Jours sans pluie</div>
+          <div class="data-val" id="drySansPluie">—<span class="data-unit">j</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Déficit / normale</div>
+          <div class="data-val" id="dryDeficit">—<span class="data-unit">mm</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Vent moyen 7j</div>
+          <div class="data-val" id="dryVent">—<span class="data-unit">km/h</span></div>
+        </div>
+        <div class="data-cell">
+          <div class="data-lbl">Pression</div>
+          <div class="data-val" id="dryPression">—<span class="data-unit">hPa</span></div>
+        </div>
       </div>
       <div class="risk-conseil" id="conseilSecheresse">Calcul en cours…</div>
     </div>
 
-    <!-- VAGUE DE CHALEUR -->
-    <div class="risk-card lvl-vert" id="cardChaleur">
-      <div class="risk-head">
-        <div class="risk-name"><span class="risk-icon">🌡️</span> Vague de chaleur</div>
-        <div class="risk-badge" id="badgeChaleur">—</div>
-      </div>
-      <div class="risk-bar-wrap"><div class="risk-bar-fill" id="barChaleur" style="width:0%"></div></div>
-      <div class="bar-labels"><span>Faible</span><span>Modéré</span><span>Critique</span></div>
-      <div class="risk-data">
-        <div class="data-cell"><div class="data-lbl">Temp. max 7j</div><div class="data-val" id="tempMax">—<span class="data-unit">°C</span></div></div>
-        <div class="data-cell"><div class="data-lbl">Temp. moy. 7j</div><div class="data-val" id="tempMoy">—<span class="data-unit">°C</span></div></div>
-        <div class="data-cell"><div class="data-lbl">Humidité rel.</div><div class="data-val" id="humRel">—<span class="data-unit">%</span></div></div>
-        <div class="data-cell"><div class="data-lbl">Vent max 7j</div><div class="data-val" id="ventMax">—<span class="data-unit">km/h</span></div></div>
-      </div>
-      <div class="risk-conseil" id="conseilChaleur">Calcul en cours…</div>
+  </div>
+
+  <!-- Prévisions 7 jours visuelles -->
+  <div class="forecast-section">
+    <div class="sec-title">📅 Prévisions 7 jours — Kribi</div>
+    <div class="forecast-cards" id="forecastCards">
+      <!-- injecté -->
     </div>
-
-  </div><!-- /risk-grid -->
-
-  <!-- Bottom grid -->
-  <div class="bottom-grid">
-
-    <!-- Prévisions 7j -->
-    <div class="card">
-      <div class="card-title">📅 Prévisions 7 jours — Kribi</div>
-      <div style="overflow:auto">
-        <table class="forecast-table">
-          <thead><tr>
-            <th>Date</th><th>Pluie mm</th><th>Prob. %</th>
-            <th>Temp. max</th><th>Vent</th><th>Niveau</th>
-          </tr></thead>
-          <tbody id="forecastBody">
-            <tr><td colspan="6" class="loading-text">Chargement des prévisions…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Météo actuelle + satellites -->
-    <div class="card">
-      <div class="card-title">🌤 Météo actuelle — Open-Meteo</div>
-      <div class="meteo-grid" id="meteoGrid">
-        <div class="meteo-cell"><div class="meteo-lbl">Température</div><div class="meteo-val" id="mTemp">—</div><div class="meteo-src">Open-Meteo</div></div>
-        <div class="meteo-cell"><div class="meteo-lbl">Humidité</div><div class="meteo-val" id="mHum">—</div><div class="meteo-src">Open-Meteo</div></div>
-        <div class="meteo-cell"><div class="meteo-lbl">Pluie actuelle</div><div class="meteo-val" id="mPluie">—</div><div class="meteo-src">Open-Meteo</div></div>
-        <div class="meteo-cell"><div class="meteo-lbl">Vent 10m</div><div class="meteo-val" id="mVent">—</div><div class="meteo-src">Open-Meteo</div></div>
-        <div class="meteo-cell"><div class="meteo-lbl">Pression</div><div class="meteo-val" id="mPression">—</div><div class="meteo-src">Open-Meteo</div></div>
-        <div class="meteo-cell"><div class="meteo-lbl">Nébulosité</div><div class="meteo-val" id="mNeb">—</div><div class="meteo-src">Open-Meteo</div></div>
-      </div>
-
-      <div class="card-title" style="margin-top:1rem">🛰 Indices satellitaires</div>
-      <div class="meteo-grid">
-        <div class="meteo-cell">
-          <div class="meteo-lbl">NDVI</div>
-          <div class="meteo-val" id="satNdvi">—</div>
-          <div class="meteo-src">Sentinel-2 / MODIS · saine &gt; 0.6</div>
-        </div>
-        <div class="meteo-cell">
-          <div class="meteo-lbl">NDWI</div>
-          <div class="meteo-val" id="satNdwi">—</div>
-          <div class="meteo-src">Sentinel-2 · eau surf. &gt; 0.3</div>
-        </div>
-        <div class="meteo-cell">
-          <div class="meteo-lbl">NBR</div>
-          <div class="meteo-val" id="satNbr">—</div>
-          <div class="meteo-src">Sentinel-2 · brûlures végét.</div>
-        </div>
-        <div class="meteo-cell">
-          <div class="meteo-lbl">Sol surface</div>
-          <div class="meteo-val" id="satSm">—</div>
-          <div class="meteo-src">SMAP · saturation &gt; 0.55 m³/m³</div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /bottom-grid -->
+  </div>
 
 </main>
 </div>
 
 <script>
-// ── CONFIG ────────────────────────────────────────────────────────
+// ── CONFIG ──────────────────────────────────────────────────────
 const LAT = 2.9397, LON = 9.9132;
-const OM_URL = `https://api.open-meteo.com/v1/forecast`+
-  `?latitude=${LAT}&longitude=${LON}`+
-  `&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,cloud_cover,surface_pressure`+
-  `&daily=precipitation_sum,precipitation_probability_max,temperature_2m_max,temperature_2m_min,windspeed_10m_max`+
+const OM_URL =
+  `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}`+
+  `&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,`+
+  `wind_speed_10m,wind_direction_10m,cloud_cover,surface_pressure,weathercode`+
+  `&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,`+
+  `precipitation_probability_max,windspeed_10m_max,precipitation_hours`+
   `&past_days=7&forecast_days=7&timezone=Africa%2FDouala`;
 
-// Seuil pluie 7j normal Kribi par mois (mm)
 const SEUILS = {1:70,2:100,3:160,4:230,5:230,6:160,7:100,8:110,9:200,10:240,11:180,12:90};
 const MOIS_FR = ['','janv.','févr.','mars','avr.','mai','juin','juil.','août','sept.','oct.','nov.','déc.'];
-const JOURS_FR = ['dim.','lun.','mar.','mer.','jeu.','ven.','sam.'];
+const JOURS_FR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+const JOURS_FULL = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 
-// ── UTILS ─────────────────────────────────────────────────────────
+// WMO weathercode → {icon, label}
+function wmoInfo(code){
+  if(code===0)  return {icon:'☀️',label:'Ciel dégagé'};
+  if(code===1)  return {icon:'🌤',label:'Peu nuageux'};
+  if(code===2)  return {icon:'⛅',label:'Partiellement nuageux'};
+  if(code===3)  return {icon:'☁️',label:'Couvert'};
+  if(code<=49)  return {icon:'🌫',label:'Brouillard'};
+  if(code<=55)  return {icon:'🌦',label:'Bruine'};
+  if(code<=65)  return {icon:'🌧',label:'Pluie'};
+  if(code<=75)  return {icon:'❄️',label:'Neige'};
+  if(code<=82)  return {icon:'🌦',label:'Averses'};
+  if(code<=99)  return {icon:'⛈',label:'Orage'};
+  return {icon:'🌡',label:'—'};
+}
+
 function todayFR(){
-  const d = new Date();
-  return JOURS_FR[d.getDay()]+' '+d.getDate()+' '+MOIS_FR[d.getMonth()+1]+' '+d.getFullYear();
+  const d=new Date();
+  return JOURS_FULL[d.getDay()]+' '+d.getDate()+' '+MOIS_FR[d.getMonth()+1]+' '+d.getFullYear();
 }
 function num(v,dec=1){ return (typeof v==='number'&&!isNaN(v)) ? v.toFixed(dec) : '—'; }
-function val(v){ return (v!==null&&v!==undefined&&v!=='N/A') ? v : null; }
-
-function scoreToLevel(s){
-  if(s>=70) return {key:'rouge',  label:'CRITIQUE'};
-  if(s>=45) return {key:'orange', label:'ÉLEVÉ'};
-  if(s>=20) return {key:'jaune',  label:'MODÉRÉ'};
-  return              {key:'vert',  label:'FAIBLE'};
-}
-
+function val(v){ return (v!==null&&v!==undefined&&v!=='N/A'&&v!==undefined) ? v : null; }
+function scoreToLevel(s){ return s>=70?{key:'rouge',label:'CRITIQUE'}:s>=45?{key:'orange',label:'ÉLEVÉ'}:s>=20?{key:'jaune',label:'MODÉRÉ'}:{key:'vert',label:'FAIBLE'}; }
 function setCard(cardId, score, badgeId, barId){
-  const card = document.getElementById(cardId);
-  const lvl  = scoreToLevel(score);
-  card.className = 'risk-card lvl-'+lvl.key;
-  document.getElementById(badgeId).textContent = lvl.label;
-  document.getElementById(barId).style.width   = Math.min(score,100)+'%';
+  const lvl=scoreToLevel(score);
+  document.getElementById(cardId).className='risk-card lvl-'+lvl.key;
+  document.getElementById(badgeId).textContent=lvl.label;
+  document.getElementById(barId).style.width=Math.min(score,100)+'%';
 }
 
-// ── CHARGEMENT DU RAPPORT JSON ────────────────────────────────────
+// ── CHARGEMENT JSON ─────────────────────────────────────────────
 async function loadReport(){
-  const today = new Date().toISOString().slice(0,10);
-  const paths = [
-    'latest_report.json',
-    '../reports/rapport_kribi_'+today+'.json',
-    'reports/rapport_kribi_'+today+'.json',
-  ];
-  for(const p of paths){
-    try{
-      const r = await fetch(p);
-      if(r.ok) return await r.json();
-    }catch(e){}
+  const today=new Date().toISOString().slice(0,10);
+  for(const p of ['latest_report.json','../reports/rapport_kribi_'+today+'.json']){
+    try{ const r=await fetch(p); if(r.ok) return await r.json(); }catch(e){}
   }
   return null;
 }
 
-// ── OPEN-METEO ────────────────────────────────────────────────────
+// ── OPEN-METEO ──────────────────────────────────────────────────
 async function fetchOM(){
-  const r = await fetch(OM_URL);
-  return await r.json();
+  const r=await fetch(OM_URL); return await r.json();
 }
 
-// ── RENDU BANNER ─────────────────────────────────────────────────
+// ── BANNER ──────────────────────────────────────────────────────
 function renderBanner(report){
-  const banner = document.getElementById('alertBanner');
-  const niveau = (report?.niveau_alerte || 'VERT').toUpperCase();
-  const cls = niveau.toLowerCase();
-  banner.className = 'alert-banner '+cls;
-  const msgs = {
-    vert:   'Situation normale — Kribi',
-    jaune:  'Vigilance renforcée — Kribi',
-    orange: 'Alerte préventive — Kribi',
-    rouge:  'Alerte rouge — Kribi'
-  };
-  document.getElementById('alertTitle').textContent = msgs[cls] || 'Situation — Kribi';
-  document.getElementById('alertBadge').textContent = niveau;
-  document.getElementById('alertSub').textContent   =
-    (report ? 'Saison des pluies (juin) — Analyse SAMCAM · Phi-3 mini' : 'Données Open-Meteo temps réel') +
-    ' · Kribi, Cameroun';
+  const banner=document.getElementById('alertBanner');
+  const niveau=(report?.niveau_alerte||'VERT').toUpperCase();
+  const cls=niveau.toLowerCase();
+  banner.className='alert-banner '+cls;
+  const msgs={vert:'Situation normale — Kribi',jaune:'Vigilance renforcée — Kribi',orange:'Alerte préventive — Kribi',rouge:'Alerte rouge — Kribi'};
+  document.getElementById('alertTitle').textContent=msgs[cls]||'Situation — Kribi';
+  document.getElementById('alertBadge').textContent=niveau;
+  document.getElementById('alertSub').textContent=(report?'Saison des pluies (juin) · Analyse SAMCAM · Phi-3 mini':'Données Open-Meteo temps réel')+' · Kribi, Cameroun';
 }
 
-// ── RENDU KPI ─────────────────────────────────────────────────────
-function renderKPI(ind, om){
-  const seuil = SEUILS[new Date().getMonth()+1] || 160;
-  const p7obs = ind?.pluie_cumulee_7j_mm || 0;
-  const cur   = om?.current;
-
-  document.getElementById('kpiRow').innerHTML = [
-    { lbl:'Température', val: cur ? num(cur.temperature_2m,1)+'°C' : '—', meta:'Open-Meteo temps réel', icon:'🌡' },
-    { lbl:'Humidité',    val: cur ? num(cur.relative_humidity_2m,0)+'%' : '—', meta:'Open-Meteo temps réel', icon:'💧' },
-    { lbl:'Pluie 7j observée', val: num(p7obs,0)+' mm',
-      meta:'Normale juin : ~'+seuil+' mm', icon:'🌧' },
-    { lbl:'Vent actuel', val: cur ? num(cur.wind_speed_10m,0)+' km/h' : '—', meta:'Open-Meteo temps réel', icon:'💨' },
-  ].map(k=>`<div class="kpi">
-    <div class="kpi-icon">${k.icon}</div>
-    <div class="kpi-lbl">${k.lbl}</div>
-    <div class="kpi-val">${k.val}</div>
-    <div class="kpi-meta">${k.meta}</div>
-  </div>`).join('');
-}
-
-// ── RENDU MÉTÉO ACTUELLE ──────────────────────────────────────────
-function renderMeteoActuelle(om){
-  const c = om?.current;
+// ── HERO MÉTÉO ───────────────────────────────────────────────────
+function renderHero(om){
+  const c=om?.current;
   if(!c) return;
-  document.getElementById('mTemp').textContent    = num(c.temperature_2m,1)+' °C';
-  document.getElementById('mHum').textContent     = num(c.relative_humidity_2m,0)+' %';
-  document.getElementById('mPluie').textContent   = num(c.precipitation,1)+' mm';
-  document.getElementById('mVent').textContent    = num(c.wind_speed_10m,0)+' km/h';
-  document.getElementById('mPression').textContent= num(c.surface_pressure,0)+' hPa';
-  document.getElementById('mNeb').textContent     = num(c.cloud_cover,0)+' %';
+  const wi=wmoInfo(c.weathercode||0);
+  const windDir=['N','NE','E','SE','S','SO','O','NO'][Math.round((c.wind_direction_10m||0)/45)%8];
+  document.getElementById('heroIcon').textContent=wi.icon;
+  document.getElementById('heroTemp').textContent=num(c.temperature_2m,1)+'°C';
+  document.getElementById('heroFeels').textContent='Ressenti '+num(c.apparent_temperature,1)+'°C';
+  document.getElementById('heroDesc').textContent=wi.label;
+  document.getElementById('weatherGrid').innerHTML=[
+    {icon:'💧', val:num(c.relative_humidity_2m,0)+'%',    lbl:'Humidité'},
+    {icon:'💨', val:num(c.wind_speed_10m,0)+' km/h <small style="font-weight:400;font-size:.65rem">'+windDir+'</small>', lbl:'Vent 10m'},
+    {icon:'🌫', val:num(c.surface_pressure,0)+' hPa',    lbl:'Pression'},
+    {icon:'☁️', val:num(c.cloud_cover,0)+'%',             lbl:'Nébulosité'},
+  ].map(x=>`<div class="wg-cell"><div class="wg-icon">${x.icon}</div><div class="wg-val">${x.val}</div><div class="wg-lbl">${x.lbl}</div></div>`).join('');
 }
 
-// ── RENDU RISQUE INONDATION ───────────────────────────────────────
-function renderInondation(ind, om){
-  const p7obs  = ind?.pluie_cumulee_7j_mm  || 0;
-  const p7prev = ind?.pluie_prevue_7j_mm   || 0;
-  const ndwi   = val(ind?.ndwi_moyen);
-  const seuil  = SEUILS[new Date().getMonth()+1] || 160;
+// ── INONDATION ───────────────────────────────────────────────────
+function renderInondation(om){
+  const c=om?.current;
+  const d=om?.daily;
+  const seuil=SEUILS[new Date().getMonth()+1]||160;
 
-  let score = 0;
-  const anomalie = p7obs - seuil;
-  if(anomalie > seuil*0.5)     score = 80;
-  else if(anomalie > seuil*0.25) score = 55;
-  else if(anomalie > 0)         score = 30;
-  else if(anomalie > -seuil*0.3) score = 15;
-  else score = 5;
+  // pluies 7 derniers jours (past_days=7 → indices 0..6)
+  const pluies7  = (d?.precipitation_sum||[]).slice(0,7).map(v=>v||0);
+  const cumul7   = pluies7.reduce((a,b)=>a+b,0);
+  const moy7     = pluies7.length ? cumul7/pluies7.length : 0;
+  const max7     = pluies7.length ? Math.max(...pluies7) : 0;
+  // pluies 7 prochains jours (indices 7..13)
+  const pluiesFut= (d?.precipitation_sum||[]).slice(7,14).map(v=>v||0);
+  const cumulFut = pluiesFut.reduce((a,b)=>a+b,0);
 
-  if(ind?.risque_inondation_observe==='élevé')  score = Math.max(score,65);
-  if(ind?.risque_inondation_observe==='modéré') score = Math.max(score,35);
-  if(ind?.risque_inondation_prevu==='élevé')    score = Math.max(score,55);
+  const anomalie=cumul7-seuil;
+  let score=anomalie>seuil*.5?80:anomalie>seuil*.25?55:anomalie>0?30:anomalie>-seuil*.3?15:5;
 
-  setCard('cardInondation', score, 'badgeInondation', 'barInondation');
+  setCard('cardInondation',score,'badgeInondation','barInondation');
 
-  document.getElementById('pluie7j').innerHTML   = num(p7obs,0)+'<span class="data-unit">mm</span>';
-  document.getElementById('pluiePrev').innerHTML = num(p7prev,0)+'<span class="data-unit">mm</span>';
-  document.getElementById('ndwiVal').textContent = ndwi!==null ? num(ndwi,3) : '—';
+  document.getElementById('pluieActuelle').innerHTML=num(c?.precipitation,1)+'<span class="data-unit">mm</span>';
+  document.getElementById('pluie24h').innerHTML=num(pluies7[pluies7.length-1]||0,1)+'<span class="data-unit">mm</span>';
+  document.getElementById('pluie7j').innerHTML=num(cumul7,0)+'<span class="data-unit">mm</span>';
+  document.getElementById('pluieMoy7j').innerHTML=num(moy7,1)+'<span class="data-unit">mm/j</span>';
+  document.getElementById('pluieMax7j').innerHTML=num(max7,1)+'<span class="data-unit">mm</span>';
+  document.getElementById('pluiePrev7j').innerHTML=num(cumulFut,0)+'<span class="data-unit">mm</span>';
 
-  const sm = window._report?.satellitaire?.smap?.humidite_sol?.sm_surface;
-  document.getElementById('humSol').innerHTML = sm ? num(sm,3)+'<span class="data-unit">m³/m³</span>' : '—';
-
-  const lvl = scoreToLevel(score);
-  const conseils = {
-    vert:   'Pluies dans les normales saisonnières. Aucune mesure préventive nécessaire.',
-    jaune:  'Pluies légèrement supérieures aux normales. Surveiller les zones basses et les estuaires.',
-    orange: 'Précipitations significatives. Préparer les dispositifs d\'évacuation dans les zones basses.',
-    rouge:  'Risque d\'inondation élevé. Activer le plan d\'urgence et informer les populations côtières.'
-  };
-  document.getElementById('conseilInondation').textContent = conseils[lvl.key];
+  const lvl=scoreToLevel(score);
+  const conseils={vert:'Pluies dans les normales saisonnières. Aucune mesure préventive nécessaire.',jaune:'Pluies légèrement au-dessus des normales. Surveiller les zones basses.',orange:'Précipitations importantes. Préparer les dispositifs d\'évacuation dans les zones basses.',rouge:'Risque d\'inondation élevé. Activer le plan d\'urgence et informer les populations côtières.'};
+  document.getElementById('conseilInondation').textContent=conseils[lvl.key];
 }
 
-// ── RENDU RISQUE SÉCHERESSE ───────────────────────────────────────
-function renderSecheresse(ind, om){
-  const ndvi   = val(ind?.ndvi_moyen);
-  const sat    = window._report?.satellitaire;
-  const nbr    = val(sat?.sentinel2?.indices?.NBR_mean);
-  const sm_r   = val(sat?.smap?.humidite_sol?.sm_rootzone);
-  const seuil  = SEUILS[new Date().getMonth()+1] || 160;
+// ── SÉCHERESSE ───────────────────────────────────────────────────
+function renderSecheresse(om){
+  const c=om?.current;
+  const d=om?.daily;
+  const seuil=SEUILS[new Date().getMonth()+1]||160;
 
-  // Calcul déficit hydrique (7j passés vs normale)
-  let deficit = 0;
-  if(om?.daily){
-    const pluies7 = (om.daily.precipitation_sum||[]).slice(0,7);
-    const sum = pluies7.reduce((a,b)=>a+(b||0),0);
-    deficit = Math.max(0, seuil - sum);
-  }
+  const pluies7  = (d?.precipitation_sum||[]).slice(0,7).map(v=>v||0);
+  const cumul7   = pluies7.reduce((a,b)=>a+b,0);
+  const deficit  = Math.max(0, seuil-cumul7);
+  const sansPluie= pluies7.filter(v=>v<0.5).length;
+  const tempMaxArr=(d?.temperature_2m_max||[]).slice(0,7).filter(v=>v!=null);
+  const tMax7=tempMaxArr.length?Math.max(...tempMaxArr):null;
+  const ventArr=(d?.windspeed_10m_max||[]).slice(0,7).filter(v=>v!=null);
+  const ventMoy=ventArr.length?ventArr.reduce((a,b)=>a+b,0)/ventArr.length:null;
 
-  let score = 5;
-  if(ndvi!==null){
-    if(ndvi<0.2)       score=80;
-    else if(ndvi<0.35) score=55;
-    else if(ndvi<0.5)  score=30;
-    else               score=5;
-  }
-  if(deficit>seuil*0.5) score = Math.max(score,40);
-  if(ind?.risque_secheresse==='élevé')  score=Math.max(score,70);
-  if(ind?.risque_secheresse==='modéré') score=Math.max(score,35);
+  let score=5;
+  if(deficit>seuil*.6)    score=Math.max(score,75);
+  else if(deficit>seuil*.3) score=Math.max(score,50);
+  else if(deficit>seuil*.1) score=Math.max(score,25);
+  if(sansPluie>=6) score=Math.max(score,65);
+  else if(sansPluie>=4) score=Math.max(score,40);
+  if(c?.relative_humidity_2m<40) score=Math.max(score,45);
 
-  setCard('cardSecheresse', score, 'badgeSecheresse', 'barSecheresse');
+  setCard('cardSecheresse',score,'badgeSecheresse','barSecheresse');
 
-  document.getElementById('ndviVal').textContent   = ndvi!==null ? num(ndvi,3) : '—';
-  document.getElementById('deficitHyd').innerHTML  = num(deficit,0)+'<span class="data-unit">mm</span>';
-  document.getElementById('solRacines').innerHTML  = sm_r ? num(sm_r,3)+'<span class="data-unit">m³/m³</span>' : '—';
-  document.getElementById('nbrVal').textContent    = nbr!==null ? num(nbr,3) : '—';
+  document.getElementById('dryHum').innerHTML=num(c?.relative_humidity_2m,0)+'<span class="data-unit">%</span>';
+  document.getElementById('dryTempMax').innerHTML=num(tMax7,1)+'<span class="data-unit">°C</span>';
+  document.getElementById('drySansPluie').innerHTML=sansPluie+'<span class="data-unit">j</span>';
+  document.getElementById('dryDeficit').innerHTML=num(deficit,0)+'<span class="data-unit">mm</span>';
+  document.getElementById('dryVent').innerHTML=num(ventMoy,0)+'<span class="data-unit">km/h</span>';
+  document.getElementById('dryPression').innerHTML=num(c?.surface_pressure,0)+'<span class="data-unit">hPa</span>';
 
-  const lvl = scoreToLevel(score);
-  const conseils = {
-    vert:   'Végétation saine et sol humide. Situation normale pour la saison.',
-    jaune:  'Légère baisse de la végétation détectée. Surveiller les cultures sensibles.',
-    orange: 'Stress hydrique modéré. Envisager des mesures d\'irrigation pour les cultures.',
-    rouge:  'Sécheresse sévère. Activer les réserves d\'eau et alerter le secteur agricole.'
-  };
-  document.getElementById('conseilSecheresse').textContent = conseils[lvl.key];
+  const lvl=scoreToLevel(score);
+  const conseils={vert:'Sol bien alimenté en eau. Végétation et cultures en bonne santé.',jaune:'Légère tension hydrique. Surveiller les cultures sensibles et l\'état des cours d\'eau.',orange:'Déficit hydrique notable. Envisager des mesures d\'irrigation pour les cultures.',rouge:'Sécheresse sévère. Activer les réserves d\'eau et alerter le secteur agricole.'};
+  document.getElementById('conseilSecheresse').textContent=conseils[lvl.key];
 }
 
-// ── RENDU RISQUE CHALEUR ──────────────────────────────────────────
-function renderChaleur(ind, om){
-  let tempMaxArr=[], tempMinArr=[], ventArr=[];
-  if(om?.daily){
-    // Les 7 prochains jours = indices 7 à 13 (past_days=7 + forecast_days=7)
-    tempMaxArr = (om.daily.temperature_2m_max||[]).slice(7,14);
-    tempMinArr = (om.daily.temperature_2m_min||[]).slice(7,14);
-    ventArr    = (om.daily.windspeed_10m_max||[]).slice(7,14);
-  }
-  const tMax = tempMaxArr.length ? Math.max(...tempMaxArr.filter(v=>v!=null)) : null;
-  const tMin = tempMinArr.length ? Math.min(...tempMinArr.filter(v=>v!=null)) : null;
-  const tMoy = (tMax!==null&&tMin!==null) ? (tMax+tMin)/2 : null;
-  const vMax = ventArr.length ? Math.max(...ventArr.filter(v=>v!=null)) : null;
-  const hum  = om?.current?.relative_humidity_2m ?? null;
-
-  let score = 5;
-  if(tMax!==null){
-    if(tMax>=38) score=80;
-    else if(tMax>=36) score=55;
-    else if(tMax>=34) score=25;
-    else score=5;
-  }
-  if(hum!==null&&hum>85) score=Math.min(100,score+15);
-
-  setCard('cardChaleur', score, 'badgeChaleur', 'barChaleur');
-
-  document.getElementById('tempMax').innerHTML = tMax!==null ? num(tMax,1)+'<span class="data-unit">°C</span>' : '—';
-  document.getElementById('tempMoy').innerHTML = tMoy!==null ? num(tMoy,1)+'<span class="data-unit">°C</span>' : '—';
-  document.getElementById('humRel').innerHTML  = hum!==null ? num(hum,0)+'<span class="data-unit">%</span>' : '—';
-  document.getElementById('ventMax').innerHTML = vMax!==null ? num(vMax,0)+'<span class="data-unit">km/h</span>' : '—';
-
-  const lvl = scoreToLevel(score);
-  const conseils = {
-    vert:   'Températures dans les normales tropicales (30–32°C max). Aucune vague de chaleur prévue.',
-    jaune:  'Températures légèrement élevées. Recommander une hydratation accrue.',
-    orange: 'Chaleur importante. Éviter les activités physiques en plein soleil entre 11h et 16h.',
-    rouge:  'Vague de chaleur. Protéger les personnes vulnérables, ouvrir les espaces rafraîchis.'
-  };
-  document.getElementById('conseilChaleur').textContent = conseils[lvl.key];
-}
-
-// ── RENDU PRÉVISIONS 7J ───────────────────────────────────────────
+// ── PRÉVISIONS 7J VISUELLES ─────────────────────────────────────
 function renderForecast(om){
-  const tb = document.getElementById('forecastBody');
-  if(!om?.daily){ tb.innerHTML='<tr><td colspan="6" class="loading-text">Prévisions non disponibles.</td></tr>'; return; }
+  const d=om?.daily;
+  const container=document.getElementById('forecastCards');
+  if(!d){ container.innerHTML='<p style="color:var(--faint);font-size:.72rem">Prévisions indisponibles.</p>'; return; }
 
-  const d      = om.daily;
-  const seuil  = (SEUILS[new Date().getMonth()+1]||160)/7; // seuil journalier
-  // slice(7,14) = les 7 jours futurs (past_days=7 passés)
-  const times  = (d.time||[]).slice(7,14);
-  const pluies = (d.precipitation_sum||[]).slice(7,14);
-  const probs  = (d.precipitation_probability_max||[]).slice(7,14);
-  const tmax   = (d.temperature_2m_max||[]).slice(7,14);
-  const vents  = (d.windspeed_10m_max||[]).slice(7,14);
+  // indices 7..13 = 7 prochains jours
+  const times  =(d.time||[]).slice(7,14);
+  const wcodes =(d.weathercode||[]).slice(7,14);
+  const tmax   =(d.temperature_2m_max||[]).slice(7,14);
+  const tmin   =(d.temperature_2m_min||[]).slice(7,14);
+  const pluies =(d.precipitation_sum||[]).slice(7,14);
+  const probs  =(d.precipitation_probability_max||[]).slice(7,14);
 
-  if(!times.length){ tb.innerHTML='<tr><td colspan="6" class="loading-text">Données de prévisions non disponibles dans ce fichier.</td></tr>'; return; }
+  // échelle max pluie pour les barres
+  const maxPluie=Math.max(1,...pluies.filter(v=>v!=null));
+  const seuil1j=(SEUILS[new Date().getMonth()+1]||160)/7;
+  const today=new Date().toISOString().slice(0,10);
 
-  const rows = times.map((t,i)=>{
-    const p  = pluies[i]||0;
-    const pr = probs[i]||0;
-    const tm = tmax[i]||0;
-    const v  = vents[i]||0;
-    // Niveau : relatif à la normale journalière de Kribi
-    const lvl = p>seuil*3 ? 'danger' : p>seuil*1.8 ? 'warn' : 'ok';
-    const dateObj = new Date(t);
-    const dateStr = JOURS_FR[dateObj.getDay()]+' '+dateObj.getDate()+'/'+String(dateObj.getMonth()+1).padStart(2,'0');
-    return `<tr>
-      <td>${dateStr}</td>
-      <td><strong>${p.toFixed(0)}</strong></td>
-      <td>${pr}%</td>
-      <td>${tm.toFixed(1)} °C</td>
-      <td>${v.toFixed(0)} km/h</td>
-      <td><span class="pill pill-${lvl}">${lvl==='ok'?'Normal':lvl==='warn'?'Vigilance':'Alerte'}</span></td>
-    </tr>`;
-  });
-  tb.innerHTML = rows.join('');
+  container.innerHTML=times.map((t,i)=>{
+    const date=new Date(t);
+    const isToday=t===today;
+    const wi=wmoInfo(wcodes[i]||0);
+    const p=pluies[i]||0;
+    const pr=probs[i]||0;
+    const barH=Math.round((p/maxPluie)*100);
+    const lvl=p>seuil1j*3?'danger':p>seuil1j*1.5?'warn':'ok';
+    const lvlTxt=lvl==='danger'?'Alerte':lvl==='warn'?'Vigilance':'Normal';
+    return `<div class="fc-card${isToday?' today':''}">
+      <div class="fc-day">${isToday?'Auj.':JOURS_FR[date.getDay()]}</div>
+      <div class="fc-date">${date.getDate()}/${String(date.getMonth()+1).padStart(2,'0')}</div>
+      <div class="fc-icon">${wi.icon}</div>
+      <div class="fc-tmax">${num(tmax[i],0)}°</div>
+      <div class="fc-tmin">${num(tmin[i],0)}°</div>
+      <div class="fc-rain-area">
+        <div class="fc-rain-bar-bg">
+          <div class="fc-rain-bar" style="height:${barH}%"></div>
+        </div>
+        <div class="fc-rain-val">${p.toFixed(0)} mm</div>
+        <div class="fc-prob">${pr}%</div>
+      </div>
+      <div class="fc-pill fc-pill-${lvl}">${lvlTxt}</div>
+    </div>`;
+  }).join('');
 }
 
-// ── RENDU INDICES SATELLITES ──────────────────────────────────────
-function renderSatellite(ind){
-  const sat  = window._report?.satellitaire;
-  const ndvi = val(ind?.ndvi_moyen);
-  const ndwi = val(ind?.ndwi_moyen);
-  const nbr  = val(sat?.sentinel2?.indices?.NBR_mean);
-  const sm   = val(sat?.smap?.humidite_sol?.sm_surface);
-
-  document.getElementById('satNdvi').textContent = ndvi!==null ? num(ndvi,3) : '—';
-  document.getElementById('satNdwi').textContent = ndwi!==null ? num(ndwi,3) : '—';
-  document.getElementById('satNbr').textContent  = nbr!==null  ? num(nbr,3)  : '—';
-  document.getElementById('satSm').textContent   = sm!==null   ? num(sm,3)+' m³/m³' : '—';
-}
-
-// ── RENDU SIDEBAR ─────────────────────────────────────────────────
+// ── SIDEBAR ──────────────────────────────────────────────────────
 function renderSidebar(report){
   if(!report) return;
-  document.getElementById('sDate').textContent    = report.date || '—';
-  document.getElementById('sModel').textContent   = report.modele || 'Phi-3 mini';
-  document.getElementById('sCapteur').textContent = report.capteur || '—';
-  document.getElementById('sNiveau').textContent  = report.niveau_alerte || '—';
-  const txt = (report.rapport_texte||'').trim();
-  document.getElementById('rapportPreview').textContent = txt || 'Rapport vide.';
+  document.getElementById('sDate').textContent   =report.date||'—';
+  document.getElementById('sModel').textContent  =report.modele||'Phi-3 mini';
+  document.getElementById('sCapteur').textContent=report.capteur||'—';
+  document.getElementById('sNiveau').textContent =report.niveau_alerte||'—';
+  const txt=(report.rapport_texte||'').trim();
+  document.getElementById('rapportPreview').textContent=txt||'Rapport vide.';
 }
 
-// ── THEME ─────────────────────────────────────────────────────────
+// ── THÈME ─────────────────────────────────────────────────────────
 function initTheme(){
-  const btn = document.querySelector('[data-theme-toggle]');
-  const pref = window.matchMedia('(prefers-color-scheme:dark)').matches;
-  let t = pref ? 'dark' : 'light';
+  const btn=document.querySelector('[data-theme-toggle]');
+  const pref=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  let t=pref?'dark':'light';
   document.documentElement.setAttribute('data-theme',t);
-  const icon = () => btn.innerHTML = t==='dark'
-    ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
-    : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  const icon=()=>btn.innerHTML=t==='dark'
+    ?'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+    :'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
   icon();
   btn.addEventListener('click',()=>{ t=t==='dark'?'light':'dark'; document.documentElement.setAttribute('data-theme',t); icon(); });
 }
 
-// ── INIT ──────────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────────
 async function init(){
   initTheme();
-  document.getElementById('datechip').textContent = todayFR();
-
+  document.getElementById('datechip').textContent=todayFR();
   try{
-    const [report, om] = await Promise.all([loadReport(), fetchOM()]);
-    window._report = report;
-    window._om     = om;
-
-    const ind = report?.indicateurs || {};
-
+    const [report,om]=await Promise.all([loadReport(),fetchOM()]);
+    window._report=report; window._om=om;
     renderBanner(report);
     renderSidebar(report);
-    renderKPI(ind, om);
-    renderMeteoActuelle(om);
-    renderInondation(ind, om);
-    renderSecheresse(ind, om);
-    renderChaleur(ind, om);
+    renderHero(om);
+    renderInondation(om);
+    renderSecheresse(om);
     renderForecast(om);
-    renderSatellite(ind);
-
-    document.getElementById('statusChip').className = 'status-chip chip-ok';
-    document.getElementById('statusChip').textContent = 'Données à jour';
-    document.getElementById('topbarSub').textContent  =
-      (report ? 'Saison des pluies (juin) — Analyse SAMCAM · Phi-3 mini' : 'Données Open-Meteo temps réel') +
-      ' · Kribi, Cameroun';
-
+    document.getElementById('statusChip').className='status-chip chip-ok';
+    document.getElementById('statusChip').textContent='Données à jour';
+    document.getElementById('topbarSub').textContent=
+      (report?'Saison des pluies (juin) · Analyse SAMCAM · Phi-3 mini':'Données Open-Meteo temps réel')+' · Kribi, Cameroun';
   }catch(e){
-    document.getElementById('statusChip').className  = 'status-chip chip-err';
-    document.getElementById('statusChip').textContent = 'Erreur de chargement';
-    console.error('[SAMCAM]', e);
+    document.getElementById('statusChip').className='status-chip chip-err';
+    document.getElementById('statusChip').textContent='Erreur de chargement';
+    console.error('[SAMCAM]',e);
   }
 }
 
