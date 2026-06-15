@@ -1,0 +1,28 @@
+# Clés privées — NE JAMAIS COMMITTER
+*.json
+!package.json
+
+# Variables d'environnement
+.env
+.env.local
+.env.*
+
+# Données collectées (volumineuses)
+data/*.json
+
+# Logs
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# OS
+.DS_Store
+Thumbs.db
