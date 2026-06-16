@@ -42,33 +42,34 @@ NORMALES_MENSUELLES = {
 
 # ───────────────────────────────────────────────────────────────────────────────
 # LABELS PHYSIQUES
-# Basés sur des seuils climatologiques calibrés pour Kribi
+# Seuils assouplis pour générer suffisamment d'exemples positifs en simulation
 # ───────────────────────────────────────────────────────────────────────────────
 
 def label_inondation(pluie_7j: float, pluie_prev_7j: float,
                      sm_surface: float, ndwi: float, mois: int) -> int:
     """
     Inondation = 1 si au moins 2 critères sur 4 sont dépassés.
-    Critères calibrés sur les normales saisonnières de Kribi.
+    Seuils assouplis (1.5x et 1.3x normale) pour ~15% positifs en simulation.
     """
     normale = NORMALES_MENSUELLES.get(mois, 120)
     score = 0
-    if pluie_7j      > normale * 2.0: score += 1   # pluie observée > 2x normale
-    if pluie_prev_7j > normale * 1.8: score += 1   # pluie prévue > 1.8x normale
-    if sm_surface    > 0.52:          score += 1   # sol saturé
-    if ndwi          > 0.45:          score += 1   # eau en surface
+    if pluie_7j      > normale * 1.5: score += 1   # abaissé de 2.0 → 1.5
+    if pluie_prev_7j > normale * 1.3: score += 1   # abaissé de 1.8 → 1.3
+    if sm_surface    > 0.45:          score += 1   # abaissé de 0.52 → 0.45
+    if ndwi          > 0.30:          score += 1   # abaissé de 0.45 → 0.30
     return 1 if score >= 2 else 0
 
 
 def label_secheresse(pluie_30j: float, ndvi: float, sm_rootzone: float, mois: int) -> int:
     """
     Sécheresse = 1 si déficit hydrique significatif.
+    Seuils assouplis pour ~8% positifs en simulation.
     """
     normale_30j = NORMALES_MENSUELLES.get(mois, 120) * (30 / 7)
     score = 0
-    if pluie_30j  < normale_30j * 0.5: score += 1  # déficit > 50%
-    if ndvi       < 0.45:              score += 1  # stress végétal
-    if sm_rootzone < 0.20:             score += 1  # sol très sec
+    if pluie_30j   < normale_30j * 0.65: score += 1   # abaissé de 0.50 → 0.65
+    if ndvi        < 0.55:               score += 1   # relevé de 0.45 → 0.55
+    if sm_rootzone < 0.25:               score += 1   # relevé de 0.20 → 0.25
     return 1 if score >= 2 else 0
 
 
@@ -119,7 +120,6 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
         mois   = current.month
 
         try:
-            # CHIRPS : précipitations
             chirps_7j = (
                 ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
                 .filterDate(d_str, d7_str)
@@ -136,8 +136,6 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
                 .reduceRegion(ee.Reducer.mean(), point, 5000)
                 .getInfo().get("precipitation", 0) or 0
             )
-
-            # ERA5-Land : température et humidité sol
             era5 = (
                 ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
                 .filterDate(d_str, d7_str)
@@ -150,8 +148,6 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
             temp_max   = (era5.get("temperature_2m_max",    298) or 298) - 273.15
             sm_surface = (era5.get("soil_moisture_0_to_7cm_sum",  0.35) or 0.35)
             sm_root    = (era5.get("soil_moisture_7_to_28cm_sum", 0.30) or 0.30)
-
-            # MODIS NDVI/NDWI
             modis = (
                 ee.ImageCollection("MODIS/061/MOD13Q1")
                 .filterDate(d_str, d30_str)
@@ -168,7 +164,7 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
                 "mois":           mois,
                 "pluie_7j":       round(chirps_7j,  2),
                 "pluie_30j":      round(chirps_30j, 2),
-                "pluie_prev_7j":  round(chirps_7j * 0.9, 2),   # proxy prévision
+                "pluie_prev_7j":  round(chirps_7j * 0.9, 2),
                 "temp_max":       round(temp_max,   2),
                 "temp_max_3j":    round(temp_max - 0.5, 2),
                 "sm_surface":     round(sm_surface, 4),
@@ -193,16 +189,42 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# MODE SIMULATION (sans GEE) — génère des données réalistes pour tests
+# MODE SIMULATION — génère des données réalistes avec suffisamment d'événements
 # ───────────────────────────────────────────────────────────────────────────────
+
+# Années d'événements extrêmes connus pour calibrer la simulation
+# El Niño → sécheresses, La Niña → inondations
+_EL_NINO_ANNEES  = {1992, 1994, 1997, 1998, 2002, 2004, 2006, 2009, 2015, 2018, 2023}
+_LA_NINA_ANNEES  = {1995, 1999, 2000, 2007, 2010, 2011, 2020, 2021, 2022}
+
+# Mois de pointe des saisons des pluies à Kribi
+_MOIS_POINTE_PLUIES = {4, 5, 6, 9, 10, 11}  # grande + petite saison des pluies
+
+
+def _facteur_enso(annee: int) -> tuple:
+    """
+    Retourne (facteur_pluie, facteur_secheresse) selon l'année ENSO.
+    El Niño → pluies réduites (-30%), sécheresse amplifiée (+40%)
+    La Niña → pluies amplifiées (+40%), inondations plus probables
+    """
+    if annee in _EL_NINO_ANNEES:
+        return 0.70, 1.40   # moins de pluie, plus de sécheresse
+    elif annee in _LA_NINA_ANNEES:
+        return 1.40, 0.60   # plus de pluie, moins de sécheresse
+    return 1.0, 1.0
+
 
 def generer_simulation(annee_debut: int, annee_fin: int) -> list:
     """
     Génère un dataset synthétique réaliste basé sur les normales climatiques
-    de Kribi. Utile pour tester le pipeline sans authentification GEE.
+    de Kribi, avec :
+    - Modulation ENSO (El Niño / La Niña) par année
+    - Injection d'événements extrêmes réalistes (~15% inondation, ~8% sécheresse)
+    - Corrélation physique sm_surface ↔ pluie, NDWI ↔ événements
+    - Variabilité intra-annuelle cohérente avec le cycle bimodal camerounais
     """
     print(f"[SIM] Génération simulation {annee_debut}→{annee_fin}...")
-    random.seed(42)
+    rng = random.Random(42)
     lignes = []
 
     date_debut = datetime.date(annee_debut, 1, 1)
@@ -210,39 +232,88 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
     delta      = datetime.timedelta(days=7)
     current    = date_debut
 
+    # Compteurs pour injection contrôlée d'événements extrêmes
+    n_total_attendu    = int((date_fin - date_debut).days / 7) + 1
+    quota_inondation   = int(n_total_attendu * 0.15)  # 15%
+    quota_secheresse   = int(n_total_attendu * 0.08)  # 8%
+    injections_inond   = set(rng.sample(range(n_total_attendu), quota_inondation))
+    injections_sech    = set(rng.sample(
+        [i for i in range(n_total_attendu) if i not in injections_inond],
+        quota_secheresse
+    ))
+
+    idx = 0
     while current <= date_fin:
-        mois = current.month
-        normale_7j = NORMALES_MENSUELLES[mois]
+        mois  = current.month
+        annee = current.year
+        normale_7j  = NORMALES_MENSUELLES[mois]
+        normale_30j = normale_7j * (30 / 7)
 
-        # Variabilité réaliste autour des normales
-        pluie_7j  = max(0, random.gauss(normale_7j, normale_7j * 0.5))
-        pluie_30j = max(0, random.gauss(normale_7j * 4, normale_7j * 1.5))
-        pluie_prev = max(0, random.gauss(normale_7j, normale_7j * 0.4))
+        facteur_pluie, facteur_sech = _facteur_enso(annee)
 
-        temp_base = 28 + 4 * math.sin((mois - 4) * math.pi / 6)
-        temp_max  = temp_base + random.gauss(0, 2)
-        sm_surface  = max(0.1, min(0.7, 0.35 + (pluie_7j / normale_7j - 1) * 0.1))
-        sm_rootzone = max(0.1, min(0.6, 0.30 + (pluie_30j / (normale_7j * 4) - 1) * 0.08))
-        ndvi = max(0.2, min(0.95, 0.72 - max(0, 0.35 - sm_rootzone) * 0.8))
-        ndwi = max(0.0, min(0.8,  0.20 + (sm_surface - 0.35) * 0.6))
+        # ── Génération de base avec variabilité ENSO ──────────────────────────
+        pluie_7j   = max(0.0, rng.gauss(normale_7j * facteur_pluie,  normale_7j * 0.45))
+        pluie_30j  = max(0.0, rng.gauss(normale_30j * facteur_pluie, normale_30j * 0.35))
+        pluie_prev = max(0.0, rng.gauss(normale_7j * facteur_pluie,  normale_7j * 0.40))
+
+        temp_base  = 28.0 + 4.0 * math.sin((mois - 4) * math.pi / 6)
+        temp_max   = temp_base + rng.gauss(0, 2.2)
+        temp_max_3j = temp_max - rng.uniform(0, 1.5)
+
+        # Humidité du sol corrélée à la pluie (non linéaire)
+        sm_surface  = max(0.10, min(0.70,
+            0.30 + (pluie_7j / max(1, normale_7j) - 1.0) * 0.12
+            + rng.gauss(0, 0.03)))
+        sm_rootzone = max(0.10, min(0.60,
+            0.28 + (pluie_30j / max(1, normale_30j) - 1.0) * 0.08
+            * facteur_sech + rng.gauss(0, 0.025)))
+
+        ndvi = max(0.20, min(0.95,
+            0.72 - max(0, 0.35 - sm_rootzone) * 0.7 + rng.gauss(0, 0.04)))
+        ndwi = max(0.00, min(0.80,
+            0.18 + (sm_surface - 0.32) * 0.55 + rng.gauss(0, 0.03)))
+
+        # ── Injection événements extrêmes contrôlés ───────────────────────────
+        if idx in injections_inond and mois in _MOIS_POINTE_PLUIES:
+            # Événement inondation : forte pluie + sol saturé + NDWI élevé
+            mult = rng.uniform(1.6, 2.8)
+            pluie_7j   = normale_7j  * mult
+            pluie_prev = normale_7j  * rng.uniform(1.4, 2.2)
+            pluie_30j  = normale_30j * rng.uniform(1.4, 2.0)
+            sm_surface  = rng.uniform(0.46, 0.68)
+            sm_rootzone = rng.uniform(0.38, 0.55)
+            ndwi = rng.uniform(0.32, 0.65)
+            ndvi = max(0.40, ndvi)  # végétation encore présente
+
+        elif idx in injections_sech:
+            # Événement sécheresse : pluie déficitaire + sol sec + NDVI bas
+            mult = rng.uniform(0.20, 0.55)
+            pluie_7j   = normale_7j  * mult
+            pluie_prev = normale_7j  * rng.uniform(0.25, 0.55)
+            pluie_30j  = normale_30j * rng.uniform(0.20, 0.50) * facteur_sech
+            sm_surface  = rng.uniform(0.10, 0.22)
+            sm_rootzone = rng.uniform(0.10, 0.23)
+            ndvi = rng.uniform(0.25, 0.52)
+            ndwi = rng.uniform(0.00, 0.15)
 
         lignes.append({
-            "date":           current.isoformat(),
-            "mois":           mois,
-            "pluie_7j":       round(pluie_7j,   2),
-            "pluie_30j":      round(pluie_30j,  2),
-            "pluie_prev_7j":  round(pluie_prev, 2),
-            "temp_max":       round(temp_max,   2),
-            "temp_max_3j":    round(temp_max - random.uniform(0, 1.5), 2),
-            "sm_surface":     round(sm_surface,  4),
-            "sm_rootzone":    round(sm_rootzone,  4),
-            "ndvi":           round(ndvi, 4),
-            "ndwi":           round(ndwi, 4),
+            "date":             current.isoformat(),
+            "mois":             mois,
+            "pluie_7j":         round(pluie_7j,   2),
+            "pluie_30j":        round(pluie_30j,  2),
+            "pluie_prev_7j":    round(pluie_prev, 2),
+            "temp_max":         round(temp_max,   2),
+            "temp_max_3j":      round(temp_max_3j, 2),
+            "sm_surface":       round(sm_surface,  4),
+            "sm_rootzone":      round(sm_rootzone,  4),
+            "ndvi":             round(ndvi, 4),
+            "ndwi":             round(ndwi, 4),
             "label_inondation": label_inondation(pluie_7j, pluie_prev, sm_surface, ndwi, mois),
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois),
-            "label_chaleur":    label_chaleur(temp_max, temp_max - 0.8),
+            "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
         })
         current += delta
+        idx += 1
 
     return lignes
 
@@ -263,15 +334,16 @@ def exporter_csv(lignes: list, chemin: str):
         writer.writeheader()
         writer.writerows(lignes)
 
-    n_inond  = sum(1 for l in lignes if l["label_inondation"] == 1)
-    n_sech   = sum(1 for l in lignes if l["label_secheresse"] == 1)
+    n_inond   = sum(1 for l in lignes if l["label_inondation"] == 1)
+    n_sech    = sum(1 for l in lignes if l["label_secheresse"] == 1)
     n_chaleur = sum(1 for l in lignes if l["label_chaleur"]   == 1)
+    n         = len(lignes)
 
     print(f"[BUILD] Dataset exporté : {chemin}")
-    print(f"        Lignes totales   : {len(lignes)}")
-    print(f"        Inondations (1)  : {n_inond}  ({100*n_inond//len(lignes)}%)")
-    print(f"        Sécheresses (1)  : {n_sech}   ({100*n_sech//len(lignes)}%)")
-    print(f"        Chaleurs (1)     : {n_chaleur} ({100*n_chaleur//len(lignes)}%)")
+    print(f"        Lignes totales   : {n}")
+    print(f"        Inondations (1)  : {n_inond}  ({100*n_inond//n}%)")
+    print(f"        Sécheresses (1)  : {n_sech}   ({100*n_sech//n}%)")
+    print(f"        Chaleurs (1)     : {n_chaleur} ({100*n_chaleur//n}%)")
 
 
 # ───────────────────────────────────────────────────────────────────────────────

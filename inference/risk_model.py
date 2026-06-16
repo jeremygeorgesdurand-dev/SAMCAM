@@ -32,6 +32,12 @@ SCORE_VERS_NIVEAU = {
     (0.00, 0.25): "VERT",
 }
 
+FEATURES_ORDER = [
+    "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
+    "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
+    "ndvi", "ndwi",
+]
+
 
 def _score_vers_niveau(score: float) -> str:
     for (lo, hi), niveau in SCORE_VERS_NIVEAU.items():
@@ -130,13 +136,12 @@ def _features_from_data(data: dict, use_previsions: bool = False,
     ndwi           = float(ind.get("ndwi_moyen",   0.20) or 0.20)
 
     if use_previsions:
-        # Agrégation des prévisions sur horizon_jours jours
         precip_list = (prev.get("precipitation_sum",         []) or [])[:horizon_jours]
         temp_list   = (prev.get("temperature_2m_max",        []) or [])[:horizon_jours]
         pluie_prev  = sum(float(p or 0) for p in precip_list)
         temp_max    = max((float(t or 28) for t in temp_list), default=28.0)
         temp_max_3j = max((float(t or 28) for t in temp_list[:3]), default=28.0)
-        pluie_7j_feat = pluie_prev  # pour la prévision, on utilise les précipitations prévues
+        pluie_7j_feat = pluie_prev
     else:
         pluie_prev  = float(ind.get("pluie_prevue_7j_mm", 0) or 0)
         temp_max    = float(ind.get("temperature_max_c",  29.0) or 29.0)
@@ -157,13 +162,6 @@ def _features_from_data(data: dict, use_previsions: bool = False,
     }
 
 
-FEATURES_ORDER = [
-    "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
-    "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
-    "ndvi", "ndwi",
-]
-
-
 # ───────────────────────────────────────────────────────────────────────────────
 # INFÉRENCE PRINCIPALE
 # ───────────────────────────────────────────────────────────────────────────────
@@ -175,6 +173,8 @@ def predire_risques(data: dict, use_previsions: bool = False,
     des données collectées.
 
     Utilise les modèles RandomForest si disponibles, sinon les règles physiques.
+    Passe un DataFrame pandas à predict_proba pour éviter le UserWarning
+    'X does not have valid feature names'.
 
     Retourne un dict avec :
         scores    : probabilités 0-1 pour chaque risque
@@ -184,8 +184,15 @@ def predire_risques(data: dict, use_previsions: bool = False,
     """
     feats = _features_from_data(data, use_previsions=use_previsions,
                                  horizon_jours=horizon_jours)
-    import numpy as np
-    X = [[feats[f] for f in FEATURES_ORDER]]
+
+    # DataFrame pandas avec les noms de colonnes corrects → supprime le UserWarning sklearn
+    try:
+        import pandas as pd
+        X_df = pd.DataFrame([feats], columns=FEATURES_ORDER)
+        use_df = True
+    except ImportError:
+        use_df = False
+        X_list = [[feats[f] for f in FEATURES_ORDER]]
 
     resultats = {}
     methode_utilisee = {}
@@ -194,7 +201,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
         clf = _charger_modele(nom)
         if clf is not None:
             try:
-                import numpy as np
+                X = X_df if use_df else X_list
                 score = float(clf.predict_proba(X)[0][1])
                 methode_utilisee[nom] = "modele_ml"
             except Exception:
@@ -203,7 +210,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
             score = None
 
         if score is None:
-            # Fallback règles physiques
             methode_utilisee[nom] = "regles_physiques"
             if nom == "inondation":
                 score = _risque_inondation_physique(
@@ -213,17 +219,16 @@ def predire_risques(data: dict, use_previsions: bool = False,
                 score = _risque_secheresse_physique(
                     feats["pluie_30j"], feats["ndvi"],
                     feats["sm_rootzone"], feats["mois"])
-            else:  # chaleur
+            else:
                 score = _risque_chaleur_physique(
                     feats["temp_max"], feats["temp_max_3j"])
 
         resultats[nom] = {
-            "score":  round(score, 4),
-            "niveau": _score_vers_niveau(score),
+            "score":   round(score, 4),
+            "niveau":  _score_vers_niveau(score),
             "methode": methode_utilisee[nom],
         }
 
-    # Niveau global = risque maximal
     niveaux_ordre = ["VERT", "JAUNE", "ORANGE", "ROUGE"]
     niveau_global = max(
         (r["niveau"] for r in resultats.values()),
@@ -231,13 +236,13 @@ def predire_risques(data: dict, use_previsions: bool = False,
     )
 
     return {
-        "scores":         {k: v["score"]  for k, v in resultats.items()},
-        "niveaux":        {k: v["niveau"] for k, v in resultats.items()},
-        "niveau_global":  niveau_global,
+        "scores":          {k: v["score"]  for k, v in resultats.items()},
+        "niveaux":         {k: v["niveau"] for k, v in resultats.items()},
+        "niveau_global":   niveau_global,
         "methode_globale": "modele_ml" if any(
             v == "modele_ml" for v in methode_utilisee.values()) else "regles_physiques",
         "features_utilisees": feats,
-        "modeles_charges": modeles_disponibles(),
+        "modeles_charges":    modeles_disponibles(),
     }
 
 
@@ -271,7 +276,6 @@ def evaluer_previsions(data: dict) -> dict:
 
 
 if __name__ == "__main__":
-    # Test rapide avec données synthétiques
     data_test = {
         "indicateurs_risque": {
             "pluie_cumulee_7j_mm": 320,
