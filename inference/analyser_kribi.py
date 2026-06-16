@@ -2,6 +2,9 @@
 """
 SAMCAM — Analyse des risques climatiques Kribi avec Phi-3 mini (Ollama)
 
+V4 : intègre risk_model.py (RandomForest ou règles physiques) pour
+     remplacer les seuils fixes. Ajoute risque_prevu_3j et risque_prevu_7j.
+
 Usage :
     python3 inference/analyser_kribi.py
     python3 inference/analyser_kribi.py --fichier data/kribi_2026-06-15.json
@@ -27,7 +30,6 @@ DATA_DIR    = os.path.join(os.path.dirname(__file__), "..", "data")
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "..", "reports")
 os.makedirs(REPORTS_DIR, exist_ok=True)
 
-# Seuils normaux pour Kribi selon le mois
 SEUILS_SAISONNIERS = {
     1:  (30,  120), 2:  (50,  150), 3:  (120, 250),
     4:  (180, 320), 5:  (200, 350), 6:  (160, 300),
@@ -66,17 +68,18 @@ INTERPRÉTATION DES INDICES SATELLITES :
 - sm_surface 0.3-0.5 m³/m³ en saison pluies : NORMAL
 - sm_surface > 0.55 : saturation critique
 
-NIVEAUX D'ALERTE (à relativiser par rapport aux normales saisonnières) :
-- VERT  : situation normale, aucune action requise
-- JAUNE : légère anomalie, surveillance accrue
-- ORANGE: dépassement significatif, mesures préventives
-- ROUGE : événement extrême, risque imminent
+NIVEAUX D'ALERTE :
+- VERT   : situation normale, aucune action requise
+- JAUNE  : légère anomalie, surveillance accrue
+- ORANGE : dépassement significatif, mesures préventives
+- ROUGE  : événement extrême, risque imminent
 
 RÈGLES DE RÉDACTION :
 - Toujours comparer aux normales saisonnières avant de conclure
 - Être factuel et proportionné, éviter l'alarmisme injustifié
-- Préciser si une valeur est "normale pour la saison" ou "anormale"
-- Ne JAMAIS inventer une date — utiliser uniquement la date fournie dans le prompt
+- Distinguer risque actuel (J0) et risque prévisionnel (J+3, J+7)
+- Mentionner si le score est issu d'un modèle ML ou de règles physiques
+- Ne JAMAIS inventer une date — utiliser uniquement la date fournie
 - Langue : français, ton professionnel et mesuré"""
 
 
@@ -89,17 +92,15 @@ def charger_dernier_json() -> str:
     return fichiers[-1]
 
 
-def construire_prompt(data: dict) -> str:
-    # DATE SYSTÈME — forcée, pas laissée à Phi-3
+def construire_prompt(data: dict, previsions_risque: dict) -> str:
     today_str = datetime.date.today().isoformat()
-
-    ind    = data.get("indicateurs_risque", {})
-    meta   = data.get("meta", {})
-    contexte = data.get("contexte_phi3", "")
+    ind       = data.get("indicateurs_risque", {})
+    meta      = data.get("meta", {})
+    contexte  = data.get("contexte_phi3", "")
 
     mois = datetime.date.today().month
     nom_mois = NOMS_MOIS[mois]
-    saison   = SAISONNS[mois] if mois in SAISONNS else "saison inconnue"
+    saison   = SAISONS.get(mois, "saison inconnue")
     seuil_normal, seuil_alerte = SEUILS_SAISONNIERS.get(mois, (120, 250))
 
     pluie_7j      = ind.get("pluie_cumulee_7j_mm",  0) or 0
@@ -156,6 +157,28 @@ def construire_prompt(data: dict) -> str:
     if isinstance(sm_surface,  float): sm_surface  = round(sm_surface,  4)
     if isinstance(sm_rootzone, float): sm_rootzone = round(sm_rootzone, 4)
 
+    # Scores de risque V4 (modèle ML ou règles physiques)
+    act     = previsions_risque.get("actuel",   {})
+    prev3j  = previsions_risque.get("prevu_3j", {})
+    prev7j  = previsions_risque.get("prevu_7j", {})
+    methode = act.get("methode", "règles_physiques")
+
+    def fmt_niveaux(niveaux_dict: dict) -> str:
+        return " | ".join(f"{k}: {v}" for k, v in niveaux_dict.items())
+
+    def fmt_scores(scores_dict: dict) -> str:
+        return " | ".join(f"{k}: {v:.2f}" for k, v in scores_dict.items())
+
+    scores_section = f"""
+== SCORES DE RISQUE (V4 — {methode}) ==
+Risque ACTUEL (J0)   : {act.get('niveau_global', '?')} — {fmt_niveaux(act.get('niveaux', {}))}
+  Scores  : {fmt_scores(act.get('scores', {}))}
+Risque PREVU J+3     : {prev3j.get('niveau_global', '?')} — {fmt_niveaux(prev3j.get('niveaux', {}))}
+  Scores  : {fmt_scores(prev3j.get('scores', {}))}
+Risque PREVU J+7     : {prev7j.get('niveau_global', '?')} — {fmt_niveaux(prev7j.get('niveaux', {}))}
+  Scores  : {fmt_scores(prev7j.get('scores', {}))}
+"""
+
     prompt = f"""DATE D'ANALYSE : {today_str}
 Tu dois utiliser UNIQUEMENT cette date dans ton rapport. N'invente aucune autre date.
 
@@ -179,22 +202,14 @@ Humidité sol racines (0-100cm) SMAP: {sm_rootzone} m³/m³
 
 == PRÉVISIONS 7 PROCHAINS JOURS ==
 {prev_texte}
-
-== INDICATEURS CALCULÉS ==
-- Inondation observée : {ind.get('risque_inondation_observe','?')}
-- Inondation prévue   : {ind.get('risque_inondation_prevu','?')}
-- Sécheresse          : {ind.get('risque_secheresse','?')}
-- Submersion côtière  : {ind.get('risque_submersion_cotiere','?')}
-- Sol saturé          : {ind.get('risque_sol_sature','?')}
-
+{scores_section}
 == RAPPORT DEMANDÉ ==
-Produis un rapport PROPORTIONNÉ qui distingue ce qui est normal de ce qui est anormal.
-Structure OBLIGATOIRE :
-1. SITUATION DU {today_str} (normale / légère anomalie / anomalie significative)
-2. ANALYSE DES RISQUES (inondation, submersion côtière, sécheresse — relativiser par rapport aux normales)
-3. ÉVOLUTION PRÉVUE (7 prochains jours)
-4. RECOMMANDATIONS (proportionnées au niveau réel de risque)
-5. NIVEAU D'ALERTE : VERT / JAUNE / ORANGE / ROUGE (justifié par rapport aux normales saisonnières)"""
+Produis un rapport PROPORTIONNÉ en 5 sections :
+1. SITUATION DU {today_str} — risque actuel avec niveau et scores
+2. ANALYSE DES RISQUES — inondation, sécheresse, vague de chaleur (relativiser vs normales)
+3. ÉVOLUTION PRÉVISIONNELLE J+3 et J+7 — mentionner si tendance haussiere ou baissiere
+4. RECOMMANDATIONS — proportionnées au niveau réel
+5. NIVEAU D'ALERTE GLOBAL : VERT / JAUNE / ORANGE / ROUGE"""
 
     return prompt
 
@@ -207,7 +222,7 @@ def appeler_phi3(prompt: str, stream: bool = True) -> str:
         "system": SYSTEM_PROMPT,
         "prompt": prompt,
         "stream": stream,
-        "options": {"temperature": 0.1, "top_p": 0.9, "num_predict": 1200},
+        "options": {"temperature": 0.1, "top_p": 0.9, "num_predict": 1400},
     }
     try:
         resp = requests.post(OLLAMA_URL, json=payload, stream=stream, timeout=180)
@@ -236,7 +251,8 @@ def appeler_phi3(prompt: str, stream: bool = True) -> str:
 
 # ─── SAUVEGARDE ───────────────────────────────────────────────────────
 
-def sauvegarder_rapport(rapport: str, data_source: dict) -> dict:
+def sauvegarder_rapport(rapport: str, data_source: dict,
+                        previsions_risque: dict) -> dict:
     today = datetime.date.today().isoformat()
     base  = os.path.join(REPORTS_DIR, f"rapport_kribi_{today}")
 
@@ -247,25 +263,31 @@ def sauvegarder_rapport(rapport: str, data_source: dict) -> dict:
 
     ind = data_source.get("indicateurs_risque", {})
 
-    # Déterminer le niveau d'alerte depuis le texte du rapport
-    niveau = "VERT"
-    rapport_upper = rapport.upper()
-    for lvl in ["ROUGE", "ORANGE", "JAUNE", "VERT"]:
-        if lvl in rapport_upper:
-            niveau = lvl
-            break
+    # Niveau d'alerte depuis le modèle V4 (priorité) ou parsing texte
+    niveau = previsions_risque.get("actuel", {}).get("niveau_global", None)
+    if not niveau:
+        rapport_upper = rapport.upper()
+        for lvl in ["ROUGE", "ORANGE", "JAUNE", "VERT"]:
+            if lvl in rapport_upper:
+                niveau = lvl
+                break
+    niveau = niveau or "VERT"
 
     sortie_json = {
-        "date": today,
-        "zone": "Kribi",
-        "modele": MODEL_NAME,
-        "rapport_texte": rapport,
-        "niveau_alerte": niveau,
-        "indicateurs": ind,
-        "capteur": data_source.get("meta", {}).get("capteur_satellite", "?"),
-        "meteorologie": data_source.get("meteorologie", {}),
-        "satellitaire": data_source.get("satellitaire", {}),
-        "meta": data_source.get("meta", {}),
+        "date":            today,
+        "zone":            "Kribi",
+        "modele":          MODEL_NAME,
+        "rapport_texte":   rapport,
+        "niveau_alerte":   niveau,
+        "risque_actuel":   previsions_risque.get("actuel",   {}),
+        "risque_prevu_3j": previsions_risque.get("prevu_3j", {}),
+        "risque_prevu_7j": previsions_risque.get("prevu_7j", {}),
+        "methode_risque":  previsions_risque.get("actuel", {}).get("methode", "?"),
+        "indicateurs":     ind,
+        "capteur":         data_source.get("meta", {}).get("capteur_satellite", "?"),
+        "meteorologie":    data_source.get("meteorologie", {}),
+        "satellitaire":    data_source.get("satellitaire", {}),
+        "meta":            data_source.get("meta", {}),
     }
     with open(f"{base}.json", "w", encoding="utf-8") as f:
         json.dump(sortie_json, f, ensure_ascii=False, indent=2)
@@ -279,11 +301,8 @@ def sauvegarder_rapport(rapport: str, data_source: dict) -> dict:
 
 # ─── POINT D'ENTRÉE ───────────────────────────────────────────────────
 
-# Correctif typo dans SAISONNS → SAISONS
-SAISONNS = SAISONS  # alias
-
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM — Analyse Phi-3 mini")
+    parser = argparse.ArgumentParser(description="SAMCAM V4 — Analyse Phi-3 mini + RandomForest")
     parser.add_argument("--fichier",   type=str,         default=None)
     parser.add_argument("--json-only", action="store_true")
     args = parser.parse_args()
@@ -294,13 +313,25 @@ def main():
     with open(fichier, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    prompt = construire_prompt(data)
+    # V4 : calcul des risques avec modèle ML ou règles physiques
+    print(f"[SAMCAM] 🤖 Calcul des risques (modèle V4)...")
+    try:
+        from inference.risk_model import evaluer_previsions
+    except ImportError:
+        from risk_model import evaluer_previsions
+
+    previsions_risque = evaluer_previsions(data)
+    print(f"[SAMCAM] Risque actuel   : {previsions_risque['actuel']['niveau_global']}")
+    print(f"[SAMCAM] Risque prévu J+3: {previsions_risque['prevu_3j']['niveau_global']}")
+    print(f"[SAMCAM] Risque prévu J+7: {previsions_risque['prevu_7j']['niveau_global']}")
+
+    prompt = construire_prompt(data, previsions_risque)
 
     if not args.json_only:
         print(f"[SAMCAM] 🤖 Envoi à Phi-3 mini (Ollama)...")
 
     rapport = appeler_phi3(prompt, stream=not args.json_only)
-    sauvegarder_rapport(rapport, data)
+    sauvegarder_rapport(rapport, data, previsions_risque)
 
 
 if __name__ == "__main__":
