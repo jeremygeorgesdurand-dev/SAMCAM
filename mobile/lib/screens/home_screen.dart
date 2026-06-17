@@ -32,23 +32,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
+
+    // Météo en parallèle avec SAMCAM — la météo a toujours un fallback
+    final weatherFuture = WeatherService.getForecast();
+
     try {
-      final results = await Future.wait([
-        ApiService.getRisk(),
-        WeatherService.getForecast(),
-      ]);
+      final risk = await ApiService.getRisk();
+      final weather = await weatherFuture;
       setState(() {
-        _report  = results[0] as RiskReport;
-        _weather = results[1] as WeatherData;
+        _report  = risk;
+        _weather = weather;
         _loading = false;
       });
     } catch (e) {
-      try {
-        final w = await WeatherService.getForecast();
-        setState(() { _weather = w; });
-      } catch (_) {}
+      // Serveur SAMCAM inaccessible mais météo disponible (fallback mocké)
+      final weather = await weatherFuture.catchError((_) => WeatherService.getForecast());
       setState(() {
-        _error   = 'Serveur SAMCAM inaccessible.\n$e';
+        _weather = weather;
+        _error   = 'Serveur SAMCAM inaccessible';
         _loading = false;
       });
     }
@@ -61,7 +62,8 @@ class _HomeScreenState extends State<HomeScreen> {
       Config.alertLabels[niveau] ?? niveau;
 
   LinearGradient _skyGradient() {
-    final h = DateTime.now().hour;
+    // Heure locale WAT (UTC+1) — fonctionne correctement sur Web
+    final h = DateTime.now().toLocal().hour;
     if (h >= 6 && h < 12) {
       return const LinearGradient(
         begin: Alignment.topCenter, end: Alignment.bottomCenter,
@@ -129,6 +131,9 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Container(
         decoration: BoxDecoration(gradient: _skyGradient()),
         child: SafeArea(
+          // Sur Web, évite que le contenu soit coupé sous la barre de navigation
+          top: true,
+          bottom: false,
           child: RefreshIndicator(
             onRefresh: _fetchAll,
             color: Colors.white,
@@ -141,32 +146,89 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.white),
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        children: [
+          _buildSkeletonHeader(),
+          const SizedBox(height: 20),
+          _buildSkeletonCard(height: 130),
+          const SizedBox(height: 12),
+          _buildSkeletonCard(height: 220),
+        ],
       );
     }
+
+    // Météo disponible (API ou fallback mocké)
+    final weather = _weather ?? WeatherData(hourly: [], daily: []);
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
-        _buildWeatherHeader(),
+        _buildWeatherHeader(weather),
         const SizedBox(height: 20),
-        if (_weather != null) _buildHourlySection(),
+        _buildHourlySection(weather),
         const SizedBox(height: 12),
-        if (_weather != null) _buildDailySection(),
+        _buildDailySection(weather),
         const SizedBox(height: 20),
         if (_report != null) _buildAlertBanner(_report!),
-        if (_error != null && _report == null) _buildErrorBanner(),
+        if (_error != null) _buildErrorBanner(),
         const SizedBox(height: 12),
         if (_report != null) ..._buildRiskSection(_report!),
       ],
     );
   }
 
+  // ── SQUELETTES DE CHARGEMENT ───────────────────────────────────────────────
+  Widget _buildSkeletonHeader() {
+    return Column(
+      children: [
+        _skeletonBox(width: 120, height: 28, radius: 8),
+        const SizedBox(height: 8),
+        _skeletonBox(width: 80, height: 14, radius: 6),
+        const SizedBox(height: 20),
+        _skeletonBox(width: 160, height: 80, radius: 12),
+        const SizedBox(height: 12),
+        _skeletonBox(width: 100, height: 16, radius: 6),
+      ],
+    );
+  }
+
+  Widget _buildSkeletonCard({required double height}) {
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(color: Colors.white30, strokeWidth: 2),
+      ),
+    );
+  }
+
+  Widget _skeletonBox({double? width, required double height, double radius = 4}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
   // ── EN-TÊTE MÉTÉO ──────────────────────────────────────────────────────────
-  Widget _buildWeatherHeader() {
-    final now   = DateTime.now();
-    final fmt   = DateFormat('EEEE d MMMM', 'fr_FR');
-    final city  = _report?.zone ?? 'Kribi';
+  Widget _buildWeatherHeader(WeatherData weather) {
+    final now  = DateTime.now();
+    // Formatage sécurisé — ne plante pas si les locales ne sont pas chargées
+    String dateStr;
+    try {
+      dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now);
+    } catch (_) {
+      dateStr = DateFormat('yyyy-MM-dd').format(now);
+    }
+
+    final city = _report?.zone ?? 'Kribi';
 
     String currentTemp = '--';
     String currentIcon = '🌡️';
@@ -174,15 +236,15 @@ class _HomeScreenState extends State<HomeScreen> {
     int    humidity    = 0;
     double wind        = 0;
 
-    if (_weather != null && _weather!.hourly.isNotEmpty) {
-      final h = _weather!.hourly.first;
+    if (weather.hourly.isNotEmpty) {
+      final h = weather.hourly.first;
       currentTemp = h.temperature.toStringAsFixed(0);
       currentIcon = weatherCodeIcon(h.weatherCode);
       currentDesc = weatherCodeLabel(h.weatherCode);
       humidity    = h.humidity;
       wind        = h.windSpeed;
-    } else if (_weather != null && _weather!.daily.isNotEmpty) {
-      final d = _weather!.daily.first;
+    } else if (weather.daily.isNotEmpty) {
+      final d = weather.daily.first;
       currentTemp = '${d.tempMin.toStringAsFixed(0)}-${d.tempMax.toStringAsFixed(0)}';
       currentIcon = weatherCodeIcon(d.weatherCode);
       currentDesc = weatherCodeLabel(d.weatherCode);
@@ -197,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.w300,
             letterSpacing: 1,
           )),
-        Text(fmt.format(now),
+        Text(dateStr,
           style: const TextStyle(color: Colors.white60, fontSize: 13)),
         const SizedBox(height: 12),
         Row(
@@ -238,8 +300,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Column(
       children: [
         Text('$icon $value',
-          style: const TextStyle(color: Colors.white, fontSize: 15,
-              fontWeight: FontWeight.w500)),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.w500,
+          )),
         Text(label,
           style: const TextStyle(color: Colors.white54, fontSize: 11)),
       ],
@@ -247,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── PRÉVISIONS HORAIRES (déroulant) ────────────────────────────────────────
-  Widget _buildHourlySection() {
+  Widget _buildHourlySection(WeatherData weather) {
     return _glassCard(
       child: Column(
         children: [
@@ -257,18 +322,25 @@ class _HomeScreenState extends State<HomeScreen> {
             expanded: _hourlyExpanded,
             onTap: () => setState(() => _hourlyExpanded = !_hourlyExpanded),
           ),
-          if (_hourlyExpanded) ..._buildHourlyContent(),
+          if (_hourlyExpanded) ..._buildHourlyContent(weather),
         ],
       ),
     );
   }
 
-  List<Widget> _buildHourlyContent() {
-    if (_weather!.hourly.isEmpty) {
+  List<Widget> _buildHourlyContent(WeatherData weather) {
+    if (weather.hourly.isEmpty) {
       return [const Padding(
-        padding: EdgeInsets.all(12),
-        child: Text('Aucune donnée horaire',
-          style: TextStyle(color: Colors.white54)),
+        padding: EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, color: Colors.white38, size: 16),
+            SizedBox(width: 8),
+            Text('Données indisponibles',
+              style: TextStyle(color: Colors.white54, fontSize: 13)),
+          ],
+        ),
       )];
     }
     return [
@@ -278,15 +350,20 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView.builder(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          itemCount: _weather!.hourly.length,
-          itemBuilder: (ctx, i) => _hourlyItem(_weather!.hourly[i]),
+          itemCount: weather.hourly.length,
+          itemBuilder: (ctx, i) => _hourlyItem(weather.hourly[i]),
         ),
       ),
     ];
   }
 
   Widget _hourlyItem(HourlyForecast h) {
-    final fmt = DateFormat('HH:mm');
+    String timeStr;
+    try {
+      timeStr = DateFormat('HH:mm').format(h.time);
+    } catch (_) {
+      timeStr = '${h.time.hour.toString().padLeft(2, '0')}:00';
+    }
     return Container(
       width: 64,
       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -297,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(fmt.format(h.time),
+          Text(timeStr,
             style: const TextStyle(color: Colors.white54, fontSize: 11)),
           const SizedBox(height: 4),
           Text(weatherCodeIcon(h.weatherCode),
@@ -311,14 +388,17 @@ class _HomeScreenState extends State<HomeScreen> {
             )),
           if (h.precipitation > 0)
             Text('${h.precipitation.toStringAsFixed(1)}mm',
-              style: const TextStyle(color: Color(0xFF7EC8E3), fontSize: 10)),
+              style: const TextStyle(
+                color: Color(0xFF7EC8E3),
+                fontSize: 10,
+              )),
         ],
       ),
     );
   }
 
   // ── PRÉVISIONS 7 JOURS (déroulant) ─────────────────────────────────────────
-  Widget _buildDailySection() {
+  Widget _buildDailySection(WeatherData weather) {
     return _glassCard(
       child: Column(
         children: [
@@ -328,31 +408,49 @@ class _HomeScreenState extends State<HomeScreen> {
             expanded: _dailyExpanded,
             onTap: () => setState(() => _dailyExpanded = !_dailyExpanded),
           ),
-          if (_dailyExpanded) ..._buildDailyContent(),
+          if (_dailyExpanded) ..._buildDailyContent(weather),
         ],
       ),
     );
   }
 
-  List<Widget> _buildDailyContent() {
-    if (_weather!.daily.isEmpty) {
+  List<Widget> _buildDailyContent(WeatherData weather) {
+    if (weather.daily.isEmpty) {
       return [const Padding(
-        padding: EdgeInsets.all(12),
-        child: Text('Aucune donnée', style: TextStyle(color: Colors.white54)),
+        padding: EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cloud_off, color: Colors.white38, size: 16),
+            SizedBox(width: 8),
+            Text('Données indisponibles',
+              style: TextStyle(color: Colors.white54, fontSize: 13)),
+          ],
+        ),
       )];
     }
-    return List.generate(_weather!.daily.length, (i) =>
-      _dailyRow(_weather!.daily[i], i == 0));
+    return List.generate(
+      weather.daily.length,
+      (i) => _dailyRow(weather.daily[i], i == 0),
+    );
   }
 
   Widget _dailyRow(DailyForecast d, bool isToday) {
-    final dayFmt   = DateFormat('EEEE', 'fr_FR');
-    final dayLabel = isToday ? "Aujourd'hui" : _capitalize(dayFmt.format(d.date));
+    String dayLabel;
+    try {
+      final raw = DateFormat('EEEE', 'fr_FR').format(d.date);
+      dayLabel = isToday ? "Aujourd'hui" : _capitalize(raw);
+    } catch (_) {
+      final days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+      dayLabel = isToday ? "Aujourd'hui" : days[d.date.weekday % 7];
+    }
 
     const double minRange = 15.0;
     const double maxRange = 45.0;
-    final double barStart = ((d.tempMin - minRange) / (maxRange - minRange)).clamp(0.0, 1.0);
-    final double barWidth = ((d.tempMax - d.tempMin) / (maxRange - minRange)).clamp(0.0, 1.0 - barStart);
+    final double barStart =
+        ((d.tempMin - minRange) / (maxRange - minRange)).clamp(0.0, 1.0);
+    final double barWidth =
+        ((d.tempMax - d.tempMin) / (maxRange - minRange)).clamp(0.0, 1.0 - barStart);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -374,7 +472,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 36,
             child: d.precipitationSum > 0
               ? Text('${d.precipitationSum.toStringAsFixed(0)}mm',
-                  style: const TextStyle(color: Color(0xFF7EC8E3), fontSize: 11))
+                  style: const TextStyle(
+                    color: Color(0xFF7EC8E3),
+                    fontSize: 11,
+                  ))
               : const SizedBox(),
           ),
           SizedBox(
@@ -396,7 +497,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: [
                       Positioned(
                         left: constraints.maxWidth * barStart,
-                        width: (constraints.maxWidth * barWidth).clamp(4.0, constraints.maxWidth),
+                        width: (constraints.maxWidth * barWidth)
+                            .clamp(4.0, constraints.maxWidth),
                         top: 0, bottom: 0,
                         child: Container(
                           decoration: BoxDecoration(
@@ -418,8 +520,11 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 30,
             child: Text('${d.tempMax.toStringAsFixed(0)}°',
               textAlign: TextAlign.right,
-              style: const TextStyle(color: Colors.white, fontSize: 13,
-                  fontWeight: FontWeight.w600)),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              )),
           ),
         ],
       ),
@@ -475,26 +580,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildErrorBanner() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white10,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.cloud_off, color: Colors.white38),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(_error ?? 'Serveur SAMCAM inaccessible',
-              style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          ),
-          TextButton(
-            onPressed: _fetchAll,
-            child: const Text('Réessayer',
-              style: TextStyle(color: Colors.white70)),
-          ),
-        ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white10,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off, color: Colors.white38, size: 18),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '${_error ?? 'Serveur SAMCAM inaccessible'} — météo en mode local',
+                style: const TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+            ),
+            TextButton(
+              onPressed: _fetchAll,
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+              child: const Text('Réessayer',
+                style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+          ],
+        ),
       ),
     );
   }
