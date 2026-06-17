@@ -2,8 +2,9 @@
 """
 SAMCAM — Analyse des risques climatiques Kribi avec Phi-3 mini (Ollama)
 
-V4 : intègre risk_model.py (RandomForest ou règles physiques) pour
-     remplacer les seuils fixes. Ajoute risque_prevu_3j et risque_prevu_7j.
+V4.2 : enrichit le JSON de sortie avec un objet `meteo` complet
+       (température actuelle, code WMO, prévisions horaires, prévisions 7j)
+       pour l'application mobile Flutter.
 
 Usage :
     python3 inference/analyser_kribi.py
@@ -48,6 +49,8 @@ SAISONS = {
     9: "début petite saison des pluies", 10: "petite saison des pluies",
     11: "petite saison des pluies", 12: "grande saison sèche",
 }
+
+JOURS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
 
 # ─── PROMPT SYSTÈME ───────────────────────────────────────────────────
 
@@ -157,7 +160,7 @@ def construire_prompt(data: dict, previsions_risque: dict) -> str:
     if isinstance(sm_surface,  float): sm_surface  = round(sm_surface,  4)
     if isinstance(sm_rootzone, float): sm_rootzone = round(sm_rootzone, 4)
 
-    # Scores de risque V4 (modèle ML ou règles physiques)
+    # Scores de risque V4
     act     = previsions_risque.get("actuel",   {})
     prev3j  = previsions_risque.get("prevu_3j", {})
     prev7j  = previsions_risque.get("prevu_7j", {})
@@ -249,6 +252,129 @@ def appeler_phi3(prompt: str, stream: bool = True) -> str:
     return texte_complet
 
 
+# ─── CONSTRUCTION OBJET MÉTÉO POUR FLUTTER ────────────────────────────
+
+def construire_meteo_flutter(data: dict) -> dict:
+    """
+    Extrait les données Open-Meteo depuis le JSON de collecte et les
+    reformate pour l'application Flutter.
+    Format cible :
+    {
+      "temperature": 27.4,
+      "temp_min": 22.0,
+      "temp_max": 31.0,
+      "humidite": 82,
+      "vent_kmh": 14.0,
+      "pluie_24h_mm": 5.2,
+      "code_meteo": 80,
+      "heures": [{"heure": "08:00", "temperature": 25.1, "pluie": 0.0, "humidite": 85, "code_meteo": 2}, ...],
+      "jours":  [{"jour": "Lun", "temp_min": 22.0, "temp_max": 31.0, "pluie": 12.0, "code_meteo": 80}, ...]
+    }
+    """
+    meteo_raw   = data.get("meteorologie", {})
+    actuel_raw  = meteo_raw.get("actuel", {})
+    hourly_raw  = meteo_raw.get("previsions_hourly", {})
+    daily_raw   = meteo_raw.get("previsions_daily",  {})
+    today       = datetime.date.today()
+    today_str   = today.isoformat()
+
+    # ── Météo courante ───────────────────────────────────────────────
+    temp_actuelle = actuel_raw.get("temperature_2m",       0.0) or 0.0
+    humidite      = actuel_raw.get("relativehumidity_2m",  0)   or 0
+    vent_kmh      = actuel_raw.get("windspeed_10m",        0.0) or 0.0
+    code_wmo      = actuel_raw.get("weathercode",          0)   or 0
+
+    # ── Températures min/max du jour (depuis daily) ──────────────────
+    daily_times = daily_raw.get("time", [])
+    temp_min = 0.0
+    temp_max = 0.0
+    pluie_24h = 0.0
+    if today_str in daily_times:
+        idx = daily_times.index(today_str)
+        temp_min  = (daily_raw.get("temperature_2m_min",    []) + [0.0])[idx] or 0.0
+        temp_max  = (daily_raw.get("temperature_2m_max",    []) + [0.0])[idx] or 0.0
+        pluie_24h = (daily_raw.get("precipitation_sum",     []) + [0.0])[idx] or 0.0
+    # Fallback sur indicateurs si daily absent
+    ind = data.get("indicateurs_risque", {})
+    if temp_max == 0.0:
+        temp_max = ind.get("temperature_max_c", 0.0) or 0.0
+
+    # ── Prévisions horaires (24 prochaines heures) ──────────────────
+    h_times  = hourly_raw.get("time",                        [])
+    h_temps  = hourly_raw.get("temperature_2m",              [])
+    h_pluies = hourly_raw.get("precipitation",               [])
+    h_humid  = hourly_raw.get("relativehumidity_2m",         [])
+    h_wmo    = hourly_raw.get("weathercode",                 [])
+
+    heures = []
+    now_hour = datetime.datetime.now().hour
+    count    = 0
+    for i, t in enumerate(h_times):
+        # Garder uniquement les heures d'aujourd'hui et demain, max 24
+        try:
+            dt = datetime.datetime.fromisoformat(t)
+        except Exception:
+            continue
+        if dt.date() < today:
+            continue
+        if dt.date() > today + datetime.timedelta(days=1):
+            break
+        if count >= 24:
+            break
+        heures.append({
+            "heure":       dt.strftime("%H:%M"),
+            "temperature": round(float(h_temps[i])  if i < len(h_temps)  else 0.0, 1),
+            "pluie":       round(float(h_pluies[i]) if i < len(h_pluies) else 0.0, 1),
+            "humidite":    int(h_humid[i])           if i < len(h_humid)  else 0,
+            "code_meteo":  int(h_wmo[i])             if i < len(h_wmo)    else 0,
+        })
+        count += 1
+
+    # ── Prévisions journalières (7 jours) ───────────────────────────
+    d_times   = daily_raw.get("time",                         [])
+    d_tmin    = daily_raw.get("temperature_2m_min",           [])
+    d_tmax    = daily_raw.get("temperature_2m_max",           [])
+    d_pluie   = daily_raw.get("precipitation_sum",            [])
+    d_wmo     = daily_raw.get("weathercode",                  [])
+
+    jours = []
+    for i, t in enumerate(d_times[:7]):
+        try:
+            dt = datetime.date.fromisoformat(t)
+        except Exception:
+            continue
+        # Label : Auj., dem., ou nom du jour
+        if dt == today:
+            label = "Auj."
+        elif dt == today + datetime.timedelta(days=1):
+            label = "Dem."
+        else:
+            label = JOURS_FR[dt.weekday() + 1 if dt.weekday() < 6 else 0]
+        jours.append({
+            "jour":       label,
+            "temp_min":   round(float(d_tmin[i])  if i < len(d_tmin)  else 0.0, 1),
+            "temp_max":   round(float(d_tmax[i])  if i < len(d_tmax)  else 0.0, 1),
+            "pluie":      round(float(d_pluie[i]) if i < len(d_pluie) else 0.0, 1),
+            "code_meteo": int(d_wmo[i])           if i < len(d_wmo)   else 0,
+        })
+
+    # ── Code WMO courant : priorité actuel, fallback 1ère heure dispo ─
+    if code_wmo == 0 and heures:
+        code_wmo = heures[0]["code_meteo"]
+
+    return {
+        "temperature":  round(temp_actuelle, 1),
+        "temp_min":     round(temp_min,      1),
+        "temp_max":     round(temp_max,      1),
+        "humidite":     int(humidite),
+        "vent_kmh":     round(vent_kmh,      1),
+        "pluie_24h_mm": round(pluie_24h,     1),
+        "code_meteo":   code_wmo,
+        "heures":       heures,
+        "jours":        jours,
+    }
+
+
 # ─── SAUVEGARDE ───────────────────────────────────────────────────────
 
 def sauvegarder_rapport(rapport: str, data_source: dict,
@@ -273,6 +399,9 @@ def sauvegarder_rapport(rapport: str, data_source: dict,
                 break
     niveau = niveau or "VERT"
 
+    # ── Objet météo enrichi pour Flutter ────────────────────────────
+    meteo_flutter = construire_meteo_flutter(data_source)
+
     sortie_json = {
         "date":            today,
         "zone":            "Kribi",
@@ -284,6 +413,7 @@ def sauvegarder_rapport(rapport: str, data_source: dict,
         "risque_prevu_7j": previsions_risque.get("prevu_7j", {}),
         "methode_risque":  previsions_risque.get("actuel", {}).get("methode", "?"),
         "indicateurs":     ind,
+        "meteo":           meteo_flutter,          # <-- NOUVEAU : pour Flutter
         "capteur":         data_source.get("meta", {}).get("capteur_satellite", "?"),
         "meteorologie":    data_source.get("meteorologie", {}),
         "satellitaire":    data_source.get("satellitaire", {}),
@@ -296,13 +426,15 @@ def sauvegarder_rapport(rapport: str, data_source: dict,
     print(f"         Texte  : {base}.txt")
     print(f"         JSON   : {base}.json")
     print(f"         Alerte : {niveau}")
+    print(f"         Météo  : {meteo_flutter['temperature']}°C, WMO={meteo_flutter['code_meteo']}, "
+          f"{len(meteo_flutter['heures'])}h horaires, {len(meteo_flutter['jours'])}j prévisions")
     return sortie_json
 
 
 # ─── POINT D'ENTRÉE ───────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4 — Analyse Phi-3 mini + RandomForest")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.2 — Analyse Phi-3 mini + météo Flutter")
     parser.add_argument("--fichier",   type=str,         default=None)
     parser.add_argument("--json-only", action="store_true")
     args = parser.parse_args()
@@ -313,7 +445,6 @@ def main():
     with open(fichier, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # V4 : calcul des risques avec modèle ML ou règles physiques
     print(f"[SAMCAM] 🤖 Calcul des risques (modèle V4)...")
     try:
         from inference.risk_model import evaluer_previsions
