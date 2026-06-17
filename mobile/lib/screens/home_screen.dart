@@ -123,7 +123,6 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_report != null) _buildAlertBanner(_report!),
         if (_error != null) _buildErrorBanner(),
         const SizedBox(height: 12),
-        // Tuiles météo Apple-style (UV, Vent, Précip, Ressenti…)
         _buildWeatherTiles(weather),
         const SizedBox(height: 12),
         if (_report != null) ..._buildRiskSection(_report!),
@@ -131,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── SQUELETTES ──────────────────────────────────────────────────────────
+  // ── SQUELETTES ───────────────────────────────────────────────────────────────────
   Widget _buildSkeletonHeader() => Column(children: [
     _skeletonBox(width: 120, height: 28, radius: 8),
     const SizedBox(height: 8),
@@ -156,7 +155,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: Colors.white12, borderRadius: BorderRadius.circular(radius)));
 
-  // ── EN-TÊTE MÉTÉO ────────────────────────────────────────────────────────
+  // ── EN-TÊTE MÉTÉO ────────────────────────────────────────────────────────────────
   Widget _buildWeatherHeader(WeatherData weather) {
     final now = DateTime.now();
     String dateStr;
@@ -190,7 +189,6 @@ class _HomeScreenState extends State<HomeScreen> {
       currentDesc = weatherCodeLabel(d.weatherCode);
     }
 
-    // Min/max du jour
     String minMax = '';
     if (weather.daily.isNotEmpty) {
       final d = weather.daily.first;
@@ -242,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ]),
     ]);
 
-  // ── PRÉVISIONS HORAIRES ─────────────────────────────────────────────────
+  // ── PRÉVISIONS HORAIRES ─────────────────────────────────────────────────────
   Widget _buildHourlySection(WeatherData weather) => _glassCard(
     child: Column(children: [
       _expandableHeader(
@@ -294,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── PRÉVISIONS 7 JOURS ──────────────────────────────────────────────────
+  // ── PRÉVISIONS 7 JOURS ──────────────────────────────────────────────────────
   Widget _buildDailySection(WeatherData weather) => _glassCard(
     child: Column(children: [
       _expandableHeader(
@@ -371,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // ── BANNIÈRE ALERTE ─────────────────────────────────────────────────────
+  // ── BANNIÈRE ALERTE ───────────────────────────────────────────────────────────────
   Widget _buildAlertBanner(RiskReport r) {
     final color = _alertColor(r.niveauAlerte);
     return Container(
@@ -425,12 +423,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ]),
     ));
 
-  // ── TUILES MÉTÉO STYLE APPLE (UV, Vent, Précip, Ressenti, Pression, Visibilité) ──
+  // ── TUILES MÉTÉO STYLE APPLE ──────────────────────────────────────────────────────────
   Widget _buildWeatherTiles(WeatherData weather) {
     final cur  = weather.current;
     final today = weather.daily.isNotEmpty ? weather.daily.first : null;
 
-    // Valeurs
     final uv         = cur?.uvIndex ?? (today?.uvIndexMax.toInt() ?? 0);
     final feelsLike  = cur?.feelsLike ?? (weather.hourly.isNotEmpty ? weather.hourly.first.feelsLike : 0.0);
     final pressure   = cur?.pressure ?? 1013.0;
@@ -440,7 +437,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final precipToday   = today?.precipitationSum ?? 0.0;
     final precipTomorrow = weather.daily.length > 1 ? weather.daily[1].precipitationSum : 0.0;
 
-    // Lever/coucher
     String sunriseStr = '--';
     String sunsetStr  = '--';
     if (today?.sunrise != null) {
@@ -451,7 +447,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Column(children: [
-      // Rangée 1 : UV + Lever/coucher
       Row(children: [
         _appleCard(
           icon: Icons.wb_sunny_outlined,
@@ -465,7 +460,6 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(uvLabel(uv), style: const TextStyle(
                 color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              // Barre UV 0-11
               ClipRRect(
                 borderRadius: BorderRadius.circular(3),
                 child: Container(
@@ -506,7 +500,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.white, fontSize: 36,
                 fontWeight: FontWeight.w200, height: 1.1)),
               const SizedBox(height: 8),
-              // Arc solaire simplifié
               _sunArc(sunriseStr, sunsetStr),
               const SizedBox(height: 6),
               Text('Lever : $sunriseStr', style: const TextStyle(
@@ -516,7 +509,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ]),
       const SizedBox(height: 10),
-      // Rangée 2 : Vent + Précipitations
       Row(children: [
         _appleCard(
           icon: Icons.air,
@@ -565,7 +557,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ]),
       const SizedBox(height: 10),
-      // Rangée 3 : Ressenti + Pression + Visibilité
       Row(children: [
         _appleCard(
           icon: Icons.thermostat_outlined,
@@ -630,11 +621,10 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // ── ARC SOLAIRE SIMPLIFIÉ ───────────────────────────────────────────────
+  // ── ARC SOLAIRE SIMPLIFIÉ ──────────────────────────────────────────────────────
   Widget _sunArc(String sunriseStr, String sunsetStr) {
     final now     = TimeOfDay.now();
     final nowMins = now.hour * 60 + now.minute;
-    // Heure de lever/coucher en minutes
     int parseMins(String s) {
       final parts = s.split(':');
       if (parts.length != 2) return 0;
@@ -651,38 +641,38 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── SECTION RISQUES SAMCAM ─────────────────────────────────────────────
+  // ── SECTION RISQUES SAMCAM ───────────────────────────────────────────────────────
   List<Widget> _buildRiskSection(RiskReport r) {
-    // Méthode de calcul (IA vs règles physiques)
-    final isAI = r.methodeRisque.toLowerCase().contains('ia') ||
+    final isML = r.methodeRisque.toLowerCase().contains('ia') ||
                  r.methodeRisque.toLowerCase().contains('ai') ||
-                 r.methodeRisque.toLowerCase().contains('ml');
+                 r.methodeRisque.toLowerCase().contains('ml') ||
+                 r.methodeRisque == 'modele_ml';
 
     return [
-      // ── Indicateurs clés SAMCAM (3 tuiles) ──────────────────────────
+      // ── Indicateurs clés SAMCAM (3 tuiles) ─────────────────────────────────
       Row(children: [
         _numericTile(
           icon: Icons.water_drop_outlined,
           value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
-          label: 'Pluie 7 j',
+          label: 'Pluie reçue (7j)',
         ),
         const SizedBox(width: 10),
         _numericTile(
           icon: Icons.umbrella_outlined,
           value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
-          label: 'Pluie prévue 7 j',
+          label: 'Pluie prévue (7j)',
         ),
         const SizedBox(width: 10),
         _numericTile(
           icon: Icons.eco_outlined,
-          value: r.indicateurs.ndviMoyen.toStringAsFixed(2),
-          label: 'NDVI végétation',
-          highlight: _ndviColor(r.indicateurs.ndviMoyen),
+          value: '${r.indicateurs.etatVegetationEmoji} ${r.indicateurs.etatVegetation}',
+          label: 'Végétation',
+          highlight: _vegetationColor(r.indicateurs.ndviMoyen),
         ),
       ]),
       const SizedBox(height: 10),
 
-      // ── Prévisions J+3 / J+7 ───────────────────────────────────────
+      // ── Prévisions J+3 / J+7 ───────────────────────────────────────────
       Row(children: [
         _prevCard('J+3', r.prevu3j.niveauGlobal),
         const SizedBox(width: 10),
@@ -690,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ]),
       const SizedBox(height: 10),
 
-      // ── Risques SAMCAM (barres) ────────────────────────────────────
+      // ── Risques SAMCAM (barres) ──────────────────────────────────────────
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -704,48 +694,58 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: isAI
-                      ? const Color(0xFF4A9FD0).withOpacity(0.2)
+                    color: isML
+                      ? const Color(0xFFB39DDB).withOpacity(0.18)
                       : Colors.white10,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isAI
-                        ? const Color(0xFF4A9FD0).withOpacity(0.5)
+                      color: isML
+                        ? const Color(0xFFB39DDB).withOpacity(0.5)
                         : Colors.white24)),
                   child: Row(children: [
                     Icon(
-                      isAI ? Icons.auto_awesome_outlined : Icons.rule_outlined,
-                      color: isAI ? const Color(0xFF4A9FD0) : Colors.white38,
+                      isML ? Icons.auto_awesome_outlined : Icons.rule_outlined,
+                      color: isML ? const Color(0xFFB39DDB) : Colors.white38,
                       size: 11),
                     const SizedBox(width: 4),
                     Text(
-                      isAI ? 'IA' : 'Règles',
+                      isML ? 'Phi-3 + RF' : 'Règles',
                       style: TextStyle(
-                        color: isAI ? const Color(0xFF4A9FD0) : Colors.white38,
+                        color: isML ? const Color(0xFFB39DDB) : Colors.white38,
                         fontSize: 10, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ]),
+              const SizedBox(height: 4),
+              // Sous-titre méthode
+              Text(
+                isML
+                  ? '✦ Analyse Phi-3 mini + RandomForest'
+                  : '⚙ Règles physiques calibrées',
+                style: TextStyle(
+                  color: isML
+                    ? const Color(0xFFB39DDB).withOpacity(0.7)
+                    : Colors.white24,
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic),
+              ),
               const SizedBox(height: 14),
               _riskBar(
                 icon: Icons.water_outlined,
                 label: 'Inondation',
                 score: r.actuel.scores.inondation,
-                color: const Color(0xFF4A9FD0),
                 detail: _floodDetail(r),
               ),
               _riskBar(
                 icon: Icons.grass_outlined,
                 label: 'Sécheresse',
                 score: r.actuel.scores.secheresse,
-                color: const Color(0xFFE07B39),
                 detail: _droughtDetail(r),
               ),
               _riskBar(
                 icon: Icons.local_fire_department_outlined,
                 label: 'Chaleur',
                 score: r.actuel.scores.chaleur,
-                color: const Color(0xFFD94F4F),
                 detail: _heatDetail(r),
               ),
             ],
@@ -754,7 +754,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 10),
 
-      // ── Scores prévus J+3 / J+7 détail ────────────────────────────
+      // ── Scores prévus J+3 / J+7 détail ──────────────────────────────────
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -769,7 +769,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 r.actuel.scores.inondation,
                 r.prevu3j.scores.inondation,
                 r.prevu7j.scores.inondation,
-                const Color(0xFF4A9FD0),
+                _riskColor(r.actuel.scores.inondation),
               ),
               const SizedBox(height: 10),
               _riskEvolutionRow(
@@ -778,7 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 r.actuel.scores.secheresse,
                 r.prevu3j.scores.secheresse,
                 r.prevu7j.scores.secheresse,
-                const Color(0xFFE07B39),
+                _riskColor(r.actuel.scores.secheresse),
               ),
               const SizedBox(height: 10),
               _riskEvolutionRow(
@@ -787,7 +787,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 r.actuel.scores.chaleur,
                 r.prevu3j.scores.chaleur,
                 r.prevu7j.scores.chaleur,
-                const Color(0xFFD94F4F),
+                _riskColor(r.actuel.scores.chaleur),
               ),
             ],
           ),
@@ -808,13 +808,13 @@ class _HomeScreenState extends State<HomeScreen> {
     Widget dot(double v) => Column(children: [
       Text('${(v * 100).toStringAsFixed(0)} %',
         style: TextStyle(
-          color: v > 0.01 ? color : Colors.white38,
+          color: v > 0.01 ? _riskColor(v) : Colors.white38,
           fontSize: 13, fontWeight: FontWeight.w600)),
       const SizedBox(height: 2),
       Container(
         width: 8, height: 8,
         decoration: BoxDecoration(
-          color: v > 0.01 ? color : Colors.white24,
+          color: v > 0.01 ? _riskColor(v) : Colors.white24,
           shape: BoxShape.circle)),
     ]);
 
@@ -858,10 +858,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _droughtDetail(RiskReport r) {
-    final ndvi = r.indicateurs.ndviMoyen;
     if (r.actuel.scores.secheresse < 0.1) return 'Végétation en bon état.';
-    if (ndvi < 0.3) return 'NDVI faible (${ndvi.toStringAsFixed(2)}) — stress hydrique.';
-    return 'Déficit hydrique modéré détecté.';
+    final etat = r.indicateurs.etatVegetation;
+    if (r.actuel.scores.secheresse >= 0.5) return 'Végétation $etat — déficit hydrique marqué.';
+    return 'Végétation $etat — déficit hydrique modéré.';
   }
 
   String _heatDetail(RiskReport r) {
@@ -871,13 +871,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Températures élevées, restez hydraté.';
   }
 
-  Color _ndviColor(double ndvi) {
-    if (ndvi >= 0.5) return const Color(0xFF4CAF50);
-    if (ndvi >= 0.3) return const Color(0xFFFF9800);
-    return const Color(0xFFD94F4F);
+  /// Couleur dynamique selon le score (0–1) :
+  /// < 0.25 → vert, < 0.50 → jaune, < 0.75 → orange, >= 0.75 → rouge
+  Color _riskColor(double score) {
+    if (score < 0.25) return const Color(0xFF66BB6A);
+    if (score < 0.50) return const Color(0xFFFFEE58);
+    if (score < 0.75) return const Color(0xFFFFB74D);
+    return const Color(0xFFEF5350);
   }
 
-  // ── WIDGET TUILE APPLE ─────────────────────────────────────────────────
+  Color _vegetationColor(double ndvi) {
+    if (ndvi <= 0.0) return Colors.white38;
+    if (ndvi >= 0.5) return const Color(0xFF66BB6A);
+    if (ndvi >= 0.3) return const Color(0xFFFFB74D);
+    return const Color(0xFFEF5350);
+  }
+
+  // ── WIDGET TUILE APPLE ───────────────────────────────────────────────────────────
   Widget _appleCard({
     required IconData icon,
     required String label,
@@ -929,7 +939,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 10),
             Text(value, style: TextStyle(
               color: highlight ?? Colors.white,
-              fontSize: 20, fontWeight: FontWeight.w300, height: 1)),
+              fontSize: 14, fontWeight: FontWeight.w400, height: 1.2)),
             const SizedBox(height: 4),
             Text(label, style: const TextStyle(
               color: Colors.white54, fontSize: 11)),
@@ -939,13 +949,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Barre de risque avec couleur dynamique selon le score.
+  /// Suppression du paramètre [color] fixe — calculé dynamiquement via [_riskColor].
   Widget _riskBar({
     required IconData icon,
     required String label,
     required double score,
-    required Color color,
     String detail = '',
   }) {
+    final color = _riskColor(score);
     final pct = (score * 100).toStringAsFixed(0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
@@ -1011,7 +1023,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── UTILITAIRES ────────────────────────────────────────────────────────
+  // ── UTILITAIRES ────────────────────────────────────────────────────────────────────
   Widget _glassCard({required Widget child}) => Container(
     width: double.infinity,
     decoration: BoxDecoration(
@@ -1066,7 +1078,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-// ── ARC SOLAIRE CUSTOM PAINTER ───────────────────────────────────────────
+// ── ARC SOLAIRE CUSTOM PAINTER ───────────────────────────────────────────────────────────
 class _SunArcPainter extends CustomPainter {
   final double progress;
   const _SunArcPainter({required this.progress});
@@ -1085,11 +1097,10 @@ class _SunArcPainter extends CustomPainter {
       size.width, size.height);
     canvas.drawPath(path, paint);
 
-    // Point soleil
     final t  = progress.clamp(0.0, 1.0);
     final cx = size.width * t;
     final cy = size.height - (size.height + size.height * 0.3) *
-               4 * t * (1 - t); // courbe de Bézier approchée
+               4 * t * (1 - t);
     canvas.drawCircle(
       Offset(cx, cy.clamp(-4.0, size.height + 4.0)),
       5,
