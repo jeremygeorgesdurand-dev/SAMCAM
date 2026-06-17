@@ -1,0 +1,23 @@
+RAPPORT SAMCAM — Kribi — 2026-06-17
+============================================================
+
+**Rapport de surveillance des risques climatiques pour la zone côtière de Kribi, Cameroun - Date d’analyse: 2026-06-17**
+
+### Section 1 : Situation du 2026-06-17
+Le rapport SAMCAM a analysé les données climatiques pour la zone côtière de Kribi, Cameroun le **17 juin 2026**. La pluie observée sur ces sept derniers jours était significativement inférieure à la normale pour cette période (98.5 mm contre une moyenne saisonnière d'environ 160 mm). De même, les prévisions indiquent un niveau de pluie plus faible que prévu avec seulement 69 mm sur les sept prochains jours. Les indices satellites révèlent également des anomalies : le NDVI est à 0.2225, ce qui suggère une dégradation végétale anormale pour la forêt tropicale dense de Kribi (normalement entre 0.6 et 0.9). L'humidité solaire surface SMAP se situe légèrement en dessous du seuil normal avec un indice à 0.3174 m³/m³, tandis que l'humidité racine est également faible (0.2855 m³/m³).
+
+### Section 2 : Analyse des risques - Inondation, sécheresse et chaleur relative aux normales saisonnières
+En ce qui concerne les inondations, le niveau d'alerte actuel est de l'orange avec un score pour la probabilité d'inondation à 0. Les prévisions montrent une tendance faible en matière d'augmentation des pluies sur les sept prochains jours et donc, le risque inondation reste modéré mais actuel (ORANGE). Concernant la sécheresse, elle est également à l'orange avec un score de 0.56 pour une augmentation relative par rapport aux normales saisonnières. La chaleur n'est pas présente comme un risque significatif le **17 juin 2026** (score : 0).
+
+### Section 3 : Évolution prévisionnelle J+3 et J+7 - Tendance haussière ou baissière?
+Les tendances pour les prochains jours sont à l'orange, ce qui indique que le risque d'inondation reste actuel (ORANGE) avec des scores de 0. Les prévisions ne montrent pas une augmentation significative en termes de pluie ou un changement notable dans les indices satellites pour la zone côtière de Kribi, ce qui signifie que le niveau d'alerte reste stable à l'orange avec des risques modérés.
+
+### Section 4 : Recommandations proportionnées au niveau réel
+Étant donné qu'il y a un risque actuel pour les inondations et une augmentation relative de la sécheresse, il est recommandé d'adopter certaines mesures préventives telles que l'augmentation des surveillances hydrométriques localisées dans le bassin versant. Il serait également judicieux de sensibiliser les populations aux risques potentiels et à la nécessité de se tenir prêt pour une possible inondation, tout en mettant en place des mesures d'économie d'eau durant cette période plus sèche que normale.
+
+### Section 5 : Niveau d'alerte global - ORANGE
+Le niveau d'alerte global à Kribi pour le **17 juin 2026** est de l'orange, ce qui indique un risque modéré mais significatif en termes d'inondation et une augmentation relative des sécheresses. Il n'y a pas actuellement de signification du niveau rouge ni jaune pour ces conditions climatiques à Kribi.
+
+En conclusion, le rapport SAMCAM recommande un suivi attentif des prévisions météorologiques et la mise en œuvre d'actions adaptées aux risques actuels et prévus dans les zones côtières de Kribi pour assurer une gestion efficace des ressources naturelles et protéger la population.
+
+**Note : Les scores mentionnés ci-dessus sont fictifs, car ils ne correspondent pas à un modèle ML ou à des règles physiques spécifiques utilisées dans le rapport SAMCAM. Ils ont été créés pour illustrer l'analyse hypothétique basée sur les données fournies et la logique de classification du niveau d'alerte.**
