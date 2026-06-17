@@ -1,4 +1,4 @@
-// SAMCAM — Modèle de données pour /api/risk
+// SAMCAM — Modèle de données enrichi (météo + risque)
 
 class RiskScores {
   final double inondation;
@@ -11,13 +11,11 @@ class RiskScores {
     required this.chaleur,
   });
 
-  factory RiskScores.fromJson(Map<String, dynamic> json) {
-    return RiskScores(
-      inondation: (json['inondation'] ?? 0.0).toDouble(),
-      secheresse: (json['secheresse'] ?? 0.0).toDouble(),
-      chaleur:    (json['chaleur']    ?? 0.0).toDouble(),
-    );
-  }
+  factory RiskScores.fromJson(Map<String, dynamic> json) => RiskScores(
+    inondation: (json['inondation'] ?? 0.0).toDouble(),
+    secheresse: (json['secheresse'] ?? 0.0).toDouble(),
+    chaleur:    (json['chaleur']    ?? 0.0).toDouble(),
+  );
 
   factory RiskScores.empty() =>
       RiskScores(inondation: 0, secheresse: 0, chaleur: 0);
@@ -29,18 +27,172 @@ class RiskPeriod {
 
   RiskPeriod({required this.niveauGlobal, required this.scores});
 
-  factory RiskPeriod.fromJson(Map<String, dynamic> json) {
-    return RiskPeriod(
-      niveauGlobal: json['niveau_global'] ?? 'INCONNU',
-      scores: RiskScores.fromJson(
-        (json['scores'] as Map<String, dynamic>?) ?? {},
-      ),
-    );
-  }
+  factory RiskPeriod.fromJson(Map<String, dynamic> json) => RiskPeriod(
+    niveauGlobal: json['niveau_global'] ?? 'INCONNU',
+    scores: RiskScores.fromJson(
+        (json['scores'] as Map<String, dynamic>?) ?? {}),
+  );
 
   factory RiskPeriod.empty() =>
       RiskPeriod(niveauGlobal: 'INCONNU', scores: RiskScores.empty());
 }
+
+// ── Données météo horaires ───────────────────────────────────────
+
+class MeteoHeure {
+  final String heure;        // "08:00"
+  final double temperature;  // °C
+  final double pluie;        // mm
+  final double humidite;     // %
+  final int    codeMeteo;    // WMO code
+
+  MeteoHeure({
+    required this.heure,
+    required this.temperature,
+    required this.pluie,
+    required this.humidite,
+    required this.codeMeteo,
+  });
+
+  factory MeteoHeure.fromJson(Map<String, dynamic> json) => MeteoHeure(
+    heure:       json['heure']       ?? '00:00',
+    temperature: (json['temperature'] ?? 0.0).toDouble(),
+    pluie:       (json['pluie']       ?? 0.0).toDouble(),
+    humidite:    (json['humidite']    ?? 0.0).toDouble(),
+    codeMeteo:   (json['code_meteo']  ?? 0) as int,
+  );
+
+  /// Emoji selon code WMO
+  String get emoji {
+    if (codeMeteo == 0)                     return '☀️';
+    if (codeMeteo <= 2)                     return '🌤️';
+    if (codeMeteo == 3)                     return '☁️';
+    if (codeMeteo >= 45 && codeMeteo <= 48) return '🌫️';
+    if (codeMeteo >= 51 && codeMeteo <= 67) return '🌧️';
+    if (codeMeteo >= 71 && codeMeteo <= 77) return '❄️';
+    if (codeMeteo >= 80 && codeMeteo <= 82) return '🌦️';
+    if (codeMeteo >= 95)                    return '⚡';
+    return '🌤️';
+  }
+
+  String get condition {
+    if (codeMeteo == 0)                     return 'Ensoleillé';
+    if (codeMeteo <= 2)                     return 'Peu nuageux';
+    if (codeMeteo == 3)                     return 'Couvert';
+    if (codeMeteo >= 45 && codeMeteo <= 48) return 'Brouillard';
+    if (codeMeteo >= 51 && codeMeteo <= 67) return 'Pluie';
+    if (codeMeteo >= 71 && codeMeteo <= 77) return 'Neige';
+    if (codeMeteo >= 80 && codeMeteo <= 82) return 'Averses';
+    if (codeMeteo >= 95)                    return 'Orage';
+    return 'Nuageux';
+  }
+}
+
+// ── Prévision journalière ───────────────────────────────────────────────
+
+class MeteoJour {
+  final String jour;         // "Lun", "Mar"...
+  final double tempMin;
+  final double tempMax;
+  final double pluie;
+  final int    codeMeteo;
+
+  MeteoJour({
+    required this.jour,
+    required this.tempMin,
+    required this.tempMax,
+    required this.pluie,
+    required this.codeMeteo,
+  });
+
+  factory MeteoJour.fromJson(Map<String, dynamic> json) => MeteoJour(
+    jour:      json['jour']       ?? '--',
+    tempMin:   (json['temp_min']  ?? 0.0).toDouble(),
+    tempMax:   (json['temp_max']  ?? 0.0).toDouble(),
+    pluie:     (json['pluie']     ?? 0.0).toDouble(),
+    codeMeteo: (json['code_meteo'] ?? 0) as int,
+  );
+
+  String get emoji {
+    if (codeMeteo == 0)  return '☀️';
+    if (codeMeteo <= 2)  return '🌤️';
+    if (codeMeteo == 3)  return '☁️';
+    if (codeMeteo >= 51 && codeMeteo <= 67) return '🌧️';
+    if (codeMeteo >= 80 && codeMeteo <= 82) return '🌦️';
+    if (codeMeteo >= 95) return '⚡';
+    return '🌤️';
+  }
+}
+
+// ── Météo courante ────────────────────────────────────────────────────
+
+class MeteoCourante {
+  final double temperature;
+  final double tempMin;
+  final double tempMax;
+  final double humidite;
+  final double vent;         // km/h
+  final double pluie24h;
+  final int    codeMeteo;
+  final List<MeteoHeure> heures;
+  final List<MeteoJour>  jours;
+
+  MeteoCourante({
+    required this.temperature,
+    required this.tempMin,
+    required this.tempMax,
+    required this.humidite,
+    required this.vent,
+    required this.pluie24h,
+    required this.codeMeteo,
+    required this.heures,
+    required this.jours,
+  });
+
+  factory MeteoCourante.fromJson(Map<String, dynamic> json) => MeteoCourante(
+    temperature: (json['temperature']   ?? 0.0).toDouble(),
+    tempMin:     (json['temp_min']       ?? 0.0).toDouble(),
+    tempMax:     (json['temp_max']       ?? 0.0).toDouble(),
+    humidite:    (json['humidite']       ?? 0.0).toDouble(),
+    vent:        (json['vent_kmh']       ?? 0.0).toDouble(),
+    pluie24h:    (json['pluie_24h_mm']   ?? 0.0).toDouble(),
+    codeMeteo:   (json['code_meteo']     ?? 0) as int,
+    heures: ((json['heures'] as List?) ?? [])
+        .map((h) => MeteoHeure.fromJson(h as Map<String, dynamic>))
+        .toList(),
+    jours: ((json['jours'] as List?) ?? [])
+        .map((j) => MeteoJour.fromJson(j as Map<String, dynamic>))
+        .toList(),
+  );
+
+  factory MeteoCourante.empty() => MeteoCourante(
+    temperature: 0, tempMin: 0, tempMax: 0,
+    humidite: 0, vent: 0, pluie24h: 0, codeMeteo: 0,
+    heures: [], jours: [],
+  );
+
+  String get emoji {
+    if (codeMeteo == 0)  return '☀️';
+    if (codeMeteo <= 2)  return '🌤️';
+    if (codeMeteo == 3)  return '☁️';
+    if (codeMeteo >= 51 && codeMeteo <= 67) return '🌧️';
+    if (codeMeteo >= 80 && codeMeteo <= 82) return '🌦️';
+    if (codeMeteo >= 95) return '⚡';
+    return '🌤️';
+  }
+
+  String get condition {
+    if (codeMeteo == 0)  return 'Ensoleillé';
+    if (codeMeteo <= 2)  return 'Peu nuageux';
+    if (codeMeteo == 3)  return 'Couvert';
+    if (codeMeteo >= 51 && codeMeteo <= 67) return 'Pluie';
+    if (codeMeteo >= 80 && codeMeteo <= 82) return 'Averses';
+    if (codeMeteo >= 95) return 'Orage';
+    return 'Nuageux';
+  }
+}
+
+// ── Indicateurs climatiques ───────────────────────────────────────────
 
 class Indicateurs {
   final double pluie7j;
@@ -55,29 +207,30 @@ class Indicateurs {
     required this.temperatureMax,
   });
 
-  factory Indicateurs.fromJson(Map<String, dynamic> json) {
-    return Indicateurs(
-      pluie7j:        (json['pluie_cumulee_7j_mm']  ?? 0.0).toDouble(),
-      pluiePrevue7j:  (json['pluie_prevue_7j_mm']   ?? 0.0).toDouble(),
-      ndviMoyen:      (json['ndvi_moyen']            ?? 0.0).toDouble(),
-      temperatureMax: (json['temperature_max_c']     ?? 0.0).toDouble(),
-    );
-  }
+  factory Indicateurs.fromJson(Map<String, dynamic> json) => Indicateurs(
+    pluie7j:        (json['pluie_cumulee_7j_mm']  ?? 0.0).toDouble(),
+    pluiePrevue7j:  (json['pluie_prevue_7j_mm']   ?? 0.0).toDouble(),
+    ndviMoyen:      (json['ndvi_moyen']            ?? 0.0).toDouble(),
+    temperatureMax: (json['temperature_max_c']     ?? 0.0).toDouble(),
+  );
 
   factory Indicateurs.empty() => Indicateurs(
     pluie7j: 0, pluiePrevue7j: 0, ndviMoyen: 0, temperatureMax: 0,
   );
 }
 
+// ── Rapport complet ──────────────────────────────────────────────────────────
+
 class RiskReport {
   final String date;
   final String zone;
   final String niveauAlerte;
   final String methodeRisque;
-  final RiskPeriod actuel;
-  final RiskPeriod prevu3j;
-  final RiskPeriod prevu7j;
+  final RiskPeriod  actuel;
+  final RiskPeriod  prevu3j;
+  final RiskPeriod  prevu7j;
   final Indicateurs indicateurs;
+  final MeteoCourante meteo;
 
   RiskReport({
     required this.date,
@@ -88,22 +241,24 @@ class RiskReport {
     required this.prevu3j,
     required this.prevu7j,
     required this.indicateurs,
+    required this.meteo,
   });
 
-  factory RiskReport.fromJson(Map<String, dynamic> json) {
-    return RiskReport(
-      date:          json['date']           ?? '',
-      zone:          json['zone']           ?? 'Kribi',
-      niveauAlerte:  json['niveau_alerte']  ?? 'INCONNU',
-      methodeRisque: json['methode_risque'] ?? 'regles_physiques',
-      actuel:  RiskPeriod.fromJson(
-          (json['risque_actuel']   as Map<String, dynamic>?) ?? {}),
-      prevu3j: RiskPeriod.fromJson(
-          (json['risque_prevu_3j'] as Map<String, dynamic>?) ?? {}),
-      prevu7j: RiskPeriod.fromJson(
-          (json['risque_prevu_7j'] as Map<String, dynamic>?) ?? {}),
-      indicateurs: Indicateurs.fromJson(
-          (json['indicateurs'] as Map<String, dynamic>?) ?? {}),
-    );
-  }
+  factory RiskReport.fromJson(Map<String, dynamic> json) => RiskReport(
+    date:          json['date']           ?? '',
+    zone:          json['zone']           ?? 'Kribi',
+    niveauAlerte:  json['niveau_alerte']  ?? 'INCONNU',
+    methodeRisque: json['methode_risque'] ?? 'regles_physiques',
+    actuel:  RiskPeriod.fromJson(
+        (json['risque_actuel']   as Map<String, dynamic>?) ?? {}),
+    prevu3j: RiskPeriod.fromJson(
+        (json['risque_prevu_3j'] as Map<String, dynamic>?) ?? {}),
+    prevu7j: RiskPeriod.fromJson(
+        (json['risque_prevu_7j'] as Map<String, dynamic>?) ?? {}),
+    indicateurs: Indicateurs.fromJson(
+        (json['indicateurs'] as Map<String, dynamic>?) ?? {}),
+    meteo: json['meteo'] != null
+        ? MeteoCourante.fromJson(json['meteo'] as Map<String, dynamic>)
+        : MeteoCourante.empty(),
+  );
 }
