@@ -102,7 +102,6 @@ class _HomeScreenState extends State<HomeScreen>
         sky:    _SkyType.storm,
       );
     }
-    // Fallback : journée nuageuse
     return _SkyTheme(
       top:    const Color(0xFF3D5A73),
       mid:    const Color(0xFF5E7A91),
@@ -119,7 +118,6 @@ class _HomeScreenState extends State<HomeScreen>
     return Scaffold(
       body: Stack(
         children: [
-          // Fond animé plein écran
           AnimatedBuilder(
             animation: _animCtrl,
             builder: (_, __) => CustomPaint(
@@ -130,7 +128,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
           ),
-          // Contenu
           SafeArea(
             child: _loading
                 ? const Center(child: CircularProgressIndicator(
@@ -191,7 +188,6 @@ class _HomeScreenState extends State<HomeScreen>
       child: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // AppBar transparent
           SliverAppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -233,24 +229,19 @@ class _HomeScreenState extends State<HomeScreen>
           SliverToBoxAdapter(
             child: Column(
               children: [
-                // 1. Hero : température + condition
                 _buildHero(r),
-                // 2. Alerte SAMCAM (masquée si VERT)
                 _buildAlerteBanner(r),
                 const SizedBox(height: 12),
-                // 3. Prévisions horaires
                 if (r.meteo.heures.isNotEmpty)
                   _buildHeures(r.meteo)
                 else
                   _buildHeuresFallback(r),
                 const SizedBox(height: 12),
-                // 4. Prévisions 7 jours
                 if (r.meteo.jours.isNotEmpty)
                   _buildJours(r.meteo)
                 else
                   _buildJoursFallback(r),
                 const SizedBox(height: 12),
-                // 5. Scores de risque SAMCAM
                 _buildRisques(r),
                 const SizedBox(height: 40),
               ],
@@ -277,7 +268,6 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 20),
       child: Column(
         children: [
-          // Grande température Apple-style
           Text(temp,
             style: const TextStyle(
               color: Colors.white,
@@ -287,14 +277,12 @@ class _HomeScreenState extends State<HomeScreen>
               letterSpacing: -6,
             )),
           const SizedBox(height: 4),
-          // Condition météo
           Text(condition,
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w300)),
           const SizedBox(height: 8),
-          // Min / Max
           if (m.tempMax > 0 || m.tempMin > 0)
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -392,7 +380,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── 3. Prévisions horaires ───────────────────────────────────────────
   Widget _buildHeures(MeteoCourante m) {
-    // Description textuelle comme Apple
     final hasRain = m.heures.any((h) => h.pluie > 0.5);
     final desc = hasRain
         ? 'Pluie attendue au cours de la journée.'
@@ -424,9 +411,7 @@ class _HomeScreenState extends State<HomeScreen>
                     children: [
                       Text(now ? 'Maint.' : h.heure,
                         style: TextStyle(
-                            color: now
-                                ? Colors.white
-                                : Colors.white60,
+                            color: now ? Colors.white : Colors.white60,
                             fontSize: 11,
                             fontWeight: now
                                 ? FontWeight.w600
@@ -449,6 +434,10 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── Fallback indicateurs ────────────────────────────────────────────
+  // Pluie 7j   = cumul réel des 7 derniers jours (données satellite + pluvio)
+  // Pluie prévu = cumul prévu sur les 7 prochains jours (modèle météo)
+  // Végétation  = état traduit depuis l'indice satellitaire (NDVI interne)
   Widget _buildHeuresFallback(RiskReport r) {
     return _glassSection(
       label: 'APERÇU DU JOUR',
@@ -456,12 +445,21 @@ class _HomeScreenState extends State<HomeScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _miniStat('Pluie 7j',
-              '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm', '💧'),
-          _miniStat('Prévue',
-              '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm', '☂️'),
-          _miniStat('Temp. max',
-              '${r.indicateurs.temperatureMax.round()}°', '🌡️'),
+          _miniStat(
+            'Pluie reçue (7j)',
+            '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
+            '💧',
+          ),
+          _miniStat(
+            'Pluie prévue (7j)',
+            '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
+            '☂️',
+          ),
+          _miniStat(
+            'Végétation',
+            r.indicateurs.etatVegetation,
+            r.indicateurs.etatVegetationEmoji,
+          ),
         ],
       ),
     );
@@ -480,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen>
       icon: Icons.calendar_today_outlined,
       child: Column(
         children: List.generate(m.jours.length, (i) {
-          final j       = m.jours[i];
+          final j  = m.jours[i];
           final lf = ((j.tempMin - allMin) / range).clamp(0.0, 1.0);
           final wf = ((j.tempMax - j.tempMin) / range).clamp(0.04, 1.0);
           return Column(
@@ -489,7 +487,6 @@ class _HomeScreenState extends State<HomeScreen>
                 padding: const EdgeInsets.symmetric(vertical: 5),
                 child: Row(
                   children: [
-                    // Jour
                     SizedBox(
                       width: 40,
                       child: Text(j.jour,
@@ -500,11 +497,9 @@ class _HomeScreenState extends State<HomeScreen>
                               ? FontWeight.w600
                               : FontWeight.w400)),
                     ),
-                    // Emoji
                     Text(j.emoji,
                         style: const TextStyle(fontSize: 20)),
                     const SizedBox(width: 10),
-                    // Temp min
                     SizedBox(
                       width: 28,
                       child: Text('${j.tempMin.round()}°',
@@ -513,7 +508,6 @@ class _HomeScreenState extends State<HomeScreen>
                             color: Colors.white54, fontSize: 13)),
                     ),
                     const SizedBox(width: 6),
-                    // Barre min→max
                     Expanded(
                       child: LayoutBuilder(
                         builder: (_, cst) => Stack(
@@ -543,7 +537,6 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     const SizedBox(width: 6),
-                    // Temp max
                     SizedBox(
                       width: 30,
                       child: Text('${j.tempMax.round()}°',
@@ -579,23 +572,86 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ── 5. Risques SAMCAM ────────────────────────────────────────────────
+  // Les scores sont des probabilités continues (0–100%), calculées par
+  // des règles physiques calibrées ou le modèle RandomForest entraîné,
+  // puis affinées par Phi-3 mini pour la génération du résumé textuel.
   Widget _buildRisques(RiskReport r) {
+    // Sous-titre méthode IA
+    final bool iaActive = r.methodeRisque == 'modele_ml';
+    final String methodeLabel = iaActive
+        ? '✦ Analyse Phi-3 mini + RandomForest'
+        : '⚙ Règles physiques calibrées';
+
     return _glassSection(
       label: 'RISQUES SAMCAM',
       icon: Icons.shield_outlined,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _riskRow('💧 Inondation',
-              r.actuel.scores.inondation, const Color(0xFF64B5F6)),
-          const SizedBox(height: 8),
-          _riskRow('🏜️ Sécheresse',
-              r.actuel.scores.secheresse, const Color(0xFFFFB74D)),
-          const SizedBox(height: 8),
-          _riskRow('🔥 Chaleur',
-              r.actuel.scores.chaleur,    const Color(0xFFEF5350)),
+          // Méthode d'analyse
+          Text(
+            methodeLabel,
+            style: TextStyle(
+              color: iaActive
+                  ? const Color(0xFFB39DDB)
+                  : Colors.white38,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.3,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 10),
+          _riskRow(
+            '💧 Inondation',
+            r.actuel.scores.inondation,
+            _riskDescription('inondation', r.actuel.scores.inondation),
+          ),
+          const SizedBox(height: 10),
+          _riskRow(
+            '🏜️ Sécheresse',
+            r.actuel.scores.secheresse,
+            _riskDescription('secheresse', r.actuel.scores.secheresse),
+          ),
+          const SizedBox(height: 10),
+          _riskRow(
+            '🔥 Chaleur',
+            r.actuel.scores.chaleur,
+            _riskDescription('chaleur', r.actuel.scores.chaleur),
+          ),
         ],
       ),
     );
+  }
+
+  /// Retourne une description textuelle du niveau de risque.
+  /// Les scores sont graduels (0–100%), pas binaires :
+  ///   < 25% → risque faible / normal
+  ///   25–50% → risque modéré, vigilance conseillée
+  ///   50–75% → risque élevé, attention requise
+  ///   > 75% → risque critique
+  String _riskDescription(String type, double score) {
+    final pct = score * 100;
+    if (type == 'inondation') {
+      if (pct < 10)  return 'Aucun risque d\'inondation détecté.';
+      if (pct < 25)  return 'Risque faible — sol peu saturé.';
+      if (pct < 50)  return 'Risque modéré — surveiller les cumuls.';
+      if (pct < 75)  return 'Risque élevé — zones basses à éviter.';
+      return 'Risque critique — inondations probables.';
+    } else if (type == 'secheresse') {
+      if (pct < 10)  return 'Aucun stress hydrique détecté.';
+      if (pct < 25)  return 'Légère sécheresse — situation normale.';
+      if (pct < 50)  return 'Stress hydrique modéré — végétation sous tension.';
+      if (pct < 75)  return 'Sécheresse marquée — irrigation conseillée.';
+      return 'Sécheresse sévère — cultures en danger.';
+    } else {
+      if (pct < 10)  return 'Températures dans les normales.';
+      if (pct < 25)  return 'Légère chaleur — rester hydraté.';
+      if (pct < 50)  return 'Chaleur modérée — limiter l\'effort physique.';
+      if (pct < 75)  return 'Forte chaleur — populations vulnérables à risque.';
+      return 'Canicule — danger pour la santé.';
+    }
   }
 
   // ── Widgets helpers ──────────────────────────────────────────────────
@@ -613,9 +669,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _glassSection({
-    required String  label,
+    required String   label,
     required IconData icon,
-    required Widget  child,
+    required Widget   child,
   }) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -649,34 +705,64 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _riskRow(String label, double score, Color color) {
-    return Row(
+  /// Barre de risque avec couleur dynamique selon le score,
+  /// et description textuelle sous la barre (non binaire).
+  Widget _riskRow(String label, double score, String description) {
+    // Couleur dynamique : vert → jaune → orange → rouge
+    final Color color;
+    if (score < 0.25) {
+      color = const Color(0xFF66BB6A);        // vert
+    } else if (score < 0.50) {
+      color = const Color(0xFFFFEE58);        // jaune
+    } else if (score < 0.75) {
+      color = const Color(0xFFFFB74D);        // orange
+    } else {
+      color = const Color(0xFFEF5350);        // rouge
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 102,
-          child: Text(label,
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 13))),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: score.clamp(0.0, 1.0),
-              backgroundColor: Colors.white12,
-              valueColor: AlwaysStoppedAnimation<Color>(color),
-              minHeight: 6,
+        Row(
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(label,
+                style: const TextStyle(
+                    color: Colors.white70, fontSize: 13))),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: score.clamp(0.0, 1.0),
+                  backgroundColor: Colors.white12,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                  minHeight: 6,
+                ),
+              ),
             ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 36,
+              child: Text('${(score * 100).round()}%',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12))),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Padding(
+          padding: const EdgeInsets.only(left: 2),
+          child: Text(
+            description,
+            style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 11,
+                fontStyle: FontStyle.italic),
           ),
         ),
-        const SizedBox(width: 8),
-        SizedBox(
-          width: 34,
-          child: Text('${(score * 100).round()}%',
-            textAlign: TextAlign.right,
-            style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-                fontSize: 12))),
       ],
     );
   }
@@ -719,6 +805,7 @@ class _HomeScreenState extends State<HomeScreen>
               fontWeight: FontWeight.w500,
               fontSize: 14)),
         Text(label,
+          textAlign: TextAlign.center,
           style: const TextStyle(
               color: Colors.white54, fontSize: 11)),
       ],
@@ -773,13 +860,12 @@ class _SkyTheme {
 
 class _SkyPainter extends CustomPainter {
   final _SkyTheme theme;
-  final double   animValue; // 0.0 → 1.0 en boucle
+  final double   animValue;
 
   _SkyPainter({required this.theme, required this.animValue});
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Dégradé de fond
     final bgPaint = Paint()
       ..shader = LinearGradient(
           colors: [theme.top, theme.mid, theme.bottom],
@@ -790,7 +876,6 @@ class _SkyPainter extends CustomPainter {
     canvas.drawRect(
         Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
 
-    // 2. Éléments selon le type de ciel
     switch (theme.sky) {
       case _SkyType.sunny:
         _paintSun(canvas, size, full: true);
@@ -817,18 +902,14 @@ class _SkyPainter extends CustomPainter {
     }
   }
 
-  // ── Soleil réaliste ─────────────────────────────────────────────────
   void _paintSun(Canvas canvas, Size size, {required bool full}) {
-    // Le soleil est positionné en haut à droite, DANS la zone hero
-    // (au-dessus du scroll), donc sa taille est bornée.
-    final heroH  = size.height * 0.40; // hauteur de la zone hero
+    final heroH  = size.height * 0.40;
     final cx     = size.width  * 0.78;
     final cy     = size.height * 0.12;
     final r      = full
-        ? math.min(size.width * 0.13, heroH * 0.55)  // limité à la zone hero
+        ? math.min(size.width * 0.13, heroH * 0.55)
         : math.min(size.width * 0.09, heroH * 0.40);
 
-    // ── Atmosphère / lueur extérieure (halo diffus) ───────────────────
     for (final haloR in [r * 3.5, r * 2.5, r * 1.8]) {
       final alpha = full
           ? (haloR == r * 3.5 ? 0.06 : haloR == r * 2.5 ? 0.10 : 0.14)
@@ -842,14 +923,13 @@ class _SkyPainter extends CustomPainter {
       );
     }
 
-    // ── Rayons longs (8 rayons fins qui tournent lentement) ──────────
     if (full) {
       final rayPaint = Paint()
         ..strokeWidth = 1.5
         ..strokeCap   = StrokeCap.round;
       for (int i = 0; i < 8; i++) {
         final angle = (i / 8) * math.pi * 2
-            + animValue * math.pi * 0.25; // rotation très lente
+            + animValue * math.pi * 0.25;
         final inner = r * 1.35;
         final outer = r * 2.20;
         final alpha = 0.25 + 0.15 * math.sin(animValue * math.pi * 2 + i);
@@ -864,17 +944,16 @@ class _SkyPainter extends CustomPainter {
       }
     }
 
-    // ── Corps du soleil (gradient radial chaud) ──────────────────────
     canvas.drawCircle(
       Offset(cx, cy),
       r,
       Paint()
         ..shader = RadialGradient(
             colors: [
-              const Color(0xFFFFF9C4), // centre très blanc-jaune
-              const Color(0xFFFFF176), // jaune pâle
-              const Color(0xFFFFD54F), // jaune-ambre
-              const Color(0xFFFFB300), // ambre bord
+              const Color(0xFFFFF9C4),
+              const Color(0xFFFFF176),
+              const Color(0xFFFFD54F),
+              const Color(0xFFFFB300),
             ],
             stops: const [0.0, 0.35, 0.70, 1.0],
           )
@@ -882,7 +961,6 @@ class _SkyPainter extends CustomPainter {
               Rect.fromCircle(center: Offset(cx, cy), radius: r)),
     );
 
-    // ── Couche de brillance (reflet blanc en haut à gauche) ──────────
     canvas.drawCircle(
       Offset(cx - r * 0.25, cy - r * 0.25),
       r * 0.35,
@@ -892,14 +970,12 @@ class _SkyPainter extends CustomPainter {
     );
   }
 
-  // ── Nuages réalistes ────────────────────────────────────────────────
   void _paintClouds(Canvas canvas, Size size,
       {required int count, required bool white, required double opacity}) {
     final baseColor = white
         ? Colors.white.withOpacity(opacity)
         : const Color(0xFF5F6B7A).withOpacity(opacity);
 
-    // Configs [xFrac, yFrac, widthFrac, heightFrac, speedMul]
     final configs = [
       [0.05, 0.07, 0.45, 0.10, 1.0],
       [0.50, 0.12, 0.38, 0.08, 0.7],
@@ -917,7 +993,6 @@ class _SkyPainter extends CustomPainter {
       final rw    = cfg[2]   * size.width;
       final rh    = cfg[3]   * size.height;
 
-      // Ombre légère sous le nuage
       if (!white) {
         _drawCloud(
           canvas,
@@ -948,7 +1023,6 @@ class _SkyPainter extends CustomPainter {
             width: rw * 0.40, height: rh * 0.70), p);
   }
 
-  // ── Pluie ────────────────────────────────────────────────────────────
   void _paintRain(Canvas canvas, Size size, {required bool heavy}) {
     final drops = heavy ? 80 : 40;
     final rng   = math.Random(17);
@@ -969,7 +1043,6 @@ class _SkyPainter extends CustomPainter {
     }
   }
 
-  // ── Brouillard ───────────────────────────────────────────────────────
   void _paintFog(Canvas canvas, Size size) {
     for (int i = 0; i < 4; i++) {
       final yFrac  = 0.08 + i * 0.08;
@@ -984,9 +1057,7 @@ class _SkyPainter extends CustomPainter {
     }
   }
 
-  // ── Éclair ───────────────────────────────────────────────────────────
   void _paintLightning(Canvas canvas, Size size) {
-    // Éclair visible ~20% du cycle
     final phase = (animValue * 4) % 1.0;
     if (phase < 0.18) {
       final bx = size.width * 0.48;
@@ -1003,7 +1074,6 @@ class _SkyPainter extends CustomPainter {
         path,
         Paint()..color = Colors.yellowAccent.withOpacity(0.9),
       );
-      // Lueur autour de l'éclair
       canvas.drawPath(
         path,
         Paint()

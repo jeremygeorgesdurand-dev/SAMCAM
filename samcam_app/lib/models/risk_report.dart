@@ -217,6 +217,24 @@ class Indicateurs {
   factory Indicateurs.empty() => Indicateurs(
     pluie7j: 0, pluiePrevue7j: 0, ndviMoyen: 0, temperatureMax: 0,
   );
+
+  /// Traduit le NDVI en état lisible pour le grand public.
+  /// NDVI > 0.5 : végétation saine
+  /// NDVI 0.3–0.5 : stress hydrique modéré
+  /// NDVI < 0.3 : végétation en état critique
+  String get etatVegetation {
+    if (ndviMoyen <= 0.0) return 'Données indisponibles';
+    if (ndviMoyen >= 0.50) return 'Bonne';
+    if (ndviMoyen >= 0.30) return 'Stressée';
+    return 'Critique';
+  }
+
+  String get etatVegetationEmoji {
+    if (ndviMoyen <= 0.0) return '❓';
+    if (ndviMoyen >= 0.50) return '🌿';
+    if (ndviMoyen >= 0.30) return '🍂';
+    return '🏜️';
+  }
 }
 
 // ── Rapport complet ──────────────────────────────────────────────────────────
