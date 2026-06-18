@@ -788,8 +788,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _riskEvolutionRow(
-    String label, IconData icon,
-    double now, double j3, double j7, Color color,
+    String label,
+    IconData icon,
+    double now,
+    double j3,
+    double j7,
+    Color color,
   ) {
     Widget dot(double v) => Column(children: [
       Text('${(v * 100).toStringAsFixed(0)} %',
@@ -870,7 +874,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return const Color(0xFFEF5350);
   }
 
-  Widget _appleCard({required IconData icon, required String label, required Widget child}) {
+  Widget _appleCard({
+    required IconData icon,
+    required String label,
+    required Widget child,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
@@ -896,7 +904,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _numericTile({required IconData icon, required String value, required String label, Color? highlight}) {
+  Widget _numericTile({
+    required IconData icon,
+    required String value,
+    required String label,
+    Color? highlight,
+  }) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
@@ -913,14 +926,20 @@ class _HomeScreenState extends State<HomeScreen> {
               color: highlight ?? Colors.white,
               fontSize: 14, fontWeight: FontWeight.w400, height: 1.2)),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+            Text(label, style: const TextStyle(
+              color: Colors.white54, fontSize: 11)),
           ],
         ),
       ),
     );
   }
 
-  Widget _riskBar({required IconData icon, required String label, required double score, String detail = ''}) {
+  Widget _riskBar({
+    required IconData icon,
+    required String label,
+    required double score,
+    String detail = '',
+  }) {
     final color = _riskColor(score);
     final pct = (score * 100).toStringAsFixed(0);
     return Padding(
@@ -932,7 +951,8 @@ class _HomeScreenState extends State<HomeScreen> {
             Icon(icon, color: Colors.white38, size: 15),
             const SizedBox(width: 8),
             SizedBox(width: 80,
-              child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13))),
+              child: Text(label, style: const TextStyle(
+                color: Colors.white70, fontSize: 13))),
             Expanded(child: ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
@@ -950,7 +970,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (detail.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 23, top: 3),
-              child: Text(detail, style: const TextStyle(color: Colors.white38, fontSize: 11))),
+              child: Text(detail, style: const TextStyle(
+                color: Colors.white38, fontSize: 11))),
         ],
       ),
     );
@@ -993,26 +1014,30 @@ class _HomeScreenState extends State<HomeScreen> {
       border: Border.all(color: Colors.white24, width: 0.8)),
     child: ClipRRect(borderRadius: BorderRadius.circular(20), child: child));
 
-  Widget _expandableHeader({required IconData icon, required String title, required bool expanded, required VoidCallback onTap}) =>
-    InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(children: [
-          Icon(icon, color: Colors.white54, size: 14),
-          const SizedBox(width: 6),
-          Text(title, style: const TextStyle(
-            color: Colors.white54, fontSize: 11,
-            fontWeight: FontWeight.w600, letterSpacing: 0.8)),
-          const Spacer(),
-          AnimatedRotation(
-            turns: expanded ? 0 : -0.25,
-            duration: const Duration(milliseconds: 200),
-            child: const Icon(Icons.expand_more, color: Colors.white38, size: 18)),
-        ])
-      ),
-    );
+  Widget _expandableHeader({
+    required IconData icon,
+    required String title,
+    required bool expanded,
+    required VoidCallback onTap,
+  }) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(20),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(children: [
+        Icon(icon, color: Colors.white54, size: 14),
+        const SizedBox(width: 6),
+        Text(title, style: const TextStyle(
+          color: Colors.white54, fontSize: 11,
+          fontWeight: FontWeight.w600, letterSpacing: 0.8)),
+        const Spacer(),
+        AnimatedRotation(
+          turns: expanded ? 0 : -0.25,
+          duration: const Duration(milliseconds: 200),
+          child: const Icon(Icons.expand_more, color: Colors.white38, size: 18)),
+      ])
+    ),
+  );
 
   Widget _emptyState() => const Padding(
     padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
@@ -1021,7 +1046,8 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 15),
         SizedBox(width: 8),
-        Text('Données indisponibles', style: TextStyle(color: Colors.white54, fontSize: 13)),
+        Text('Données indisponibles',
+          style: TextStyle(color: Colors.white54, fontSize: 13)),
       ],
     ),
   );
@@ -1034,7 +1060,6 @@ class _HomeScreenState extends State<HomeScreen> {
   String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-// ── ARC SOLAIRE CUSTOM PAINTER ───────────────────────────────────────────────────────────
 class _SunArcPainter extends CustomPainter {
   final double progress;
   const _SunArcPainter({required this.progress});
