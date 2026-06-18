@@ -1,4 +1,4 @@
-// SAMCAM — Service m\u00e9t\u00e9o via Open-Meteo (gratuit, sans cl\u00e9)
+// SAMCAM — Service météo via Open-Meteo (gratuit, sans clé)
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather_forecast.dart';
@@ -11,25 +11,25 @@ class WeatherService {
     try {
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=\$_lat&longitude=\$_lon'
-        '&hourly=temperature_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,relativehumidity_2m'
-        '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max'
+        '?latitude=$_lat&longitude=$_lon'
+        '&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m'
+        '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
         '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m'
-        ',wind_gusts_10m,surface_pressure,visibility,uv_index'
+        ',wind_gusts_10m,surface_pressure,visibility,uv_index,weather_code'
         '&timezone=Africa%2FDouala'
         '&forecast_days=7',
       );
 
-      final response = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (response.statusCode != 200) throw Exception('HTTP \${response.statusCode}');
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
       return _parse(jsonDecode(response.body) as Map<String, dynamic>);
-    } catch (_) {
+    } catch (e) {
       return _mockKribi();
     }
   }
 
-  // ── Mock Kribi (fallback) ────────────────────────────────────────────────
+  // ── Mock Kribi (fallback si pas de réseau) ─────────────────────────────
   static WeatherData _mockKribi() {
     final now = DateTime.now();
     final hourly = List.generate(24, (i) {
@@ -49,16 +49,16 @@ class WeatherService {
       final d = now.add(Duration(days: i));
       final rainy = (i == 0 || i == 2 || i == 5);
       return DailyForecast(
-        date:                  d,
-        tempMin:               24.0 + i * 0.3,
-        tempMax:               31.0 + i * 0.2,
-        precipitationSum:      rainy ? 18.0 + i * 2.0 : 0.0,
-        weatherCode:           rainy ? 61 : 1,
-        windSpeedMax:          18.0,
-        uvIndexMax:            4.5,
-        sunrise:               DateTime(d.year, d.month, d.day, 6, 12),
-        sunset:                DateTime(d.year, d.month, d.day, 18, 30),
-        precipitationProbMax:  rainy ? 75.0 : 20.0,
+        date:                 d,
+        tempMin:              24.0 + i * 0.3,
+        tempMax:              31.0 + i * 0.2,
+        precipitationSum:     rainy ? 18.0 + i * 2.0 : 0.0,
+        weatherCode:          rainy ? 61 : 1,
+        windSpeedMax:         18.0,
+        uvIndexMax:           4.5,
+        sunrise:              DateTime(d.year, d.month, d.day, 6, 12),
+        sunset:               DateTime(d.year, d.month, d.day, 18, 30),
+        precipitationProbMax: rainy ? 75.0 : 20.0,
       );
     });
     return WeatherData(
@@ -68,43 +68,46 @@ class WeatherService {
         temperature: 28, feelsLike: 31, pressure: 1012,
         visibility: 17, uvIndex: 3, humidity: 76,
         windSpeed: 11, windGusts: 19,
+        weatherCode: 61,
       ),
     );
   }
 
-  // ── Parsing ────────────────────────────────────────────────────────────
+  // ── Parsing réponse Open-Meteo ─────────────────────────────────────────
   static WeatherData _parse(Map<String, dynamic> json) {
     // Current
     CurrentConditions? current;
     if (json['current'] != null) {
       final c = json['current'] as Map<String, dynamic>;
       current = CurrentConditions(
-        temperature: (c['temperature_2m']        ?? 0).toDouble(),
-        feelsLike:   (c['apparent_temperature']  ?? 0).toDouble(),
-        pressure:    (c['surface_pressure']      ?? 1013).toDouble(),
-        visibility:  ((c['visibility']           ?? 10000) / 1000.0),
-        uvIndex:     (c['uv_index']              ?? 0).toInt(),
-        humidity:    (c['relative_humidity_2m']  ?? 0).toInt(),
-        windSpeed:   (c['wind_speed_10m']        ?? 0).toDouble(),
-        windGusts:   (c['wind_gusts_10m']        ?? 0).toDouble(),
+        temperature: (c['temperature_2m']       ?? 0).toDouble(),
+        feelsLike:   (c['apparent_temperature'] ?? 0).toDouble(),
+        pressure:    (c['surface_pressure']     ?? 1013).toDouble(),
+        visibility:  ((c['visibility']          ?? 10000) / 1000.0),
+        uvIndex:     (c['uv_index']             ?? 0).toInt(),
+        humidity:    (c['relative_humidity_2m'] ?? 0).toInt(),
+        windSpeed:   (c['wind_speed_10m']       ?? 0).toDouble(),
+        windGusts:   (c['wind_gusts_10m']       ?? 0).toDouble(),
+        weatherCode: (c['weather_code']         ?? 0).toInt(),
       );
     }
 
-    // Hourly
+    // Hourly — filtre fenêtre +25h à partir de maintenant
     final h      = json['hourly'] as Map<String, dynamic>;
-    final times  = (h['time']                  as List).cast<String>();
-    final temps  = (h['temperature_2m']        as List).map((v) => (v as num).toDouble()).toList();
-    final feels  = (h['apparent_temperature']  as List).map((v) => (v as num).toDouble()).toList();
-    final precip = (h['precipitation']         as List).map((v) => (v as num).toDouble()).toList();
-    final wcH    = (h['weathercode']           as List).map((v) => (v as num).toInt()).toList();
-    final windH  = (h['windspeed_10m']         as List).map((v) => (v as num).toDouble()).toList();
-    final humH   = (h['relativehumidity_2m']   as List).map((v) => (v as num).toInt()).toList();
+    final times  = (h['time']                   as List).cast<String>();
+    final temps  = (h['temperature_2m']         as List).map((v) => (v as num).toDouble()).toList();
+    final feels  = (h['apparent_temperature']   as List).map((v) => (v as num).toDouble()).toList();
+    final precip = (h['precipitation']          as List).map((v) => (v as num).toDouble()).toList();
+    final wcH    = (h['weather_code']           as List).map((v) => (v as num).toInt()).toList();
+    final windH  = (h['wind_speed_10m']         as List).map((v) => (v as num).toDouble()).toList();
+    final humH   = (h['relative_humidity_2m']   as List).map((v) => (v as num).toInt()).toList();
 
     final now    = DateTime.now();
     final hourly = <HourlyForecast>[];
     for (int i = 0; i < times.length; i++) {
       final t = DateTime.parse(times[i]);
-      if (t.isAfter(now) && t.isBefore(now.add(const Duration(hours: 25)))) {
+      if (t.isAfter(now.subtract(const Duration(hours: 1))) &&
+          t.isBefore(now.add(const Duration(hours: 25)))) {
         hourly.add(HourlyForecast(
           time:          t,
           temperature:   temps[i],
@@ -118,16 +121,16 @@ class WeatherService {
     }
 
     // Daily
-    final d    = json['daily'] as Map<String, dynamic>;
-    final dates = (d['time']              as List).cast<String>();
-    final wcD   = (d['weathercode']       as List).map((v) => (v as num).toInt()).toList();
+    final d     = json['daily'] as Map<String, dynamic>;
+    final dates = (d['time']               as List).cast<String>();
+    final wcD   = (d['weather_code']       as List).map((v) => (v as num).toInt()).toList();
     final tMax  = (d['temperature_2m_max'] as List).map((v) => (v as num).toDouble()).toList();
     final tMin  = (d['temperature_2m_min'] as List).map((v) => (v as num).toDouble()).toList();
-    final precD = (d['precipitation_sum'] as List).map((v) => (v as num).toDouble()).toList();
-    final windD = (d['windspeed_10m_max'] as List).map((v) => (v as num).toDouble()).toList();
-    final uvD   = (d['uv_index_max']      as List).map((v) => (v as num).toDouble()).toList();
-    final srD   = (d['sunrise']           as List).cast<String>();
-    final ssD   = (d['sunset']            as List).cast<String>();
+    final precD = (d['precipitation_sum']  as List).map((v) => (v as num).toDouble()).toList();
+    final windD = (d['wind_speed_10m_max'] as List).map((v) => (v as num).toDouble()).toList();
+    final uvD   = (d['uv_index_max']       as List).map((v) => (v as num).toDouble()).toList();
+    final srD   = (d['sunrise']            as List).cast<String>();
+    final ssD   = (d['sunset']             as List).cast<String>();
     final ppD   = (d['precipitation_probability_max'] as List)
                   .map((v) => v != null ? (v as num).toDouble() : 0.0).toList();
 
