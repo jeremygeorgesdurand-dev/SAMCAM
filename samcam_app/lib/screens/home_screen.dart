@@ -102,6 +102,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          _buildSkeletonBanner(),
+          const SizedBox(height: 12),
           _buildSkeletonHeader(),
           const SizedBox(height: 20),
           _buildSkeletonCard(height: 130),
@@ -114,15 +116,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
+        // ── BANDEAU ALERTE EN HAUT ──────────────────────────────────────────
+        if (_report != null) _buildAlertBanner(_report!),
+        if (_error != null) _buildErrorBanner(),
+        if (_report != null || _error != null) const SizedBox(height: 16),
+        // ── MÉTÉO ───────────────────────────────────────────────────────────
         _buildWeatherHeader(weather),
         const SizedBox(height: 20),
         _buildHourlySection(weather),
         const SizedBox(height: 12),
         _buildDailySection(weather),
         const SizedBox(height: 20),
-        if (_report != null) _buildAlertBanner(_report!),
-        if (_error != null) _buildErrorBanner(),
-        const SizedBox(height: 12),
         _buildWeatherTiles(weather),
         const SizedBox(height: 12),
         if (_report != null) ..._buildRiskSection(_report!),
@@ -130,7 +134,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── SQUELETTES ─────────────────────────────────────────────────────────────
+  // ── SQUELETTES ──────────────────────────────────────────────────────────────
+  Widget _buildSkeletonBanner() => Container(
+    height: 52,
+    decoration: BoxDecoration(
+      color: Colors.white10, borderRadius: BorderRadius.circular(18)));
+
   Widget _buildSkeletonHeader() => Column(children: [
     _skeletonBox(width: 120, height: 28, radius: 8),
     const SizedBox(height: 8),
@@ -154,6 +163,61 @@ class _HomeScreenState extends State<HomeScreen> {
       width: width, height: height,
       decoration: BoxDecoration(
         color: Colors.white12, borderRadius: BorderRadius.circular(radius)));
+
+  // ── BANNIÈRE ALERTE (COMPACTE EN HAUT) ─────────────────────────────────────
+  Widget _buildAlertBanner(RiskReport r) {
+    final color = _alertColor(r.niveauAlerte);
+    final isOk  = r.niveauAlerte == 'VERT';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.45), width: 1)),
+      child: Row(children: [
+        Icon(
+          isOk ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+          color: color, size: 20),
+        const SizedBox(width: 10),
+        Expanded(child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_alertLabel(r.niveauAlerte), style: TextStyle(
+              color: color, fontSize: 14, fontWeight: FontWeight.w700)),
+            Text('${r.zone}  •  ${r.date}',
+              style: const TextStyle(color: Colors.white54, fontSize: 11)),
+          ])),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.25),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.6))),
+          child: Text(r.niveauAlerte, style: TextStyle(
+            color: color, fontWeight: FontWeight.bold,
+            letterSpacing: 0.8, fontSize: 11))),
+      ]),
+    );
+  }
+
+  Widget _buildErrorBanner() => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    decoration: BoxDecoration(
+      color: Colors.white.withOpacity(0.08),
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white12)),
+    child: Row(children: [
+      const Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 16),
+      const SizedBox(width: 8),
+      Expanded(child: Text(
+        '${_error ?? 'Serveur SAMCAM inaccessible'} — météo locale',
+        style: const TextStyle(color: Colors.white54, fontSize: 12))),
+      TextButton(
+        onPressed: _fetchAll,
+        style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+        child: const Text('Réessayer',
+          style: TextStyle(color: Colors.white60, fontSize: 12))),
+    ]));
 
   // ── EN-TÊTE MÉTÉO ───────────────────────────────────────────────────────────
   Widget _buildWeatherHeader(WeatherData weather) {
@@ -376,60 +440,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // ── BANNIÈRE ALERTE ─────────────────────────────────────────────────────────
-  Widget _buildAlertBanner(RiskReport r) {
-    final color = _alertColor(r.niveauAlerte);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.4), width: 1)),
-      child: Row(children: [
-        Icon(Icons.warning_amber_rounded, color: color, size: 24),
-        const SizedBox(width: 12),
-        Expanded(child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('${r.zone}  •  ${r.date}',
-              style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            const SizedBox(height: 2),
-            Text(_alertLabel(r.niveauAlerte), style: const TextStyle(
-              color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-          ])),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: color, borderRadius: BorderRadius.circular(20)),
-          child: Text(r.niveauAlerte, style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.bold,
-            letterSpacing: 0.8, fontSize: 12))),
-      ]),
-    );
-  }
-
-  Widget _buildErrorBanner() => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12)),
-      child: Row(children: [
-        const Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 16),
-        const SizedBox(width: 8),
-        Expanded(child: Text(
-          '${_error ?? 'Serveur SAMCAM inaccessible'} — météo en mode local',
-          style: const TextStyle(color: Colors.white54, fontSize: 12))),
-        TextButton(
-          onPressed: _fetchAll,
-          style: TextButton.styleFrom(padding: EdgeInsets.zero),
-          child: const Text('Réessayer',
-            style: TextStyle(color: Colors.white60, fontSize: 12))),
-      ]),
-    ));
-
   // ── TUILES MÉTÉO ────────────────────────────────────────────────────────────
   Widget _buildWeatherTiles(WeatherData weather) {
     final cur   = weather.current;
@@ -489,7 +499,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               if (today?.sunset != null)
-                Text('Protection jusqu\'\u00e0 $sunsetStr.',
+                Text('Protection jusqu\'à $sunsetStr.',
                   style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ],
           ),
@@ -578,7 +588,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Text(
                 feelsLike > (cur?.temperature ?? feelsLike)
                   ? 'Le ressenti est plus élevé que la température réelle.'
-                  : 'Similaire \u00e0 la température réelle.',
+                  : 'Similaire à la température réelle.',
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ],
           ),
@@ -655,33 +665,39 @@ class _HomeScreenState extends State<HomeScreen> {
                  r.methodeRisque == 'modele_ml';
 
     return [
+      // Tuiles indicateurs
       Row(children: [
         _numericTile(
           icon: Icons.water_drop_outlined,
           value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
           label: 'Pluie reçue (7j)',
+          tooltip: 'Quantité totale de pluie tombée ces 7 derniers jours',
         ),
         const SizedBox(width: 10),
         _numericTile(
           icon: Icons.umbrella_outlined,
           value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
           label: 'Pluie prévue (7j)',
+          tooltip: 'Précipitations attendues dans les 7 prochains jours',
         ),
         const SizedBox(width: 10),
         _numericTile(
           icon: Icons.eco_outlined,
           value: '${r.indicateurs.etatVegetationEmoji} ${r.indicateurs.etatVegetation}',
-          label: 'Végétation',
+          label: 'État végétation',
+          tooltip: 'Indice NDVI — mesure la santé et la verdure de la végétation',
           highlight: _vegetationColor(r.indicateurs.ndviMoyen),
         ),
       ]),
       const SizedBox(height: 10),
+      // Prévisions J+3 / J+7
       Row(children: [
-        _prevCard('J+3', r.prevu3j.niveauGlobal),
+        _prevCard('Dans 3 jours', r.prevu3j.niveauGlobal),
         const SizedBox(width: 10),
-        _prevCard('J+7', r.prevu7j.niveauGlobal),
+        _prevCard('Dans 7 jours', r.prevu7j.niveauGlobal),
       ]),
       const SizedBox(height: 10),
+      // Barres de risques
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -689,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                _sectionLabel('RISQUES SAMCAM'),
+                _sectionLabel('RISQUES CLIMATIQUES'),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -709,25 +725,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 11),
                     const SizedBox(width: 4),
                     Text(
-                      isML ? 'Phi-3 + RF' : 'Règles',
+                      isML ? 'IA + RF' : 'Règles',
                       style: TextStyle(
                         color: isML ? const Color(0xFFB39DDB) : Colors.white38,
                         fontSize: 10, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ]),
-              const SizedBox(height: 4),
-              Text(
-                isML
-                  ? '✦ Analyse Phi-3 mini + RandomForest'
-                  : '⚙ Règles physiques calibrées',
-                style: TextStyle(
-                  color: isML
-                    ? const Color(0xFFB39DDB).withOpacity(0.7)
-                    : Colors.white24,
-                  fontSize: 10,
-                  fontStyle: FontStyle.italic),
-              ),
               const SizedBox(height: 14),
               _riskBar(
                 icon: Icons.water_outlined,
@@ -752,13 +756,18 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       const SizedBox(height: 10),
+      // Évolution
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionLabel('ÉVOLUTION DES RISQUES'),
+              _sectionLabel('TENDANCE DES RISQUES'),
+              const SizedBox(height: 6),
+              const Text(
+                'Comment les risques évoluent-ils dans les prochains jours ?',
+                style: TextStyle(color: Colors.white38, fontSize: 11)),
               const SizedBox(height: 14),
               _riskEvolutionRow(
                 'Inondation', Icons.water_outlined,
@@ -832,23 +841,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _floodDetail(RiskReport r) {
     final p = r.indicateurs.pluie7j;
-    if (r.actuel.scores.inondation < 0.05) return "Aucun risque d'inondation détecté.";
-    if (p > 80) return 'Cumul élevé : ${p.toStringAsFixed(0)} mm sur 7 j.';
+    if (r.actuel.scores.inondation < 0.05) return 'Pas de risque d\'inondation en ce moment.';
+    if (p > 80) return 'Beaucoup de pluie : ${p.toStringAsFixed(0)} mm en 7 jours.';
     return 'Surveillance active des précipitations.';
   }
 
   String _droughtDetail(RiskReport r) {
-    if (r.actuel.scores.secheresse < 0.1) return 'Végétation en bon état.';
+    if (r.actuel.scores.secheresse < 0.1) return 'La végétation est bien hydratée.';
     final etat = r.indicateurs.etatVegetation;
-    if (r.actuel.scores.secheresse >= 0.5) return 'Végétation $etat — déficit hydrique marqué.';
-    return 'Végétation $etat — déficit hydrique modéré.';
+    if (r.actuel.scores.secheresse >= 0.5)
+      return 'Végétation $etat — le sol manque significativement d\'eau.';
+    return 'Végétation $etat — légère sécheresse détectée.';
   }
 
   String _heatDetail(RiskReport r) {
     final t = r.indicateurs.temperatureMax;
-    if (r.actuel.scores.chaleur < 0.05) return 'Températures dans les normales.';
-    if (t > 35) return 'Vigilance : ${t.toStringAsFixed(0)}°C relevés.';
-    return 'Températures élevées, restez hydré.';
+    if (r.actuel.scores.chaleur < 0.05) return 'Températures normales pour la saison.';
+    if (t > 35) return 'Attention : ${t.toStringAsFixed(0)}°C relevés, restez à l\'ombre.';
+    return 'Températures élevées, pensez à bien vous hydrater.';
   }
 
   Color _riskColor(double score) {
@@ -895,26 +905,30 @@ class _HomeScreenState extends State<HomeScreen> {
     required String value,
     required String label,
     Color? highlight,
+    String? tooltip,
   }) =>
     Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white24, width: 0.8)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: highlight ?? Colors.white54, size: 18),
-            const SizedBox(height: 10),
-            Text(value, style: TextStyle(
-              color: highlight ?? Colors.white,
-              fontSize: 14, fontWeight: FontWeight.w400, height: 1.2)),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(
-              color: Colors.white54, fontSize: 11)),
-          ],
+      child: Tooltip(
+        message: tooltip ?? '',
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white24, width: 0.8)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: highlight ?? Colors.white54, size: 18),
+              const SizedBox(height: 10),
+              Text(value, style: TextStyle(
+                color: highlight ?? Colors.white,
+                fontSize: 14, fontWeight: FontWeight.w400, height: 1.2)),
+              const SizedBox(height: 4),
+              Text(label, style: const TextStyle(
+                color: Colors.white54, fontSize: 11)),
+            ],
+          ),
         ),
       ),
     );
@@ -923,6 +937,11 @@ class _HomeScreenState extends State<HomeScreen> {
       required double score, String detail = ''}) {
     final color = _riskColor(score);
     final pct   = (score * 100).toStringAsFixed(0);
+    // Libellé verbal en plus du pourcentage
+    final String levelLabel = score < 0.05 ? 'Nul'
+      : score < 0.25 ? 'Faible'
+      : score < 0.50 ? 'Modéré'
+      : score < 0.75 ? 'Élevé' : 'Critique';
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -942,17 +961,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 valueColor: AlwaysStoppedAnimation<Color>(color),
                 minHeight: 5))),
             const SizedBox(width: 10),
-            SizedBox(width: 34, child: Text('$pct %',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                color: score > 0.01 ? color : Colors.white38,
-                fontWeight: FontWeight.w600, fontSize: 13))),
+            SizedBox(
+              width: 60,
+              child: Text(
+                score < 0.05 ? levelLabel : '$levelLabel ($pct %)',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: score > 0.01 ? color : Colors.white38,
+                  fontWeight: FontWeight.w600, fontSize: 11))),
           ]),
           if (detail.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(left: 23, top: 3),
               child: Text(detail, style: const TextStyle(
-                color: Colors.white38, fontSize: 11))),
+                color: Colors.white54, fontSize: 11))),
         ],
       ),
     );
@@ -971,16 +993,16 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(horizon, style: const TextStyle(
-              color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w500)),
+              color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: color.withOpacity(0.5))),
-              child: Text(niveau, style: TextStyle(
+              child: Text(_alertLabel(niveau), style: TextStyle(
                 color: color, fontWeight: FontWeight.bold,
-                fontSize: 13, letterSpacing: 0.5))),
+                fontSize: 12, letterSpacing: 0.3))),
           ],
         ),
       ),
