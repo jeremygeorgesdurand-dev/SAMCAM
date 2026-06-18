@@ -1,4 +1,4 @@
-// SAMCAM — Service météo via Open-Meteo (gratuit, sans clé)
+// SAMCAM — Service m\u00e9t\u00e9o via Open-Meteo (gratuit, sans cl\u00e9)
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather_forecast.dart';
@@ -11,7 +11,7 @@ class WeatherService {
     try {
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=$_lat&longitude=$_lon'
+        '?latitude=\$_lat&longitude=\$_lon'
         '&hourly=temperature_2m,apparent_temperature,precipitation,weathercode,windspeed_10m,relativehumidity_2m'
         '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
@@ -74,6 +74,7 @@ class WeatherService {
 
   // ── Parsing ────────────────────────────────────────────────────────────
   static WeatherData _parse(Map<String, dynamic> json) {
+    // Current
     CurrentConditions? current;
     if (json['current'] != null) {
       final c = json['current'] as Map<String, dynamic>;
@@ -89,6 +90,7 @@ class WeatherService {
       );
     }
 
+    // Hourly
     final h      = json['hourly'] as Map<String, dynamic>;
     final times  = (h['time']                  as List).cast<String>();
     final temps  = (h['temperature_2m']        as List).map((v) => (v as num).toDouble()).toList();
@@ -115,6 +117,7 @@ class WeatherService {
       }
     }
 
+    // Daily
     final d    = json['daily'] as Map<String, dynamic>;
     final dates = (d['time']              as List).cast<String>();
     final wcD   = (d['weathercode']       as List).map((v) => (v as num).toInt()).toList();
