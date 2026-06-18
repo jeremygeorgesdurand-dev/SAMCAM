@@ -1,0 +1,29 @@
+RAPPORT SAMCAM — Kribi — 2026-06-18
+============================================================
+
+**Rapport de surveillance des risques climatiques pour la zone côtière de Kribi - Cameroun, date d’analyse du 18 juin 2026.**
+
+### Section 1 : Situation actuelle (2026-06-18)
+Le rapport s'appuie sur les données climatiques et satellites de Kribi pour évaluer le risque d’inondations, sécheresse et chaleur. Le niveau global est classé en orange avec un score d'alerte faible à modéré : inondation (VERT), sécheresse (ORANGE) et vague de chaleur (VERT).
+
+- **Risque actuel**: Inondation observée VERT, risque prévisionnel J+3/J+7 ORANGE. Les scores pour l'inondation sont à 0.00 car le niveau d’alerte est vert malgré une anomalie de -58.3 mm par rapport aux normales saisonnières (160 mm).
+- **Anomalies**: La pluie observée sur les sept derniers jours a été significativement inférieure à la moyenne pour cette période, avec 101.7 mm contre une anomalie de -58.3 mm par rapport aux normales saisonnières (>200 mm).
+- **Indices satellites**: NDVI et humidité sol surface SMAP sont dans les plages normales pour la forêt tropicale dense, mais le niveau d'humidité est légèrement supérieur à l'habituel. L’indice de couleur bleue (NDWI) indique une saturation critique du risque inondation avec un score inférieur à 0.5 pour les deux prochains jours, ce qui reste faible malgré la tendance actuelle des précipitations.
+
+### Section 2 : Analyse des risques (inondation, sécheresse et chaleur)
+- **Inondation**: Le niveau d'alerte est VERT pour l’actuel jour avec une probabilité élevée de pluie sur les prochains jours. La tendance montre un pic attendu le 21 juin avant une légère baisse, mais toujours en dessous des niveaux normaux saisonniers.
+- **Sécheresse**: Le risque est ORANGE avec la probabilité d'une sécheresse faible à modérée sur les prochains jours et un score de 0.55 pour le niveau d’alerte, ce qui indique une tendance vers des conditions plus sèches que normales malgré l'augmentation attendue du vent favorisant la dispersion des nuages humides.
+- **Chaleur**: Le risque est VERT avec un score de 0 pour le niveau d’alerte, indiquant une température relativement fraîche par rapport aux normales saisonnières (28°C max). La tendance montre des maxima légèrement en baisse.
+
+### Section 3 : Évolution prévisionnelle J+3 et J+7
+Les prévisions pour les jours suivants montrent une hausse puis un déclin de la pluie, avec le pic attendu étant survenu déjà aujourd'hui (101.7 mm). Les scores d’alerte resteront à 0 pour l’inondation et VERT pour la chaleur mais risquent d’augmenter légèrement en orange pour la sécheresse, avec un score de 0.55 sur une échelle allant jusqu'à 1.
+
+### Section 4 : Recommandations proportionnées au niveau réel
+- **Inondation**: Continuer à surveiller les précipitations et ajuster la gestion des risques en conséquence, mais sans mesures d’urgence actuellement nécessaires.
+- **Sécheresse**: Prendre conscience de l'augmentation du niveau d'alerte pour la sécheresse et informer les communautés concernées sur les pratiques agricoles adaptatives à une tendance sèche, sans mesures immédiates mais anticipatoires.
+- **Chaleur**: Continuer de surveiller l’évolution des températures pour ajuster la gestion du risque lié aux vagues de chaleur et informer les populations sur les moyens d'atténuation comme le refroidissement urbain ou les espaces verts.
+
+### Section 5 : Niveau d’alerte global (VERT / JAUNE / ORANGE / ROUGE)
+Le niveau d'alerte pour Kribi est actuellement de **Jaune**, avec des risques modérés à élevés en termes d'inondation et de sécheresse. Le rapport ne recommande pas l’application du rouge car les scores restent dans une fourchette où la proportionnalité entre le niveau réel et celui prévu est conforme aux normales saisonnières, avec des écarts qui semblent temporaires plutôt que permanents ou extrêmes.
+
+**Note finale :** Il convient de continuer à surveiller les conditions météorologiques pour ajuster rapidement les mesures d'urgence si nécessaire et maintenir une communication claire avec la population concernée sur ces risques potentiels.
