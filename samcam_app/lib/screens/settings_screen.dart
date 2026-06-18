@@ -4,15 +4,16 @@ import '../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _controller = TextEditingController();
-  bool    _testing   = false;
+  bool   _testing  = false;
   String? _testResult;
-  bool    _testOk    = false;
+  bool   _testOk   = false;
 
   @override
   void initState() {
@@ -83,7 +84,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             const Text('URL du serveur SAMCAM',
               style: TextStyle(
-                  color: Colors.white70, fontSize: 13,
+                  color: Colors.white70,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             TextField(
@@ -170,9 +172,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 child: Text(_testResult!,
                   style: TextStyle(
-                      color: _testOk
-                          ? const Color(0xFF4F98A3)
-                          : Colors.redAccent,
+                      color: _testOk ? const Color(0xFF4F98A3) : Colors.redAccent,
                       fontSize: 12)),
               ),
             ],

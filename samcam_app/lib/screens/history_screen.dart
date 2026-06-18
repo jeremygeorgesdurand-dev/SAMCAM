@@ -4,13 +4,14 @@ import '../services/api_service.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
   List<Map<String, dynamic>> _history = [];
-  bool    _loading = true;
+  bool   _loading = true;
   String? _error;
 
   @override
@@ -61,15 +62,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       padding: const EdgeInsets.all(16),
                       itemCount: _history.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (_, i) => _buildItem(_history[i]),
+                      itemBuilder: (_, i) => _buildHistoryItem(_history[i]),
                     ),
     );
   }
 
-  Widget _buildItem(Map<String, dynamic> item) {
+  Widget _buildHistoryItem(Map<String, dynamic> item) {
     final niveau = item['niveau_alerte'] ?? 'INCONNU';
     final color  = _alertColor(niveau);
     final scores = (item['risque_actuel'] as Map?) ?? {};
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(

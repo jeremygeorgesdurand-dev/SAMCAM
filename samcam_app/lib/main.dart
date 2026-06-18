@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -13,6 +14,18 @@ class SamcamApp extends StatelessWidget {
     return MaterialApp(
       title: 'SAMCAM',
       debugShowCheckedModeBanner: false,
+      // ── Localisation française (obligatoire pour DateFormat fr_FR) ─────────
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('fr', 'FR'),
+        Locale('en', 'US'),
+      ],
+      locale: const Locale('fr', 'FR'),
+      // ──────────────────────────────────────────────────────────────────────
       theme: ThemeData(
         colorScheme: ColorScheme.dark(
           primary:   const Color(0xFF01696F),
