@@ -56,6 +56,7 @@ class CurrentConditions {
   final int humidity;
   final double windSpeed;
   final double windGusts;
+  final int weatherCode;
 
   CurrentConditions({
     required this.temperature,
@@ -66,12 +67,13 @@ class CurrentConditions {
     required this.humidity,
     required this.windSpeed,
     required this.windGusts,
+    this.weatherCode = 0,
   });
 
   factory CurrentConditions.empty() => CurrentConditions(
     temperature: 0, feelsLike: 0, pressure: 1013,
     visibility: 10, uvIndex: 0, humidity: 0,
-    windSpeed: 0, windGusts: 0,
+    windSpeed: 0, windGusts: 0, weatherCode: 0,
   );
 }
 
@@ -89,22 +91,22 @@ class WeatherData {
 
 /// Retourne une icône pour un code météo WMO
 String weatherCodeIcon(int code) {
-  if (code == 0) return '\u2600\ufe0f';
-  if (code <= 2) return '\u26c5';
-  if (code == 3) return '\u2601\ufe0f';
-  if (code <= 49) return '\ud83c\udf2b\ufe0f';
-  if (code <= 59) return '\ud83c\udf26\ufe0f';
-  if (code <= 69) return '\ud83c\udf27\ufe0f';
-  if (code <= 79) return '\ud83c\udf28\ufe0f';
-  if (code <= 84) return '\ud83c\udf26\ufe0f';
-  if (code <= 99) return '\u26c8\ufe0f';
-  return '\ud83c\udf21\ufe0f';
+  if (code == 0)  return '☀️';
+  if (code <= 2)  return '⛅';
+  if (code == 3)  return '☁️';
+  if (code <= 49) return '🌫️';
+  if (code <= 59) return '🌦️';
+  if (code <= 69) return '🌧️';
+  if (code <= 79) return '🌨️';
+  if (code <= 84) return '🌦️';
+  if (code <= 99) return '⛈️';
+  return '🌡️';
 }
 
 String weatherCodeLabel(int code) {
-  if (code == 0) return 'Ensoleillé';
-  if (code <= 2) return 'Peu nuageux';
-  if (code == 3) return 'Couvert';
+  if (code == 0)  return 'Ensoleillé';
+  if (code <= 2)  return 'Peu nuageux';
+  if (code == 3)  return 'Couvert';
   if (code <= 49) return 'Brouillard';
   if (code <= 59) return 'Bruine';
   if (code <= 69) return 'Pluie';
@@ -115,9 +117,9 @@ String weatherCodeLabel(int code) {
 }
 
 String uvLabel(int uv) {
-  if (uv <= 2) return 'Faible';
-  if (uv <= 5) return 'Modéré';
-  if (uv <= 7) return 'Élevé';
+  if (uv <= 2)  return 'Faible';
+  if (uv <= 5)  return 'Modéré';
+  if (uv <= 7)  return 'Élevé';
   if (uv <= 10) return 'Très élevé';
   return 'Extrême';
 }
