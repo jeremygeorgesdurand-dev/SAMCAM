@@ -1,0 +1,27 @@
+RAPPORT SAMCAM — Kribi — 2026-06-22
+============================================================
+
+**Rapport sur les risques climatiques à Kribi, Cameroun - Date d'analyse: 2026-06-22**
+
+1. **Situation du 2026-06-22 : Risque actuel avec niveau et scores**
+   Le 22 juin 2026 à Kribi, la situation climatique est jugée comme "JAUNE" pour le risque d'inondations. Les précipitations observées sur les sept derniers jours (79 mm) ont dépassé de près de 81 mm la normale saisonnière pour cette période du mois de juin, qui se situe habituellement entre 160 et 200 mm par semaine. Cependant, il est important de noter que les précipitations prévues pour les sept prochains jours restent inférieures à la normale (76 mm contre une moyenne de 76-84 mm).
+
+   Les indices satellitaires indiquent un NDVI moyen de 0.1, ce qui est significativement en dessous du seuil attendu pour une forêt tropicale dense à Kribi (> 0.6), suggérant ainsi une dégradation végétale anormale et potentiellement liée aux précipitations récentes. L'indice NDWI est de 0.0276, ce qui se situe dans la plage normale pour cette saison des pluies (0.1-0.4). La humidité solaire surface SMAP à une valeur de 0.32358 m³/m³ et est légèrement en dessous du seuil normal, mais reste dans les limites acceptables compte tenu des précipitations récentes (normal étant entre 0.3-0s).
+
+   Concernant la risque d'inondation observé comme faible, il semble que le niveau actuel de pluie ne soit pas suffisant pour causer une inondation significative à ce stade du mois. Cependant, les scores des modèles V4 (modele_ml_v4.2) indiquent un risque d'inondation et de sécheresse élevés avec respectivement 0.00 et 0.41 sur une échelle allant jusqu'à 1 pour le niveau maximal, tandis que la chaleur est normale (score 0).
+
+2. **Analyse des risques : inondation, sécheresse, vague de chaleur**
+   - Inondation: Le score actuel d'inondation à Kribi pour le 22 juin 2026 est élevé (ORANGE) avec un niveau faible. Cela indique que malgré les précipitations récentes, il n'y a pas de risque immédiat d'inondation actuelle; cependant, la tendance à une inondation pourrait augmenter si les pluies continuent ou s'intensifient dans le futur.
+   - Sécheresse: Le score élevé (ORANGE) indique un risque de sécheresse qui est déjà présent et peut se développer, surtout compte tenu des précipitations récentes inférieures à la normale pour cette période du mois. La tendance climatique actuelle semble orientée vers une augmentation des événements extrêmes tels que les inondations suite aux pluies et sécheresses périodiques, ce qui peut affecter l'écosystème local.
+   - Chaleur: Le risque de chaleur est considéré comme "VERT", indiquant un niveau normal sans préoccupations immédiates pour les conséquences négatives sur la santé humaine ou le bien-être animal à ce stade du mois, compte tenu des températures maximales observées.
+
+3. **Évolution prévue J+3 et J+7**: Tendances haussières ou baissières?
+   Les scores de risque pour les prochaines semaines (J+3) indiquent que le niveau d'inondation reste "VERT", tandis que la sécheresse est susceptible de rester à un niveau ORANGE, et la chaleur continue également à être normale. Pour J+7, ces tendances sont prévues pour persister sans changement significatif dans les scores ou le risque global.
+
+4. **Recommandations**: Proportionnées au niveau réel
+   - Surveillance accrue de la situation végétale et des niveaux d'humidité solaire, en particulier compte tenu du faible NDVI observé qui pourrait indiquer une dégradation potentielle due aux précipitations anormales.
+   - Préparer les communautés locales à la possibilité de sécheresses et d'inondations futures, en mettant l'accent sur des mesures adaptatives pour atténuer ces risques sans causer d'alarmisme injustifié compte tenu du niveau actuel.
+   - Continuer les efforts de suivi climatique à Kribi et ajuster les stratégies en fonction des tendances observées, notamment si la sécheresse s'intensifie ou que l'humidité solaire augmente significativement après ces précipitations anormales.
+
+5. **Niveau d'alerte globale**: VERT / JAUNE / ORANGE / ROUGE
+   - NIVEAU D'ALERTE GLOBAL : JAUNE pour le risque climatique à Kribi, Cameroun au 22 juin 2026.
