@@ -1,13 +1,8 @@
-# SAMCAM V4 — Dépendances modèle de classification
-# pip install -r inference/requirements_v4.txt
-
-# Machine learning
-scikit-learn>=1.4.0
-joblib>=1.3.0
-
-# Data
-pandas>=2.0.0
-numpy>=1.26.0
-
-# GEE (optionnel — nécessaire uniquement pour build_dataset.py sans --no-gee)
-# earthengine-api>=0.1.380
+scikit-learn>=1.3
+joblib>=1.3
+pandas>=2.0
+numpy>=1.24
+# Données historiques réelles (mode --openmeteo, V4.2)
+openmeteo-requests>=0.3
+requests-cache>=1.1
+retry-requests>=2.0

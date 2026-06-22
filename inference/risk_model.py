@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.1 — Module d'inférence des risques climatiques
+SAMCAM V4.2 — Module d'inférence des risques climatiques
 
-NOUVEAUTÉS V4.1 :
-    - Charge les modèles V4.1 (dict {clf, seuil, features})
-      avec rétrocompatibilité V4 (pkl = clf direct)
-    - Calcul des 6 features dérivées à la volée lors de l'inférence
-    - Seuil de décision optimisé par risque (extrait du pkl)
-    - Score de confiance retourné (distance au seuil)
-    - Description narrative du niveau de risque par type
-    - Fallback : règles physiques si modèles absents (inchangé)
+NOUVEAUTÉS V4.2 :
+    - trend_sm calculé via un historique glissant en mémoire
+      (plus de valeur 0 fixe — donnée réelle entre deux appels successifs)
+    - Meilleure gestion des features manquantes (imputation médiane)
+    - reset_historique() pour forcer la remise à zéro du cache sm
 
-Charge les modèles RandomForest/GradientBoosting entraînés et prédit :
+Charge les modèles GradientBoosting entraînés et prédit :
     - risque_actuel   : basé sur données J-7 à J0
     - risque_prevu_3j : basé sur prévisions J+1 à J+3
     - risque_prevu_7j : basé sur prévisions J+1 à J+7
@@ -37,23 +34,20 @@ SCORE_VERS_NIVEAU = {
     (0.00, 0.25): "VERT",
 }
 
-# Features de base (V4)
 FEATURES_BASE = [
     "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
     "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
     "ndvi", "ndwi",
 ]
 
-# Features dérivées (V4.1)
 FEATURES_DERIVEES = [
     "sin_mois", "cos_mois",
     "anomalie_pluie", "ratio_30j_7j",
     "trend_sm", "sm_deficit",
 ]
 
-FEATURES_ORDER = FEATURES_BASE + FEATURES_DERIVEES  # 16 features
+FEATURES_ORDER = FEATURES_BASE + FEATURES_DERIVEES
 
-# Descriptions narratives par type de risque et niveau
 DESCRIPTIONS = {
     "inondation": {
         "ROUGE":  "Risque d'inondation critique — évacuations préventives recommandées.",
@@ -76,6 +70,40 @@ DESCRIPTIONS = {
 }
 
 
+# ───────────────────────────────────────────────────────────────────────────────
+# HISTORIQUE GLISSANT — trend_sm en temps réel (V4.2)
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Stocke la dernière valeur sm_surface observée (persistante entre appels pipeline)
+_sm_surface_historique: Optional[float] = None
+
+
+def reset_historique():
+    """Remet à zéro l'historique sm pour forcer un recalcul propre."""
+    global _sm_surface_historique
+    _sm_surface_historique = None
+
+
+def _get_trend_sm(sm_surface_actuel: float) -> float:
+    """
+    V4.2 — Calcule la vraie variation d'humidité sol entre deux appels.
+    Retourne 0.0 au premier appel (pas d'historique disponible).
+    Valeurs positives → sol qui se sature (risque inondation ↑)
+    Valeurs négatives → sol qui se dessèche (risque sécheresse ↑)
+    """
+    global _sm_surface_historique
+    if _sm_surface_historique is None:
+        trend = 0.0
+    else:
+        trend = round(sm_surface_actuel - _sm_surface_historique, 4)
+    _sm_surface_historique = sm_surface_actuel
+    return trend
+
+
+# ───────────────────────────────────────────────────────────────────────────────
+# HELPERS
+# ───────────────────────────────────────────────────────────────────────────────
+
 def _score_vers_niveau(score: float) -> str:
     for (lo, hi), niveau in SCORE_VERS_NIVEAU.items():
         if lo <= score < hi:
@@ -84,7 +112,6 @@ def _score_vers_niveau(score: float) -> str:
 
 
 def _confidence(score: float, seuil: float) -> float:
-    """Distance normalisée au seuil de décision → confiance 0-1."""
     dist = abs(score - seuil)
     return round(min(1.0, dist / 0.5), 3)
 
@@ -97,11 +124,6 @@ _cache_modeles: dict = {}
 
 
 def _charger_modele(nom: str):
-    """
-    Charge un modèle pkl avec cache mémoire.
-    Supporte les formats V4 (clf direct) et V4.1 (dict {clf, seuil, features}).
-    Retourne (clf, seuil, features) ou (None, 0.5, FEATURES_BASE).
-    """
     if nom in _cache_modeles:
         return _cache_modeles[nom]
 
@@ -113,12 +135,10 @@ def _charger_modele(nom: str):
         import joblib
         obj = joblib.load(chemin)
         if isinstance(obj, dict):
-            # Format V4.1
             clf      = obj["clf"]
             seuil    = obj.get("seuil",    0.5)
             features = obj.get("features", FEATURES_BASE)
         else:
-            # Format V4 (rétrocompatibilité)
             clf      = obj
             seuil    = 0.5
             features = FEATURES_BASE
@@ -135,7 +155,7 @@ def modeles_disponibles() -> list:
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# FALLBACK — Règles physiques (si modèles absents)
+# FALLBACK — Règles physiques
 # ───────────────────────────────────────────────────────────────────────────────
 
 def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
@@ -166,15 +186,11 @@ def _risque_chaleur_physique(temp_max, temp_max_3j):
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# CONSTRUCTION DES FEATURES (V4.1 : inclut les dérivées)
+# CONSTRUCTION DES FEATURES (V4.2 : trend_sm live)
 # ───────────────────────────────────────────────────────────────────────────────
 
 def _features_from_data(data: dict, use_previsions: bool = False,
                          horizon_jours: int = 7) -> dict:
-    """
-    Extrait et calcule les 16 features depuis le dict de données collectées.
-    Les 6 features dérivées sont recalculées à la volée.
-    """
     mois = datetime.date.today().month
     ind  = data.get("indicateurs_risque", {})
     sat  = data.get("satellitaire", {}).get("smap", {}).get("humidite_sol", {})
@@ -192,7 +208,6 @@ def _features_from_data(data: dict, use_previsions: bool = False,
         temp_list   = (prev.get("temperature_2m_max", []) or [])[:horizon_jours]
         pluie_prev  = sum(float(p or 0) for p in precip_list)
         temp_max    = max((float(t or 28) for t in temp_list), default=28.0)
-        # temp_max_3j : vraie moyenne sur les 3 premières prévisions
         t3 = [float(t or 28) for t in temp_list[:3]]
         temp_max_3j = sum(t3) / len(t3) if t3 else temp_max
         pluie_7j_feat = pluie_prev
@@ -202,20 +217,20 @@ def _features_from_data(data: dict, use_previsions: bool = False,
         temp_max_3j = float(ind.get("temperature_max_3j_c", temp_max - 0.5) or temp_max - 0.5)
         pluie_7j_feat = pluie_7j
 
-    # ── Features dérivées (V4.1) ──────────────────────────────────────────────
+    # ── Features dérivées (V4.2 : trend_sm calculé depuis l'historique live) ──
     normale = NORMALES_MENSUELLES.get(mois, 120)
-    normale_30j = normale * (30 / 7)
 
     sin_mois  = round(math.sin(2 * math.pi * mois / 12), 4)
     cos_mois  = round(math.cos(2 * math.pi * mois / 12), 4)
     anomalie  = round((pluie_7j_feat - normale) / max(1.0, normale), 4)
     ratio     = round(pluie_30j / max(1.0, pluie_7j_feat * (30 / 7)), 4) if pluie_7j_feat > 0 else 1.0
     ratio     = min(ratio, 5.0)
-    trend_sm  = 0.0   # pas d'historique disponible au moment de l'inférence live
+
+    # V4.2 : trend_sm depuis l'historique glissant en mémoire (plus de 0 fixe)
+    trend_sm  = _get_trend_sm(sm_surface) if not use_previsions else 0.0
     sm_def    = round(max(0.0, (0.30 - sm_rootzone) / 0.30), 4)
 
     return {
-        # Base
         "mois":          mois,
         "pluie_7j":      round(pluie_7j_feat, 2),
         "pluie_30j":     round(pluie_30j,     2),
@@ -226,7 +241,6 @@ def _features_from_data(data: dict, use_previsions: bool = False,
         "sm_rootzone":   round(sm_rootzone,    4),
         "ndvi":          round(ndvi,           4),
         "ndwi":          round(ndwi,           4),
-        # Dérivées
         "sin_mois":       sin_mois,
         "cos_mois":       cos_mois,
         "anomalie_pluie": anomalie,
@@ -242,18 +256,6 @@ def _features_from_data(data: dict, use_previsions: bool = False,
 
 def predire_risques(data: dict, use_previsions: bool = False,
                     horizon_jours: int = 7) -> dict:
-    """
-    Prédit les trois risques (inondation, sécheresse, chaleur).
-    Utilise les modèles V4.1 si disponibles (avec seuil optimisé),
-    sinon les règles physiques.
-
-    Retourne un dict avec :
-        scores      : probabilités 0-1
-        niveaux     : VERT/JAUNE/ORANGE/ROUGE
-        niveaux_desc: descriptions narratives
-        confiances  : distance au seuil de décision (0=incertain, 1=très sûr)
-        niveau_global, methode_globale, features_utilisees, modeles_charges
-    """
     feats = _features_from_data(data, use_previsions=use_previsions,
                                  horizon_jours=horizon_jours)
 
@@ -271,8 +273,12 @@ def predire_risques(data: dict, use_previsions: bool = False,
 
         if clf is not None:
             try:
-                # N'utiliser que les features connues du modèle
-                feats_modele = {k: feats.get(k, 0.0) for k in features_modele}
+                # Imputation médiane pour les features inconnues (robustesse)
+                feats_modele = {}
+                for k in features_modele:
+                    val = feats.get(k)
+                    feats_modele[k] = float(val) if val is not None else 0.0
+
                 if use_df:
                     import pandas as pd
                     X = pd.DataFrame([feats_modele], columns=features_modele)
@@ -280,8 +286,9 @@ def predire_risques(data: dict, use_previsions: bool = False,
                     X = [[feats_modele[f] for f in features_modele]]
 
                 score = float(clf.predict_proba(X)[0][1])
-                methode_utilisee[nom] = "modele_ml_v4.1"
-            except Exception:
+                methode_utilisee[nom] = "modele_ml_v4.2"
+            except Exception as e:
+                print(f"[RISK] Erreur modèle {nom} : {e} → fallback règles physiques")
                 score = None
         else:
             score = None
@@ -322,8 +329,8 @@ def predire_risques(data: dict, use_previsions: bool = False,
         "confiances":       {k: v["confiance"]   for k, v in resultats.items()},
         "descriptions":     {k: v["description"] for k, v in resultats.items()},
         "niveau_global":    niveau_global,
-        "methode_globale":  "modele_ml_v4.1" if any(
-            v == "modele_ml_v4.1" for v in methode_utilisee.values()
+        "methode_globale":  "modele_ml_v4.2" if any(
+            v == "modele_ml_v4.2" for v in methode_utilisee.values()
         ) else "regles_physiques",
         "features_utilisees": feats,
         "modeles_charges":    modeles_disponibles(),
@@ -331,10 +338,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
 
 
 def evaluer_previsions(data: dict) -> dict:
-    """
-    Calcule les risques prévisionnels sur J+3 et J+7.
-    Retourne un dict prêt à intégrer dans le rapport JSON.
-    """
     risque_actuel = predire_risques(data, use_previsions=False)
     risque_3j     = predire_risques(data, use_previsions=True, horizon_jours=3)
     risque_7j     = predire_risques(data, use_previsions=True, horizon_jours=7)

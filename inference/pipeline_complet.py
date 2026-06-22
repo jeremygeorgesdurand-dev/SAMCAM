@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
-SAMCAM — Pipeline complet : collecte + analyse + dashboard
+SAMCAM V4.2 — Pipeline complet : collecte + analyse + dashboard
+
+NOUVEAUTÉS V4.2 :
+    - Option --retrain : ré-entraîne les modèles ML après la collecte
+      si suffisamment de nouvelles données réelles ont été accumulées
+    - Affichage du nombre de fichiers de données collectées
 
 Usage :
     python3 inference/pipeline_complet.py
     python3 inference/pipeline_complet.py --days 14
+    python3 inference/pipeline_complet.py --retrain
     python3 inference/pipeline_complet.py --no-browser
-
-Exécute dans l'ordre :
-    1. collect_kribi.py     (collecte données)
-    2. analyser_kribi.py    (analyse Phi-3)
-    3. Copie le JSON dans   dashboard/latest_report.json
-    4. Ouvre le dashboard   dans le navigateur par défaut
 """
 
 import subprocess
@@ -26,6 +26,9 @@ import time
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(BASE, "..")
 
+# Seuil : nombre minimal de fichiers de données réelles avant de proposer un retrain
+SEUIL_RETRAIN = 12  # ~12 semaines de données réelles accumulées
+
 
 def run(cmd: list, label: str):
     print(f"\n{'='*60}")
@@ -38,8 +41,6 @@ def run(cmd: list, label: str):
 
 
 def copier_rapport_json():
-    """Copie le dernier rapport JSON dans dashboard/latest_report.json
-    pour que le dashboard (et à terme l'app Android) puisse le lire facilement."""
     reports_dir  = os.path.join(ROOT, "reports")
     dashboard_dir = os.path.join(ROOT, "dashboard")
     os.makedirs(dashboard_dir, exist_ok=True)
@@ -58,11 +59,35 @@ def copier_rapport_json():
     return dest
 
 
+def compter_donnees_reelles() -> int:
+    """Compte les fichiers de données collectées dans data/."""
+    data_dir = os.path.join(ROOT, "data")
+    fichiers = glob.glob(os.path.join(data_dir, "kribi_*.json"))
+    return len(fichiers)
+
+
+def verifier_retrain_necessaire(force: bool = False) -> bool:
+    """
+    V4.2 — Vérifie si un ré-entraînement est opportun.
+    Conditions :
+    - --retrain passé explicitement (force=True), OU
+    - Plus de SEUIL_RETRAIN fichiers de données collectées
+      ET le dataset historique existe déjà (base à enrichir)
+    """
+    if force:
+        return True
+    n = compter_donnees_reelles()
+    dataset_existe = os.path.exists(os.path.join(ROOT, "data", "dataset_kribi_historical.csv"))
+    if n >= SEUIL_RETRAIN and dataset_existe:
+        print(f"\n[PIPELINE] 📊 {n} fichiers de données réelles détectés.")
+        print(f"           Ré-entraînement recommandé (seuil={SEUIL_RETRAIN}).")
+        return True
+    return False
+
+
 def ouvrir_dashboard():
-    """Ouvre le dashboard v4 dans le navigateur par défaut."""
     dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
     if not os.path.exists(dashboard_path):
-        # Fallback v3
         dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v3-dashboard.html")
     if not os.path.exists(dashboard_path):
         print("⚠️  Aucun dashboard HTML trouvé dans dashboard/")
@@ -71,40 +96,55 @@ def ouvrir_dashboard():
     url = "file://" + os.path.abspath(dashboard_path)
     print(f"\n[SAMCAM] 🌐 Ouverture du dashboard :")
     print(f"         {url}")
-    # Petit délai pour laisser le JSON se stabiliser sur disque
     time.sleep(0.5)
     webbrowser.open(url)
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="SAMCAM — Pipeline complet")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.2 — Pipeline complet")
     parser.add_argument("--days",       type=int,            default=7)
     parser.add_argument("--no-browser", action="store_true", help="Ne pas ouvrir le navigateur")
+    parser.add_argument("--retrain",    action="store_true",
+                        help="Ré-entraîne les modèles ML après la collecte")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.2 — {datetime.date.today().isoformat()}")
+    n_data = compter_donnees_reelles()
+    print(f"   Données collectées disponibles : {n_data} fichiers")
 
     # Étape 1 — Collecte
     run(
         [sys.executable, "data_collection/collect_kribi.py", "--days", str(args.days)],
-        "[1/2] Collecte des données"
+        "[1/3] Collecte des données météo + satellite"
     )
 
-    # Étape 2 — Analyse Phi-3
+    # Étape 2 — Ré-entraînement conditionnel (V4.2)
+    if verifier_retrain_necessaire(force=args.retrain):
+        print(f"\n{'='*60}")
+        print(f"🤖 [2/3] Ré-entraînement des modèles ML")
+        print(f"{'='*60}")
+        run(
+            [sys.executable, "inference/train_model.py", "--force"],
+            "[2/3] Ré-entraînement modèles"
+        )
+    else:
+        print(f"\n[PIPELINE] ⏭️  Ré-entraînement ignoré "
+              f"(données {n_data}/{SEUIL_RETRAIN} — utilisez --retrain pour forcer)")
+
+    # Étape 3 — Analyse Phi-3
     run(
         [sys.executable, "inference/analyser_kribi.py"],
-        "[2/2] Analyse Phi-3 mini"
+        "[3/3] Analyse Phi-3 mini + génération rapport"
     )
 
-    # Étape 3 — Copie JSON → dashboard/
+    # Export JSON → dashboard/
     print(f"\n{'='*60}")
-    print(f"📋 [3/3] Export JSON pour le dashboard")
+    print(f"📋 Export JSON pour le dashboard")
     print(f"{'='*60}")
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.2 terminé. Rapports disponibles dans reports/")
 
-    # Étape 4 — Ouvrir le dashboard
     if not args.no_browser:
         ouvrir_dashboard()
