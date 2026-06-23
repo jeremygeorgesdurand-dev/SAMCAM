@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config.dart';
 import '../services/api_service.dart';
+import 'demo_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -77,11 +78,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            // ══ Section : Mode Démo ══════════════════════════════════════════
+            _SectionHeader(icon: Icons.play_circle_outline_rounded,
+                label: 'Mode Démo'),
+            const SizedBox(height: 12),
+            _DemoCard(
+              onTap: () => Navigator.push(
+                context,
+                PageRouteBuilder(
+                  pageBuilder: (_, a, __) => const DemoScreen(),
+                  transitionsBuilder: (_, anim, __, child) =>
+                    FadeTransition(opacity: anim, child: child),
+                  transitionDuration: const Duration(milliseconds: 350),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // ══ Section : Serveur ════════════════════════════════════════════
+            _SectionHeader(icon: Icons.dns_rounded, label: 'Connexion serveur'),
+            const SizedBox(height: 12),
+
             const Text('URL du serveur SAMCAM',
               style: TextStyle(
                   color: Colors.white70,
@@ -176,6 +200,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 12)),
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Widgets utilitaires ──────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  const _SectionHeader({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF4F98A3), size: 18),
+        const SizedBox(width: 8),
+        Text(label,
+          style: const TextStyle(
+            color: Color(0xFF4F98A3),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+          )),
+        const SizedBox(width: 8),
+        Expanded(child: Divider(
+            color: Colors.white.withOpacity(0.08), height: 1)),
+      ],
+    );
+  }
+}
+
+class _DemoCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _DemoCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF1A2A4A), Color(0xFF0D1A30)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF4F98A3).withOpacity(0.35),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFF01696F).withOpacity(0.20),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: const Color(0xFF4F98A3).withOpacity(0.40)),
+              ),
+              child: const Center(
+                child: Text('🌤️', style: TextStyle(fontSize: 26)),
+              ),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Mode Démo météo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    )),
+                  SizedBox(height: 3),
+                  Text(
+                    '9 conditions météo • Animations premium • Auto 5 s',
+                    style: TextStyle(
+                      color: Colors.white54,
+                      fontSize: 12,
+                    )),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                color: Colors.white38, size: 22),
           ],
         ),
       ),
