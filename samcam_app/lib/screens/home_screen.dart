@@ -9,14 +9,6 @@ import '../widgets/weather_animation.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
 
-// ══════════════════════════════════════════════════════════════════
-// Mapping code météo → WeatherType (adv_flutter_weather 1.0.0)
-// WeatherType valides : sunny, sunnyNight, cloudy, cloudyNight,
-//   overcast, foggy, hazy, dusty, lightRainy, middleRainy,
-//   heavyRainy, storm, lightSnow, middleSnow, heavySnow
-// ══════════════════════════════════════════════════════════════════
-
-// ══════════════════════════════════════════════════════════════════
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
@@ -31,8 +23,24 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hourlyExpanded = true;
   bool _dailyExpanded  = true;
 
+  // Pour parallaxe du fond lors du scroll
+  final _scrollCtrl = ScrollController();
+  double _scrollOffset = 0;
+
   @override
-  void initState() { super.initState(); _fetchAll(); }
+  void initState() {
+    super.initState();
+    _fetchAll();
+    _scrollCtrl.addListener(() {
+      setState(() => _scrollOffset = _scrollCtrl.offset);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
@@ -103,15 +111,72 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: _fetchAll),
         ],
       ),
-      body: AnimatedContainer(
-        duration: const Duration(seconds: 2),
-        decoration: BoxDecoration(gradient: gradient),
-        child: SafeArea(
-          top: true, bottom: false,
-          child: RefreshIndicator(
-            onRefresh: _fetchAll, color: Colors.white,
-            child: _buildBody(animType)),
-        ),
+      body: Stack(
+        children: [
+          // ══════════════════════════════════════════════════════
+          // COUCHE 1 — Fond gradient de base (toute la page)
+          // ══════════════════════════════════════════════════════
+          AnimatedContainer(
+            duration: const Duration(seconds: 2),
+            decoration: BoxDecoration(gradient: gradient),
+          ),
+
+          // ══════════════════════════════════════════════════════
+          // COUCHE 2 — Animation météo plein écran fixe
+          // Légère parallaxe vers le haut au scroll (vitesse 0.3)
+          // ══════════════════════════════════════════════════════
+          LayoutBuilder(builder: (ctx, constraints) {
+            final parallaxOffset = _scrollOffset * 0.30;
+            return ClipRect(
+              child: Transform.translate(
+                offset: Offset(0, -parallaxOffset),
+                child: WeatherAnimationBg(
+                  type:   animType,
+                  width:  constraints.maxWidth,
+                  height: constraints.maxHeight + parallaxOffset,
+                ),
+              ),
+            );
+          }),
+
+          // ══════════════════════════════════════════════════════
+          // COUCHE 3 — Dégradé de fondu : transparent → fond sombre
+          // Il commence à ~55% de la hauteur et finit à ~85%
+          // => transition nette entre l'animation et les cards
+          // ══════════════════════════════════════════════════════
+          IgnorePointer(
+            child: LayoutBuilder(builder: (ctx, constraints) {
+              final h = constraints.maxHeight;
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.transparent,
+                      Color(0xCC0D1A2E),
+                      Color(0xF20D1A2E),
+                      Color(0xFF0D1117),
+                    ],
+                    stops: [0.0, 0.38, 0.62, 0.78, 1.0],
+                  ),
+                ),
+              );
+            }),
+          ),
+
+          // ══════════════════════════════════════════════════════
+          // COUCHE 4 — Contenu scrollable
+          // ══════════════════════════════════════════════════════
+          SafeArea(
+            top: true, bottom: false,
+            child: RefreshIndicator(
+              onRefresh: _fetchAll, color: Colors.white,
+              child: _buildBody(animType),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -119,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBody(WeatherAnimType animType) {
     if (_loading) {
       return ListView(
+        controller: _scrollCtrl,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           _buildSkeletonBanner(),
@@ -133,13 +199,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     final weather = _weather ?? WeatherData(hourly: [], daily: []);
     return ListView(
+      controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
+        // ── Bannières alertes
         if (_report != null) _buildAlertBanner(_report!),
         if (_error != null) _buildErrorBanner(),
         if (_report != null || _error != null) const SizedBox(height: 16),
-        _buildAnimatedWeatherHeader(weather, animType),
+
+        // ── Zone header météo (transparent, l'animation est dessous)
+        _buildWeatherHeaderOverlay(weather),
+
         const SizedBox(height: 20),
+
+        // ── Sections cards (fond sombre, posées sur le dégradé)
         _buildHourlySection(weather),
         const SizedBox(height: 12),
         _buildDailySection(weather),
@@ -152,9 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Header météo : animation météo custom (Flutter Web compatible)
+  // Header météo TRANSPARENT — juste le texte par-dessus l'animation
   // ─────────────────────────────────────────────────────────────────
-  Widget _buildAnimatedWeatherHeader(WeatherData weather, WeatherAnimType animType) {
+  Widget _buildWeatherHeaderOverlay(WeatherData weather) {
     final now = DateTime.now();
     String dateStr;
     try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
@@ -196,88 +269,69 @@ class _HomeScreenState extends State<HomeScreen> {
       minMax = '\u2191 ${d.tempMax.toStringAsFixed(0)}\u00b0  \u2193 ${d.tempMin.toStringAsFixed(0)}\u00b0';
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: SizedBox(
-        height: 310,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final w = constraints.maxWidth > 0 ? constraints.maxWidth : 360.0;
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                // ── Animation météo Flutter Web ────────────────────
-                WeatherAnimationBg(
-                  type: animType,
-                  width: w,
-                  height: 310,
-                ),
-                // ── Vignette bas pour lisibilité ──────────────────
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Color(0x88000000)],
-                      stops: [0.3, 1.0],
-                    ),
-                  ),
-                ),
-                // ── Contenu texte ─────────────────────────────────
-                Positioned.fill(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(city, style: const TextStyle(
-                          color: Colors.white, fontSize: 22,
-                          fontWeight: FontWeight.w300, letterSpacing: 1,
-                          shadows: [Shadow(color: Colors.black38, blurRadius: 6)])),
-                        const SizedBox(height: 2),
-                        Text(dateStr, style: const TextStyle(
-                          color: Colors.white70, fontSize: 13,
-                          shadows: [Shadow(color: Colors.black38, blurRadius: 4)])),
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(currentIcon, style: const TextStyle(fontSize: 52)),
-                            const SizedBox(width: 6),
-                            Text('$currentTemp\u00b0', style: const TextStyle(
-                              color: Colors.white, fontSize: 72,
-                              fontWeight: FontWeight.w200, height: 1,
-                              shadows: [Shadow(color: Colors.black38, blurRadius: 8)])),
-                          ],
-                        ),
-                        Text(currentDesc, style: const TextStyle(
-                          color: Colors.white70, fontSize: 15,
-                          shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
-                        if (minMax.isNotEmpty) ...[const SizedBox(height: 2),
-                          Text(minMax, style: const TextStyle(
-                            color: Colors.white54, fontSize: 12,
-                            shadows: [Shadow(color: Colors.black38, blurRadius: 3)]))],
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
-                            Container(width: 1, height: 24,
-                              margin: const EdgeInsets.symmetric(horizontal: 20),
-                              color: Colors.white24),
-                            _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', 'Vent'),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
+    // Hauteur du header = ~55% de l'écran (juste avant le dégradé)
+    return SizedBox(
+      height: 300,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(city, style: const TextStyle(
+            color: Colors.white, fontSize: 26,
+            fontWeight: FontWeight.w300, letterSpacing: 1.2,
+            shadows: [Shadow(color: Colors.black38, blurRadius: 8)])),
+          const SizedBox(height: 2),
+          Text(dateStr, style: const TextStyle(
+            color: Colors.white70, fontSize: 13,
+            shadows: [Shadow(color: Colors.black38, blurRadius: 4)])),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(currentIcon, style: const TextStyle(fontSize: 52)),
+              const SizedBox(width: 6),
+              Text('$currentTemp\u00b0', style: const TextStyle(
+                color: Colors.white, fontSize: 80,
+                fontWeight: FontWeight.w200, height: 1,
+                shadows: [Shadow(color: Colors.black45, blurRadius: 12)])),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(currentDesc, style: const TextStyle(
+            color: Colors.white, fontSize: 17,
+            fontWeight: FontWeight.w400,
+            shadows: [Shadow(color: Colors.black45, blurRadius: 6)])),
+          if (minMax.isNotEmpty) ...[const SizedBox(height: 3),
+            Text(minMax, style: const TextStyle(
+              color: Colors.white60, fontSize: 13,
+              shadows: [Shadow(color: Colors.black38, blurRadius: 4)]))],
+          const SizedBox(height: 16),
+          // Stats bar — fond semi-transparent
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 11),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.20),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withOpacity(0.15)),
+              // Blur glass effect via boxShadow
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 16, spreadRadius: 0,
                 ),
               ],
-            );
-          },
-        ),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
+              Container(width: 1, height: 28,
+                margin: const EdgeInsets.symmetric(horizontal: 22),
+                color: Colors.white.withOpacity(0.20)),
+              _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', 'Vent'),
+            ]),
+          ),
+          const SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -288,11 +342,9 @@ class _HomeScreenState extends State<HomeScreen> {
     decoration: BoxDecoration(
       color: Colors.white10, borderRadius: BorderRadius.circular(18)));
 
-  Widget _buildSkeletonHeader() => Container(
-    height: 310,
-    decoration: BoxDecoration(
-      color: Colors.white10, borderRadius: BorderRadius.circular(24)),
-    child: const Center(
+  Widget _buildSkeletonHeader() => const SizedBox(
+    height: 300,
+    child: Center(
       child: CircularProgressIndicator(color: Colors.white30, strokeWidth: 2)));
 
   Widget _buildSkeletonCard({required double height}) => Container(
@@ -871,7 +923,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _headerStat(IconData icon, String value, String label) =>
     Row(children: [
-      Icon(icon, color: Colors.white60, size: 16),
+      Icon(icon, color: Colors.white70, size: 16),
       const SizedBox(width: 6),
       Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(value, style: const TextStyle(
@@ -1020,9 +1072,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _glassCard({required Widget child}) => Container(
     width: double.infinity,
     decoration: BoxDecoration(
-      color: Colors.white.withOpacity(0.12),
+      color: Colors.white.withOpacity(0.10),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: Colors.white24, width: 0.8)),
+      border: Border.all(color: Colors.white.withOpacity(0.15), width: 0.8)),
     child: ClipRRect(borderRadius: BorderRadius.circular(20), child: child));
 
   Widget _expandableHeader({
