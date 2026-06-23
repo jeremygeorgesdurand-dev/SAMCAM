@@ -78,9 +78,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return 0;
   }
 
-  // ══ Hauteur du bandeau (0 si pas d'alerte ni d'erreur)
+  // ══ Bandeau présent si alerte ou erreur
   bool get _hasAlert => _report != null || _error != null;
-  double get _alertBannerHeight => _hasAlert ? 40.0 : 0.0;
+
+  // Hauteur du bandeau alerte (36px) + ligne du titre (kToolbarHeight)
+  double get _alertBannerHeight => _hasAlert ? 36.0 : 0.0;
 
   @override
   Widget build(BuildContext context) {
@@ -150,44 +152,59 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ═════════════════════════════════════════════════════════════════
-  // AppBar avec bandeau alerte intégré dans le bottom:
+  // AppBar : titre + icônes sur une ligne, bandeau alerte dessous
+  //          Le bandeau est ENTRE le titre et le reste de l'écran.
   // ═════════════════════════════════════════════════════════════════
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: Size.fromHeight(kToolbarHeight + _alertBannerHeight),
       child: ClipRect(
         child: Container(
-          // Fond semi-opaque noir — toujours lisible quelle que soit la météo
+          // Fond semi-opaque : garantit la lisibilité quelle que soit la météo
           decoration: const BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Color(0xCC000000),  // 80% opaque en haut
-                Color(0x88000000),  // 53% au milieu
-                Color(0x00000000),  // transparent tout en bas
+                Color(0xDD000000),  // 87 % opaque — titre toujours lisible
+                Color(0xBB000000),  // 73 % opaque — bandeau lisible
+                Color(0x00000000),  // transparent en bas
               ],
-              stops: [0.0, 0.75, 1.0],
+              stops: [0.0, 0.85, 1.0],
             ),
           ),
           child: SafeArea(
             bottom: false,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // ── Ligne principale AppBar
+                // ── Ligne principale : SAMCAM  |  (bandeau si alerte)  |  icônes
                 SizedBox(
                   height: kToolbarHeight,
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(width: 16),
-                      const Text('SAMCAM', style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                        fontSize: 18,
-                      )),
-                      const Spacer(),
+                      // Titre
+                      const Text(
+                        'SAMCAM',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // ── Bandeau alerte INLINE (entre le titre et les icônes)
+                      if (_hasAlert)
+                        Expanded(child: _buildInlineAlertBanner())
+                      else
+                        const Spacer(),
+
+                      // Icônes à droite
                       IconButton(
                         icon: const Icon(Icons.history, color: Colors.white70),
                         onPressed: () => Navigator.push(
@@ -207,10 +224,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 ),
-
-                // ── Bandeau alerte (uniquement si alerte ou erreur)
-                if (_hasAlert)
-                  _buildInlineAlertBanner(),
               ],
             ),
           ),
@@ -219,102 +232,131 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Bandeau compact dans l'AppBar — fond coloré semi-opaque garanti lisible
+  // ─────────────────────────────────────────────────────────────────
+  // Bandeau inline — s'insère entre le titre et les icônes
+  // Fond solide teinté couleur alerte pour lisibilité maximale
+  // ─────────────────────────────────────────────────────────────────
   Widget _buildInlineAlertBanner() {
-    // Erreur serveur (pas d'alerte)
+    // ── Erreur serveur
     if (_report == null && _error != null) {
       return Container(
-        height: _alertBannerHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        color: Colors.black54,
-        child: Row(children: [
-          const Icon(Icons.cloud_off_outlined, color: Colors.white54, size: 13),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              _error ?? 'Serveur SAMCAM inaccessible',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white24, width: 0.8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, color: Colors.white54, size: 12),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                _error ?? 'Serveur SAMCAM inaccessible',
+                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
             ),
-          ),
-          GestureDetector(
-            onTap: _fetchAll,
-            child: const Text('Réessayer',
-              style: TextStyle(
-                color: Colors.white60, fontSize: 12,
-                decoration: TextDecoration.underline)),
-          ),
-        ]),
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: _fetchAll,
+              child: const Text(
+                'Réessayer',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 
-    // Alerte SAMCAM
+    // ── Alerte SAMCAM
     final r      = _report!;
     final color  = _alertColor(r.niveauAlerte);
     final isOk   = r.niveauAlerte == 'VERT';
     final isInco = r.niveauAlerte == 'INCONNU';
 
-    // Fond : couleur de l'alerte à 25% + noir à 60% pour lisibilité garantie
-    final bgColor = Color.lerp(Colors.black.withOpacity(0.65), color.withOpacity(0.35), 0.5)!;
+    // Fond teinté couleur alerte à 30% + noir 60% : toujours lisible
+    final bgColor = Color.lerp(
+      Colors.black.withOpacity(0.55),
+      color.withOpacity(0.45),
+      0.40,
+    )!;
 
     return Container(
-      height: _alertBannerHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(color: bgColor),
-      child: Row(children: [
-        Icon(
-          isOk ? Icons.check_circle_outline
-               : isInco ? Icons.help_outline
-               : Icons.warning_amber_rounded,
-          color: color,
-          size: 14,
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: RichText(
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: _alertLabel(r.niveauAlerte),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+      height: 28,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.55), width: 0.9),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isOk
+                ? Icons.check_circle_outline
+                : isInco
+                    ? Icons.help_outline
+                    : Icons.warning_amber_rounded,
+            color: color,
+            size: 13,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: RichText(
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: _alertLabel(r.niveauAlerte),
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-                TextSpan(
-                  text: '  •  ${r.zone}  •  ${r.date}',
-                  style: const TextStyle(
-                    color: Colors.white60,
-                    fontSize: 11,
+                  TextSpan(
+                    text: '  •  ${r.zone}  •  ${r.date}',
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.22),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color.withOpacity(0.7), width: 1),
-          ),
-          child: Text(
-            r.niveauAlerte,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.8,
-              fontSize: 10,
+          const SizedBox(width: 8),
+          // Badge niveau d'alerte
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.25),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.8), width: 0.9),
+            ),
+            child: Text(
+              r.niveauAlerte,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.8,
+                fontSize: 10,
+              ),
             ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -659,7 +701,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             if (today?.sunset != null)
-              Text('Protection jusqu\'\u00e0 $sunsetStr.',
+              Text('Protection jusqu\'\\u00e0 $sunsetStr.',
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ]),
         ),
