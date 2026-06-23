@@ -1,6 +1,6 @@
+import 'package:adv_flutter_weather/flutter_weather_bg.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:weather_animation/weather_animation.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
 import '../models/weather_forecast.dart';
@@ -10,87 +10,68 @@ import 'settings_screen.dart';
 import 'history_screen.dart';
 
 // ══════════════════════════════════════════════════════════════════
-enum _WeatherKind { sunny, partlyCloudy, cloudy, rain, storm, snow, fog }
-
-_WeatherKind _codeToKind(int? code) {
-  if (code == null) return _WeatherKind.sunny;
-  if (code == 0) return _WeatherKind.sunny;
-  if (code <= 2) return _WeatherKind.partlyCloudy;
-  if (code == 3) return _WeatherKind.cloudy;
-  if (code >= 45 && code <= 48) return _WeatherKind.fog;
-  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))
-    return _WeatherKind.rain;
-  if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86))
-    return _WeatherKind.snow;
-  if (code >= 95) return _WeatherKind.storm;
-  return _WeatherKind.sunny;
+// Mapping code météo → WeatherType (adv_flutter_weather, 15 types)
+// ══════════════════════════════════════════════════════════════════
+WeatherType _codeToWeatherType(int? code, int hour) {
+  final night = hour < 6 || hour >= 21;
+  if (code == null) return night ? WeatherType.sunnyNight : WeatherType.sunny;
+  if (code == 0)  return night ? WeatherType.sunnyNight : WeatherType.sunny;
+  if (code <= 2)  return night ? WeatherType.cloudyNight : WeatherType.cloudy;
+  if (code == 3)  return WeatherType.overcast;
+  if (code >= 45 && code <= 48) return WeatherType.foggy;
+  if (code >= 51 && code <= 55) return WeatherType.lightRainy;
+  if (code >= 56 && code <= 60) return WeatherType.middleRainy;
+  if (code >= 61 && code <= 65) return WeatherType.middleRainy;
+  if (code == 66 || code == 67) return WeatherType.heavyRainy;
+  if (code >= 71 && code <= 73) return WeatherType.lightSnow;
+  if (code >= 74 && code <= 79) return WeatherType.middleSnow;
+  if (code >= 80 && code <= 82) return WeatherType.heavyRainy;
+  if (code >= 85 && code <= 86) return WeatherType.heavySnow;
+  if (code == 95)               return WeatherType.thunder;
+  if (code >= 96)               return WeatherType.hailStorm;
+  return night ? WeatherType.sunnyNight : WeatherType.sunny;
 }
 
-/// Dégradé de fond pour TOUTE la page (discret, lisible)
-LinearGradient _pageGradient(_WeatherKind kind, int hour) {
-  final night = hour < 6 || hour >= 21;
-  final dusk  = hour >= 18 && hour < 21;
-  if (night) {
-    return const LinearGradient(
-      begin: Alignment.topCenter, end: Alignment.bottomCenter,
-      colors: [Color(0xFF05091A), Color(0xFF0A1628)]);
-  }
-  switch (kind) {
-    case _WeatherKind.storm:
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A1A2E), Color(0xFF22304A)]);
-    case _WeatherKind.rain:
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF243447), Color(0xFF2E4460)]);
-    case _WeatherKind.cloudy:
-    case _WeatherKind.fog:
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF304560), Color(0xFF3D5570)]);
-    case _WeatherKind.partlyCloudy:
-      if (dusk) return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A3A6B), Color(0xFFB85C20)]);
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A6CB0), Color(0xFF3A8FCC)]);
-    case _WeatherKind.snow:
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF3A567A), Color(0xFF5A8AA0)]);
-    case _WeatherKind.sunny:
-      if (dusk) return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A3A6B), Color(0xFFD4721A)]);
-      if (hour < 12) return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF1A7FC1), Color(0xFF5BAFE0)]);
+/// Dégradé de fond pour TOUTE la page selon WeatherType
+LinearGradient _pageGradient(WeatherType type) {
+  switch (type) {
+    case WeatherType.sunny:
       return const LinearGradient(
         begin: Alignment.topCenter, end: Alignment.bottomCenter,
         colors: [Color(0xFF0D5FA3), Color(0xFF4A9FD0)]);
-  }
-}
-
-/// Scène weather_animation selon le type de temps
-WeatherScene _kindToScene(_WeatherKind kind, int hour) {
-  final night = hour < 6 || hour >= 21;
-  switch (kind) {
-    case _WeatherKind.sunny:
-      return WeatherScene.scorchingSun;
-    case _WeatherKind.partlyCloudy:
-      return night ? WeatherScene.showerSleet : WeatherScene.showerSleet;
-    case _WeatherKind.cloudy:
-      return WeatherScene.showerSleet;
-    case _WeatherKind.fog:
-      return WeatherScene.frosty;
-    case _WeatherKind.rain:
-      return WeatherScene.rainyOvercast;
-    case _WeatherKind.storm:
-      return WeatherScene.stormy;
-    case _WeatherKind.snow:
-      return WeatherScene.snowfall;
+    case WeatherType.sunnyNight:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF05091A), Color(0xFF0A1628)]);
+    case WeatherType.cloudy:
+    case WeatherType.cloudyNight:
+    case WeatherType.overcast:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF304560), Color(0xFF3D5570)]);
+    case WeatherType.foggy:
+    case WeatherType.hazy:
+    case WeatherType.dusty:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF4A5568), Color(0xFF5A6680)]);
+    case WeatherType.lightRainy:
+    case WeatherType.middleRainy:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF243447), Color(0xFF2E4460)]);
+    case WeatherType.heavyRainy:
+    case WeatherType.thunder:
+    case WeatherType.hailStorm:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A1A2E), Color(0xFF22304A)]);
+    case WeatherType.lightSnow:
+    case WeatherType.middleSnow:
+    case WeatherType.heavySnow:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF3A567A), Color(0xFF5A8AA0)]);
   }
 }
 
@@ -151,9 +132,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final kind  = _codeToKind(_loading ? null : _currentCode);
-    final hour  = DateTime.now().hour;
-    final scene = _kindToScene(kind, hour);
+    final hour        = DateTime.now().hour;
+    final weatherType = _codeToWeatherType(_loading ? null : _currentCode, hour);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -181,18 +161,18 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: AnimatedContainer(
         duration: const Duration(seconds: 2),
-        decoration: BoxDecoration(gradient: _pageGradient(kind, hour)),
+        decoration: BoxDecoration(gradient: _pageGradient(weatherType)),
         child: SafeArea(
           top: true, bottom: false,
           child: RefreshIndicator(
             onRefresh: _fetchAll, color: Colors.white,
-            child: _buildBody(scene)),
+            child: _buildBody(weatherType)),
         ),
       ),
     );
   }
 
-  Widget _buildBody(WeatherScene scene) {
+  Widget _buildBody(WeatherType weatherType) {
     if (_loading) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -215,10 +195,9 @@ class _HomeScreenState extends State<HomeScreen> {
         if (_report != null) _buildAlertBanner(_report!),
         if (_error != null) _buildErrorBanner(),
         if (_report != null || _error != null) const SizedBox(height: 16),
-        // ── Header météo animé (uniquement cette zone) ─────────────────
-        _buildAnimatedWeatherHeader(weather, scene),
+        // ── Header météo animé ─────────────────────────────────────
+        _buildAnimatedWeatherHeader(weather, weatherType),
         const SizedBox(height: 20),
-        // ── Le reste est sur fond lisse (dégradé global seul) ──────────
         _buildHourlySection(weather),
         const SizedBox(height: 12),
         _buildDailySection(weather),
@@ -231,9 +210,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Header météo : fond animé weather_animation limité à ce bloc
+  // Header météo : fond animé via adv_flutter_weather
   // ─────────────────────────────────────────────────────────────────
-  Widget _buildAnimatedWeatherHeader(WeatherData weather, WeatherScene scene) {
+  Widget _buildAnimatedWeatherHeader(WeatherData weather, WeatherType weatherType) {
     final now = DateTime.now();
     String dateStr;
     try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
@@ -272,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
     String minMax = '';
     if (weather.daily.isNotEmpty) {
       final d = weather.daily.first;
-      minMax = '↑ ${d.tempMax.toStringAsFixed(0)}°  ↓ ${d.tempMin.toStringAsFixed(0)}°';
+      minMax = '\u2191 ${d.tempMax.toStringAsFixed(0)}\u00b0  \u2193 ${d.tempMin.toStringAsFixed(0)}\u00b0';
     }
 
     return ClipRRect(
@@ -282,13 +261,13 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // ── Animation weather_animation en fond du header seulement ─
-            WrapperScene(
-              colors: const [Color(0xFF0D5FA3), Color(0xFF1A7FC1)],
-              sizeCanvas: const Size(double.maxFinite, 310),
-              children: _sceneWidgets(scene),
+            // ── Animation adv_flutter_weather ─────────────────────
+            WeatherBg(
+              weatherType: weatherType,
+              width: double.maxFinite,
+              height: 310,
             ),
-            // ── Vignette d'assombrissement vers le bas pour lisibilité ──
+            // ── Vignette d'assombrissement pour la lisibilité ─────
             Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
@@ -299,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            // ── Contenu texte du header ─────────────────────────────
+            // ── Contenu texte du header ───────────────────────────
             Positioned.fill(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -323,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Text(currentIcon,
                           style: const TextStyle(fontSize: 52)),
                         const SizedBox(width: 6),
-                        Text('$currentTemp°', style: const TextStyle(
+                        Text('$currentTemp\u00b0', style: const TextStyle(
                           color: Colors.white, fontSize: 72,
                           fontWeight: FontWeight.w200, height: 1,
                           shadows: [Shadow(color: Colors.black38, blurRadius: 8)])),
@@ -340,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
+                        _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidit\u00e9'),
                         Container(width: 1, height: 24,
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           color: Colors.white24),
@@ -355,172 +334,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
-  }
-
-  /// Construit la liste de widgets de scène weather_animation (compatible 1.2.0)
-  List<Widget> _sceneWidgets(WeatherScene scene) {
-    switch (scene) {
-      case WeatherScene.scorchingSun:
-        return [
-          const SunWidget(sunConfig: SunConfig(
-            width: 250,
-            blurSigma: 14,
-            blurStyle: BlurStyle.solid,
-            isLeftLocation: false,
-            coreColor: Color(0xFFFF9800),
-            midColor: Color(0xFFFFF176),
-            outColor: Color(0xFFFFEB3B),
-          )),
-        ];
-      // partlyCloudy / cloudy (showerSleet = ciel nuageux)
-      case WeatherScene.showerSleet:
-        return [
-          const SunWidget(sunConfig: SunConfig(
-            width: 180,
-            blurSigma: 10,
-            blurStyle: BlurStyle.solid,
-            isLeftLocation: false,
-            coreColor: Color(0xFFFFB300),
-            midColor: Color(0xFFFFF9C4),
-            outColor: Color(0xFFFFF176),
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 260, color: Color(0xC0B0BEC5),
-            x: 0.05, y: 0.05,
-            scaleBegin: 0.95, scaleEnd: 1.03,
-            slideX: 20, slideY: 0, slideDurMill: 8000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 200, color: Color(0xA0CFD8DC),
-            x: 0.45, y: 0.15,
-            scaleBegin: 1.0, scaleEnd: 1.05,
-            slideX: 15, slideY: 0, slideDurMill: 10000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 320, color: Color(0xCC90A4AE),
-            x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.03,
-            slideX: 12, slideY: 0, slideDurMill: 9000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 270, color: Color(0xCC78909C),
-            x: 0.40, y: 0.10,
-            scaleBegin: 1.0, scaleEnd: 1.04,
-            slideX: 10, slideY: 0, slideDurMill: 11000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 220, color: Color(0xCC546E7A),
-            x: 0.20, y: 0.05,
-            scaleBegin: 0.98, scaleEnd: 1.02,
-            slideX: 8, slideY: 0, slideDurMill: 13000,
-          )),
-        ];
-      case WeatherScene.frosty:
-        return [
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 400, color: Color(0x99B0BEC5),
-            x: -0.1, y: 0.0,
-            scaleBegin: 0.96, scaleEnd: 1.04,
-            slideX: 5, slideY: 0, slideDurMill: 15000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 300, color: Color(0x88CFD8DC),
-            x: 0.30, y: 0.20,
-            scaleBegin: 1.0, scaleEnd: 1.03,
-            slideX: 4, slideY: 0, slideDurMill: 18000,
-          )),
-        ];
-      case WeatherScene.rainyOvercast:
-        return [
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 340, color: Color(0xDD546E7A),
-            x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.02,
-            slideX: 14, slideY: 0, slideDurMill: 8000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 280, color: Color(0xDD455A64),
-            x: 0.35, y: 0.08,
-            scaleBegin: 1.0, scaleEnd: 1.03,
-            slideX: 12, slideY: 0, slideDurMill: 10000,
-          )),
-          RainWidget(rainConfig: RainConfig(
-            count: 30,
-            lengthDrop: 14,
-            widthDrop: 2,
-            color: const Color(0x887EC8E3),
-            isRoundedEndsDrop: true,
-            fallRangeMinDurMill: 600,
-            fallRangeMaxDurMill: 1200,
-            slideX: 1,
-            slideY: 1,
-          )),
-        ];
-      case WeatherScene.stormy:
-        return [
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 380, color: Color(0xEE37474F),
-            x: -0.05, y: 0.0,
-            scaleBegin: 0.95, scaleEnd: 1.05,
-            slideX: 18, slideY: 0, slideDurMill: 6000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 300, color: Color(0xEE263238),
-            x: 0.30, y: 0.05,
-            scaleBegin: 1.0, scaleEnd: 1.06,
-            slideX: 15, slideY: 0, slideDurMill: 7500,
-          )),
-          RainWidget(rainConfig: RainConfig(
-            count: 55,
-            lengthDrop: 16,
-            widthDrop: 2,
-            color: const Color(0x997EC8E3),
-            isRoundedEndsDrop: true,
-            fallRangeMinDurMill: 400,
-            fallRangeMaxDurMill: 900,
-            slideX: 2,
-            slideY: 2,
-          )),
-          const ThunderWidget(thunderConfig: ThunderConfig(
-            thunderWidth: 4,
-            blurSigma: 12,
-            blurStyle: BlurStyle.outer,
-            color: Color(0xCCFFF176),
-            flashStartMill: 50,
-            flashEndMill: 300,
-            pauseStartMill: 500,
-            pauseEndMill: 3000,
-          )),
-        ];
-      case WeatherScene.snowfall:
-        return [
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 300, color: Color(0xBBB0BEC5),
-            x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.03,
-            slideX: 10, slideY: 0, slideDurMill: 12000,
-          )),
-          const CloudWidget(cloudConfig: CloudConfig(
-            size: 240, color: Color(0xBBCFD8DC),
-            x: 0.40, y: 0.10,
-            scaleBegin: 1.0, scaleEnd: 1.04,
-            slideX: 8, slideY: 0, slideDurMill: 14000,
-          )),
-          SnowWidget(snowConfig: SnowConfig(
-            count: 40,
-            size: 6,
-            color: Colors.white.withOpacity(0.75),
-            fallMinSec: 10,
-            fallMaxSec: 25,
-            waveRangeMin: 20,
-            waveRangeMax: 80,
-            waveMinSec: 5,
-            waveMaxSec: 15,
-          )),
-        ];
-      default:
-        return [];
-    }
   }
 
   // ── SQUELETTES ─────────────────────────────────────────────────
@@ -569,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Text(_alertLabel(r.niveauAlerte), style: TextStyle(
               color: color, fontSize: 14, fontWeight: FontWeight.w700)),
-            Text('${r.zone}  •  ${r.date}',
+            Text('${r.zone}  \u2022  ${r.date}',
               style: const TextStyle(color: Colors.white54, fontSize: 11)),
           ])),
         const SizedBox(width: 8),
@@ -596,14 +409,14 @@ class _HomeScreenState extends State<HomeScreen> {
       const Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 16),
       const SizedBox(width: 8),
       Expanded(child: Text(
-        '${_error ?? 'Serveur SAMCAM inaccessible'} — météo locale',
+        '${_error ?? 'Serveur SAMCAM inaccessible'} \u2014 m\u00e9t\u00e9o locale',
         style: const TextStyle(color: Colors.white54, fontSize: 12))),
       TextButton(
         onPressed: _fetchAll,
         style: TextButton.styleFrom(padding: EdgeInsets.zero,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-        child: const Text('Réessayer',
+        child: const Text('R\u00e9essayer',
           style: TextStyle(color: Colors.white60, fontSize: 12))),
     ]));
 
@@ -612,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(children: [
       _expandableHeader(
         icon: Icons.access_time_outlined,
-        title: 'PRÉVISIONS PAR HEURE',
+        title: 'PR\u00c9VISIONS PAR HEURE',
         expanded: _hourlyExpanded,
         onTap: () => setState(() => _hourlyExpanded = !_hourlyExpanded)),
       if (_hourlyExpanded) ..._buildHourlyContent(weather),
@@ -649,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 4),
           Text(weatherCodeIcon(h.weatherCode), style: const TextStyle(fontSize: 22)),
           const SizedBox(height: 4),
-          Text('${h.temperature.toStringAsFixed(0)}°', style: const TextStyle(
+          Text('${h.temperature.toStringAsFixed(0)}\u00b0', style: const TextStyle(
             color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
           if (h.precipitation > 0)
             Text('${h.precipitation.toStringAsFixed(1)} mm',
@@ -664,7 +477,7 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(children: [
       _expandableHeader(
         icon: Icons.calendar_month_outlined,
-        title: 'PRÉVISIONS 7 JOURS',
+        title: 'PR\u00c9VISIONS 7 JOURS',
         expanded: _dailyExpanded,
         onTap: () => setState(() => _dailyExpanded = !_dailyExpanded)),
       if (_dailyExpanded) ..._buildDailyContent(weather),
@@ -705,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ? Text('${d.precipitationProbMax.toStringAsFixed(0)} %',
                   style: const TextStyle(color: Color(0xFF7EC8E3), fontSize: 11))
               : const SizedBox()),
-          SizedBox(width: 28, child: Text('${d.tempMin.toStringAsFixed(0)}°',
+          SizedBox(width: 28, child: Text('${d.tempMin.toStringAsFixed(0)}\u00b0',
             style: const TextStyle(color: Colors.white38, fontSize: 13))),
           const SizedBox(width: 6),
           Expanded(child: LayoutBuilder(builder: (ctx, constraints) =>
@@ -725,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
             ))),
           const SizedBox(width: 6),
-          SizedBox(width: 28, child: Text('${d.tempMax.toStringAsFixed(0)}°',
+          SizedBox(width: 28, child: Text('${d.tempMax.toStringAsFixed(0)}\u00b0',
             textAlign: TextAlign.right,
             style: const TextStyle(
               color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600))),
@@ -791,7 +604,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             if (today?.sunset != null)
-              Text('Protection jusqu\'à $sunsetStr.',
+              Text('Protection jusqu\'\u00e0 $sunsetStr.',
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ]),
         ),
@@ -830,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(width: 10),
         _appleCard(
-          icon: Icons.water_drop_outlined, label: 'PRÉCIPITATIONS',
+          icon: Icons.water_drop_outlined, label: 'PR\u00c9CIPITATIONS',
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text('${precipToday.toStringAsFixed(0)}', style: const TextStyle(
@@ -853,14 +666,14 @@ class _HomeScreenState extends State<HomeScreen> {
         _appleCard(
           icon: Icons.thermostat_outlined, label: 'RESSENTI',
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${feelsLike.toStringAsFixed(0)}°', style: const TextStyle(
+            Text('${feelsLike.toStringAsFixed(0)}\u00b0', style: const TextStyle(
               color: Colors.white, fontSize: 36,
               fontWeight: FontWeight.w200, height: 1.1)),
             const SizedBox(height: 8),
             Text(
               feelsLike > (cur?.temperature ?? feelsLike)
-                ? 'Ressenti plus élevé que la réalité.'
-                : 'Similaire à la température réelle.',
+                ? 'Ressenti plus \u00e9lev\u00e9 que la r\u00e9alit\u00e9.'
+                : 'Similaire \u00e0 la temp\u00e9rature r\u00e9elle.',
               style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ]),
         ),
@@ -887,7 +700,7 @@ class _HomeScreenState extends State<HomeScreen> {
       const SizedBox(height: 10),
       Row(children: [
         _appleCard(
-          icon: Icons.visibility_outlined, label: 'VISIBILITÉ',
+          icon: Icons.visibility_outlined, label: 'VISIBILIT\u00c9',
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               Text(visibility.toStringAsFixed(0), style: const TextStyle(
@@ -899,8 +712,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ]),
             const SizedBox(height: 8),
             Text(
-              visibility >= 10 ? 'Vue parfaitement dégagée.' :
-              visibility >= 5  ? 'Visibilité réduite.' : 'Brouillard possible.',
+              visibility >= 10 ? 'Vue parfaitement d\u00e9gag\u00e9e.' :
+              visibility >= 5  ? 'Visibilit\u00e9 r\u00e9duite.' : 'Brouillard possible.',
               style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ]),
         ),
@@ -941,15 +754,15 @@ class _HomeScreenState extends State<HomeScreen> {
         _numericTile(
           icon: Icons.water_drop_outlined,
           value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
-          label: 'Pluie reçue (7j)',
-          tooltip: 'Quantité totale de pluie tombée ces 7 derniers jours',
+          label: 'Pluie re\u00e7ue (7j)',
+          tooltip: 'Quantit\u00e9 totale de pluie tomb\u00e9e ces 7 derniers jours',
         ),
         const SizedBox(width: 10),
         _numericTile(
           icon: Icons.umbrella_outlined,
           value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
-          label: 'Pluie prévue (7j)',
-          tooltip: 'Précipitations attendues dans les 7 prochains jours',
+          label: 'Pluie pr\u00e9vue (7j)',
+          tooltip: 'Pr\u00e9cipitations attendues dans les 7 prochains jours',
         ),
       ]),
       const SizedBox(height: 10),
@@ -986,7 +799,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 11),
                     const SizedBox(width: 4),
                     Text(
-                      isML ? 'IA + RF' : 'Règles',
+                      isML ? 'IA + RF' : 'R\u00e8gles',
                       style: TextStyle(
                         color: isML ? const Color(0xFFB39DDB) : Colors.white38,
                         fontSize: 10, fontWeight: FontWeight.w600)),
@@ -998,7 +811,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icons.water_outlined, label: 'Inondation',
                 score: r.actuel.scores.inondation, detail: _floodDetail(r)),
               _riskBar(
-                icon: Icons.grass_outlined, label: 'Sécheresse',
+                icon: Icons.grass_outlined, label: 'S\u00e9cheresse',
                 score: r.actuel.scores.secheresse, detail: _droughtDetail(r)),
               _riskBar(
                 icon: Icons.local_fire_department_outlined, label: 'Chaleur',
@@ -1017,7 +830,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _sectionLabel('TENDANCE DES RISQUES'),
               const SizedBox(height: 6),
               const Text(
-                'Comment les risques évoluent-ils dans les prochains jours ?',
+                'Comment les risques \u00e9voluent-ils dans les prochains jours ?',
                 style: TextStyle(color: Colors.white38, fontSize: 11)),
               const SizedBox(height: 14),
               _riskEvolutionRow(
@@ -1026,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _riskColor(r.actuel.scores.inondation)),
               const SizedBox(height: 10),
               _riskEvolutionRow(
-                'Sécheresse', Icons.grass_outlined,
+                'S\u00e9cheresse', Icons.grass_outlined,
                 r.actuel.scores.secheresse, r.prevu3j.scores.secheresse, r.prevu7j.scores.secheresse,
                 _riskColor(r.actuel.scores.secheresse)),
               const SizedBox(height: 10),
@@ -1091,22 +904,22 @@ class _HomeScreenState extends State<HomeScreen> {
     final p = r.indicateurs.pluie7j;
     if (r.actuel.scores.inondation < 0.05) return 'Pas de risque d\'inondation en ce moment.';
     if (p > 80) return 'Beaucoup de pluie : ${p.toStringAsFixed(0)} mm en 7 jours.';
-    return 'Surveillance active des précipitations.';
+    return 'Surveillance active des pr\u00e9cipitations.';
   }
 
   String _droughtDetail(RiskReport r) {
-    if (r.actuel.scores.secheresse < 0.1) return 'La végétation est bien hydratée.';
+    if (r.actuel.scores.secheresse < 0.1) return 'La v\u00e9g\u00e9tation est bien hydrat\u00e9e.';
     final etat = r.indicateurs.etatVegetation;
     if (r.actuel.scores.secheresse >= 0.5)
-      return 'Végétation $etat — le sol manque significativement d\'eau.';
-    return 'Végétation $etat — légère sécheresse détectée.';
+      return 'V\u00e9g\u00e9tation $etat \u2014 le sol manque significativement d\'eau.';
+    return 'V\u00e9g\u00e9tation $etat \u2014 l\u00e9g\u00e8re s\u00e9cheresse d\u00e9tect\u00e9e.';
   }
 
   String _heatDetail(RiskReport r) {
     final t = r.indicateurs.temperatureMax;
-    if (r.actuel.scores.chaleur < 0.05) return 'Températures normales pour la saison.';
-    if (t > 35) return 'Attention : ${t.toStringAsFixed(0)}°C relevés, restez à l\'ombre.';
-    return 'Températures élevées, pensez à bien vous hydrater.';
+    if (r.actuel.scores.chaleur < 0.05) return 'Temp\u00e9ratures normales pour la saison.';
+    if (t > 35) return 'Attention : ${t.toStringAsFixed(0)}\u00b0C relev\u00e9s, restez \u00e0 l\'ombre.';
+    return 'Temp\u00e9ratures \u00e9lev\u00e9es, pensez \u00e0 bien vous hydrater.';
   }
 
   Color _riskColor(double score) {
@@ -1191,8 +1004,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final pct   = (score * 100).toStringAsFixed(0);
     final String levelLabel = score < 0.05 ? 'Nul'
       : score < 0.25 ? 'Faible'
-      : score < 0.50 ? 'Modéré'
-      : score < 0.75 ? 'Élevé' : 'Critique';
+      : score < 0.50 ? 'Mod\u00e9r\u00e9'
+      : score < 0.75 ? '\u00c9lev\u00e9' : 'Critique';
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -1304,7 +1117,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 15),
         SizedBox(width: 8),
-        Text('Données indisponibles',
+        Text('Donn\u00e9es indisponibles',
           style: TextStyle(color: Colors.white54, fontSize: 13)),
       ],
     ),
