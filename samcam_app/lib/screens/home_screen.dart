@@ -1,6 +1,6 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:weather_animation/weather_animation.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
 import '../models/weather_forecast.dart';
@@ -9,14 +9,99 @@ import '../services/weather_service.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
 
+// ══════════════════════════════════════════════════════════════════
+enum _WeatherKind { sunny, partlyCloudy, cloudy, rain, storm, snow, fog }
+
+_WeatherKind _codeToKind(int? code) {
+  if (code == null) return _WeatherKind.sunny;
+  if (code == 0) return _WeatherKind.sunny;
+  if (code <= 2) return _WeatherKind.partlyCloudy;
+  if (code == 3) return _WeatherKind.cloudy;
+  if (code >= 45 && code <= 48) return _WeatherKind.fog;
+  if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82))
+    return _WeatherKind.rain;
+  if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86))
+    return _WeatherKind.snow;
+  if (code >= 95) return _WeatherKind.storm;
+  return _WeatherKind.sunny;
+}
+
+/// Dégradé de fond pour TOUTE la page (discret, lisible)
+LinearGradient _pageGradient(_WeatherKind kind, int hour) {
+  final night = hour < 6 || hour >= 21;
+  final dusk  = hour >= 18 && hour < 21;
+  if (night) {
+    return const LinearGradient(
+      begin: Alignment.topCenter, end: Alignment.bottomCenter,
+      colors: [Color(0xFF05091A), Color(0xFF0A1628)]);
+  }
+  switch (kind) {
+    case _WeatherKind.storm:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A1A2E), Color(0xFF22304A)]);
+    case _WeatherKind.rain:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF243447), Color(0xFF2E4460)]);
+    case _WeatherKind.cloudy:
+    case _WeatherKind.fog:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF304560), Color(0xFF3D5570)]);
+    case _WeatherKind.partlyCloudy:
+      if (dusk) return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A3A6B), Color(0xFFB85C20)]);
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A6CB0), Color(0xFF3A8FCC)]);
+    case _WeatherKind.snow:
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF3A567A), Color(0xFF5A8AA0)]);
+    case _WeatherKind.sunny:
+      if (dusk) return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A3A6B), Color(0xFFD4721A)]);
+      if (hour < 12) return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF1A7FC1), Color(0xFF5BAFE0)]);
+      return const LinearGradient(
+        begin: Alignment.topCenter, end: Alignment.bottomCenter,
+        colors: [Color(0xFF0D5FA3), Color(0xFF4A9FD0)]);
+  }
+}
+
+/// Scène weather_animation selon le type de temps
+WeatherScene _kindToScene(_WeatherKind kind, int hour) {
+  final night = hour < 6 || hour >= 21;
+  switch (kind) {
+    case _WeatherKind.sunny:
+      return night ? WeatherScene.scorchingSun : WeatherScene.scorchingSun;
+    case _WeatherKind.partlyCloudy:
+      return WeatherScene.cloudyNight;
+    case _WeatherKind.cloudy:
+      return WeatherScene.showerSleet;
+    case _WeatherKind.fog:
+      return WeatherScene.frosty;
+    case _WeatherKind.rain:
+      return WeatherScene.rainyOvercast;
+    case _WeatherKind.storm:
+      return WeatherScene.stormy;
+    case _WeatherKind.snow:
+      return WeatherScene.snowfall;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> {
   RiskReport?  _report;
   WeatherData? _weather;
   bool         _loading = true;
@@ -24,33 +109,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _hourlyExpanded = true;
   bool _dailyExpanded  = true;
 
-  // ── Animations fond météo ──────────────────────────────────────
-  late AnimationController _bgController;
-  late AnimationController _rainController;
-  late AnimationController _sunController;
-
   @override
-  void initState() {
-    super.initState();
-    _bgController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 20))
-      ..repeat();
-    _rainController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 1))
-      ..repeat();
-    _sunController = AnimationController(
-      vsync: this, duration: const Duration(seconds: 8))
-      ..repeat();
-    _fetchAll();
-  }
-
-  @override
-  void dispose() {
-    _bgController.dispose();
-    _rainController.dispose();
-    _sunController.dispose();
-    super.dispose();
-  }
+  void initState() { super.initState(); _fetchAll(); }
 
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
@@ -82,79 +142,18 @@ class _HomeScreenState extends State<HomeScreen>
   String _alertLabel(String niveau) =>
       Config.alertLabels[niveau] ?? niveau;
 
-  // ── Détermine le type de temps depuis le weatherCode ──────────────
-  _WeatherType _getWeatherType(int? code) {
-    if (code == null) return _WeatherType.clear;
-    if (code == 0) return _WeatherType.clear;
-    if (code <= 2) return _WeatherType.partlyCloudy;
-    if (code == 3) return _WeatherType.cloudy;
-    if (code >= 45 && code <= 48) return _WeatherType.fog;
-    if ((code >= 51 && code <= 57) ||
-        (code >= 61 && code <= 67) ||
-        (code >= 80 && code <= 82)) return _WeatherType.rain;
-    if ((code >= 71 && code <= 77) ||
-        (code >= 85 && code <= 86)) return _WeatherType.snow;
-    if (code >= 95) return _WeatherType.thunderstorm;
-    return _WeatherType.clear;
-  }
-
-  // ── Dégradé de fond selon l'heure ET la météo ─────────────────────
-  LinearGradient _skyGradient(_WeatherType type) {
-    final h = DateTime.now().toLocal().hour;
-    final isNight = h < 6 || h >= 21;
-    final isDusk  = (h >= 18 && h < 21);
-
-    if (isNight) {
-      return const LinearGradient(
-        begin: Alignment.topCenter, end: Alignment.bottomCenter,
-        colors: [Color(0xFF050C1A), Color(0xFF0A1628)]);
-    }
-    switch (type) {
-      case _WeatherType.thunderstorm:
-        return const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [Color(0xFF1A1A2E), Color(0xFF2D3561)]);
-      case _WeatherType.rain:
-        return const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [Color(0xFF2C3E50), Color(0xFF3D5A73)]);
-      case _WeatherType.cloudy:
-      case _WeatherType.fog:
-        return const LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: [Color(0xFF3D5068), Color(0xFF5B7A9E)]);
-      case _WeatherType.partlyCloudy:
-        if (isDusk) {
-          return const LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Color(0xFF1A3A6B), Color(0xFFD4721A)]);
-        }
-        return LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: h < 12
-            ? const [Color(0xFF2176AE), Color(0xFF5BAFE0)]
-            : const [Color(0xFF0D5FA3), Color(0xFF4A9FD0)]);
-      case _WeatherType.clear:
-      case _WeatherType.snow:
-        if (isDusk) {
-          return const LinearGradient(
-            begin: Alignment.topCenter, end: Alignment.bottomCenter,
-            colors: [Color(0xFF1A3A6B), Color(0xFFD4721A)]);
-        }
-        return LinearGradient(
-          begin: Alignment.topCenter, end: Alignment.bottomCenter,
-          colors: h < 12
-            ? const [Color(0xFF1A7FC1), Color(0xFF5BAFE0)]
-            : const [Color(0xFF0D5FA3), Color(0xFF4A9FD0)]);
-    }
+  int get _currentCode {
+    final cur = _weather?.current;
+    if (cur != null) return cur.weatherCode;
+    if (_weather?.hourly.isNotEmpty == true) return _weather!.hourly.first.weatherCode;
+    return 0;
   }
 
   @override
   Widget build(BuildContext context) {
-    final cur = _weather?.current;
-    final code = cur?.weatherCode
-        ?? (_weather?.hourly.isNotEmpty == true ? _weather!.hourly.first.weatherCode : null);
-    final weatherType = _getWeatherType(code);
+    final kind  = _codeToKind(_loading ? null : _currentCode);
+    final hour  = DateTime.now().hour;
+    final scene = _kindToScene(kind, hour);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -180,34 +179,20 @@ class _HomeScreenState extends State<HomeScreen>
             onPressed: _fetchAll),
         ],
       ),
-      body: Stack(
-        children: [
-          // ── Fond dégradé dynamique ───────────────────────────────
-          AnimatedContainer(
-            duration: const Duration(seconds: 2),
-            decoration: BoxDecoration(gradient: _skyGradient(weatherType)),
-          ),
-          // ── Éléments visuels météo (nuages, soleil, pluie…) ────
-          _WeatherBackground(
-            weatherType: weatherType,
-            bgAnimation: _bgController,
-            rainAnimation: _rainController,
-            sunAnimation: _sunController,
-            hour: DateTime.now().hour,
-          ),
-          // ── Contenu principal ───────────────────────────────────
-          SafeArea(
-            top: true, bottom: false,
-            child: RefreshIndicator(
-              onRefresh: _fetchAll, color: Colors.white,
-              child: _buildBody()),
-          ),
-        ],
+      body: AnimatedContainer(
+        duration: const Duration(seconds: 2),
+        decoration: BoxDecoration(gradient: _pageGradient(kind, hour)),
+        child: SafeArea(
+          top: true, bottom: false,
+          child: RefreshIndicator(
+            onRefresh: _fetchAll, color: Colors.white,
+            child: _buildBody(scene)),
+        ),
       ),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(WeatherScene scene) {
     if (_loading) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -226,11 +211,14 @@ class _HomeScreenState extends State<HomeScreen>
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
+        // ── Bannière alerte ──────────────────────────────────────────
         if (_report != null) _buildAlertBanner(_report!),
         if (_error != null) _buildErrorBanner(),
         if (_report != null || _error != null) const SizedBox(height: 16),
-        _buildWeatherHeader(weather),
+        // ── Header météo animé (uniquement cette zone) ─────────────────
+        _buildAnimatedWeatherHeader(weather, scene),
         const SizedBox(height: 20),
+        // ── Le reste est sur fond lisse (dégradé global seul) ──────────
         _buildHourlySection(weather),
         const SizedBox(height: 12),
         _buildDailySection(weather),
@@ -242,21 +230,318 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // Header météo : fond animé weather_animation limité à ce bloc
+  // ─────────────────────────────────────────────────────────────────
+  Widget _buildAnimatedWeatherHeader(WeatherData weather, WeatherScene scene) {
+    final now = DateTime.now();
+    String dateStr;
+    try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
+    catch (_) { dateStr = DateFormat('yyyy-MM-dd').format(now); }
+
+    final city = _report?.zone ?? 'Kribi';
+    final cur  = weather.current;
+
+    String currentTemp = '--';
+    String currentIcon = '';
+    String currentDesc = '';
+    int    humidity    = 0;
+    double wind        = 0;
+
+    if (cur != null) {
+      currentTemp = cur.temperature.toStringAsFixed(0);
+      humidity    = cur.humidity;
+      wind        = cur.windSpeed;
+      currentIcon = weatherCodeIcon(cur.weatherCode);
+      currentDesc = weatherCodeLabel(cur.weatherCode);
+    }
+    if (weather.hourly.isNotEmpty && cur == null) {
+      final h = weather.hourly.first;
+      currentTemp = h.temperature.toStringAsFixed(0);
+      currentIcon = weatherCodeIcon(h.weatherCode);
+      currentDesc = weatherCodeLabel(h.weatherCode);
+      humidity    = h.humidity;
+      wind        = h.windSpeed;
+    } else if (weather.daily.isNotEmpty && cur == null) {
+      final d = weather.daily.first;
+      currentTemp = d.tempMax.toStringAsFixed(0);
+      currentIcon = weatherCodeIcon(d.weatherCode);
+      currentDesc = weatherCodeLabel(d.weatherCode);
+    }
+
+    String minMax = '';
+    if (weather.daily.isNotEmpty) {
+      final d = weather.daily.first;
+      minMax = '↑ ${d.tempMax.toStringAsFixed(0)}°  ↓ ${d.tempMin.toStringAsFixed(0)}°';
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: SizedBox(
+        height: 310,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // ── Animation weather_animation en fond du header seulement ─
+            WrapperScene(
+              colors: const [Color(0xFF0D5FA3), Color(0xFF1A7FC1)],
+              sizeCanvas: const Size(double.maxFinite, 310),
+              isRunning: true,
+              children: _sceneWidgets(scene),
+            ),
+            // ── Vignette d'assombrissement vers le bas pour lisibilité ──
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Color(0x99000000)],
+                  stops: [0.35, 1.0],
+                ),
+              ),
+            ),
+            // ── Contenu texte du header ─────────────────────────────
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(city, style: const TextStyle(
+                      color: Colors.white, fontSize: 22,
+                      fontWeight: FontWeight.w300, letterSpacing: 1,
+                      shadows: [Shadow(color: Colors.black38, blurRadius: 4)])),
+                    const SizedBox(height: 2),
+                    Text(dateStr, style: const TextStyle(
+                      color: Colors.white70, fontSize: 13,
+                      shadows: [Shadow(color: Colors.black38, blurRadius: 4)])),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(currentIcon,
+                          style: const TextStyle(fontSize: 52)),
+                        const SizedBox(width: 6),
+                        Text('$currentTemp°', style: const TextStyle(
+                          color: Colors.white, fontSize: 72,
+                          fontWeight: FontWeight.w200, height: 1,
+                          shadows: [Shadow(color: Colors.black38, blurRadius: 8)])),
+                      ],
+                    ),
+                    Text(currentDesc, style: const TextStyle(
+                      color: Colors.white70, fontSize: 15,
+                      shadows: [Shadow(color: Colors.black45, blurRadius: 4)])),
+                    if (minMax.isNotEmpty) ...[const SizedBox(height: 2),
+                      Text(minMax, style: const TextStyle(
+                        color: Colors.white54, fontSize: 12,
+                        shadows: [Shadow(color: Colors.black38, blurRadius: 3)]))],
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
+                        Container(width: 1, height: 24,
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          color: Colors.white24),
+                        _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', 'Vent'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Construit la liste de widgets de scène weather_animation
+  List<Widget> _sceneWidgets(WeatherScene scene) {
+    switch (scene) {
+      case WeatherScene.scorchingSun:
+        return [
+          const SunWidget(sunConfig: SunConfig(
+            width: 250, blurSigma: 14, blurStyle: BlurStyle.solid,
+            isLeftLocation: false,
+            cameraShakesActivated: false,
+            sunColor: Color(0xFFFFF176),
+            flareColor: Color(0xFFFFEB3B),
+            flareWidth: 10, flareCount: 10,
+            lensFlareColor: Color(0xFFFFFFFF),
+            lensFlareWidth: 60,
+          )),
+        ];
+      case WeatherScene.cloudyNight:
+        return [
+          const SunWidget(sunConfig: SunConfig(
+            width: 180, blurSigma: 10, blurStyle: BlurStyle.solid,
+            isLeftLocation: false,
+            cameraShakesActivated: false,
+            sunColor: Color(0xFFFFF9C4),
+            flareColor: Color(0xFFFFF176),
+            flareWidth: 6, flareCount: 8,
+            lensFlareColor: Color(0xFFFFFFFF),
+            lensFlareWidth: 40,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 260, color: Color(0xC0B0BEC5),
+            x: 0.05, y: 0.05,
+            scaleBegin: 0.95, scaleEnd: 1.03, scaleDuration: 4000,
+            slideX: 20, slideY: 0, slideDuration: 8000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 200, color: Color(0xA0CFD8DC),
+            x: 0.45, y: 0.15,
+            scaleBegin: 1.0, scaleEnd: 1.05, scaleDuration: 5000,
+            slideX: 15, slideY: 0, slideDuration: 10000,
+          )),
+        ];
+      case WeatherScene.showerSleet:
+        return [
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 320, color: Color(0xCC90A4AE),
+            x: -0.05, y: 0.0,
+            scaleBegin: 0.97, scaleEnd: 1.03, scaleDuration: 4000,
+            slideX: 12, slideY: 0, slideDuration: 9000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 270, color: Color(0xCC78909C),
+            x: 0.40, y: 0.10,
+            scaleBegin: 1.0, scaleEnd: 1.04, scaleDuration: 5500,
+            slideX: 10, slideY: 0, slideDuration: 11000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 220, color: Color(0xCC546E7A),
+            x: 0.20, y: 0.05,
+            scaleBegin: 0.98, scaleEnd: 1.02, scaleDuration: 6000,
+            slideX: 8, slideY: 0, slideDuration: 13000,
+          )),
+        ];
+      case WeatherScene.frosty:
+        return [
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 400, color: Color(0x99B0BEC5),
+            x: -0.1, y: 0.0,
+            scaleBegin: 0.96, scaleEnd: 1.04, scaleDuration: 7000,
+            slideX: 5, slideY: 0, slideDuration: 15000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 300, color: Color(0x88CFD8DC),
+            x: 0.30, y: 0.20,
+            scaleBegin: 1.0, scaleEnd: 1.03, scaleDuration: 8000,
+            slideX: 4, slideY: 0, slideDuration: 18000,
+          )),
+        ];
+      case WeatherScene.rainyOvercast:
+        return [
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 340, color: Color(0xDD546E7A),
+            x: -0.05, y: 0.0,
+            scaleBegin: 0.97, scaleEnd: 1.02, scaleDuration: 4500,
+            slideX: 14, slideY: 0, slideDuration: 8000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 280, color: Color(0xDD455A64),
+            x: 0.35, y: 0.08,
+            scaleBegin: 1.0, scaleEnd: 1.03, scaleDuration: 5000,
+            slideX: 12, slideY: 0, slideDuration: 10000,
+          )),
+          RainWidget(rainConfig: RainConfig(
+            count: 30,
+            lengthDrop: 14,
+            widthDrop: 2,
+            color: const Color(0x887EC8E3),
+            isRoundedEndsDrop: true,
+            rainGap: 24,
+            fallSpeed: 0.8,
+            angle: 0,
+            slideX: 1,
+            slideY: 1,
+          )),
+        ];
+      case WeatherScene.stormy:
+        return [
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 380, color: Color(0xEE37474F),
+            x: -0.05, y: 0.0,
+            scaleBegin: 0.95, scaleEnd: 1.05, scaleDuration: 3000,
+            slideX: 18, slideY: 0, slideDuration: 6000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 300, color: Color(0xEE263238),
+            x: 0.30, y: 0.05,
+            scaleBegin: 1.0, scaleEnd: 1.06, scaleDuration: 3500,
+            slideX: 15, slideY: 0, slideDuration: 7500,
+          )),
+          RainWidget(rainConfig: RainConfig(
+            count: 55,
+            lengthDrop: 16,
+            widthDrop: 2,
+            color: const Color(0x997EC8E3),
+            isRoundedEndsDrop: true,
+            rainGap: 18,
+            fallSpeed: 1.2,
+            angle: 8,
+            slideX: 2,
+            slideY: 2,
+          )),
+          const ThunderWidget(thunderConfig: ThunderConfig(
+            thunderWidth: 4,
+            blurSigma: 12,
+            blurStyle: BlurStyle.outer,
+            color: Color(0xCCFFF176),
+            flashStartMills: 200,
+            flashEndMills: 1500,
+            pauseMills: 3000,
+          )),
+        ];
+      case WeatherScene.snowfall:
+        return [
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 300, color: Color(0xBBB0BEC5),
+            x: -0.05, y: 0.0,
+            scaleBegin: 0.97, scaleEnd: 1.03, scaleDuration: 6000,
+            slideX: 10, slideY: 0, slideDuration: 12000,
+          )),
+          const CloudWidget(cloudConfig: CloudConfig(
+            size: 240, color: Color(0xBBCFD8DC),
+            x: 0.40, y: 0.10,
+            scaleBegin: 1.0, scaleEnd: 1.04, scaleDuration: 7000,
+            slideX: 8, slideY: 0, slideDuration: 14000,
+          )),
+          SnowWidget(snowConfig: SnowConfig(
+            count: 40,
+            size: 6,
+            color: Colors.white.withOpacity(0.75),
+            snowFlakeShape: SnowFlakeShape.circle,
+            snowFallSpeed: 0.4,
+            snowFallGap: 3,
+            snowFallAngle: 0,
+            slideX: 1,
+            slideY: 1,
+            isBlurSnow: true,
+          )),
+        ];
+      default:
+        return [];
+    }
+  }
+
   // ── SQUELETTES ─────────────────────────────────────────────────
   Widget _buildSkeletonBanner() => Container(
     height: 52,
     decoration: BoxDecoration(
       color: Colors.white10, borderRadius: BorderRadius.circular(18)));
 
-  Widget _buildSkeletonHeader() => Column(children: [
-    _skeletonBox(width: 120, height: 28, radius: 8),
-    const SizedBox(height: 8),
-    _skeletonBox(width: 80, height: 14, radius: 6),
-    const SizedBox(height: 20),
-    _skeletonBox(width: 160, height: 80, radius: 12),
-    const SizedBox(height: 12),
-    _skeletonBox(width: 100, height: 16, radius: 6),
-  ]);
+  Widget _buildSkeletonHeader() => Container(
+    height: 310,
+    decoration: BoxDecoration(
+      color: Colors.white10, borderRadius: BorderRadius.circular(24)),
+    child: const Center(
+      child: CircularProgressIndicator(color: Colors.white30, strokeWidth: 2)));
 
   Widget _buildSkeletonCard({required double height}) => Container(
     height: height,
@@ -328,98 +613,6 @@ class _HomeScreenState extends State<HomeScreen>
         child: const Text('Réessayer',
           style: TextStyle(color: Colors.white60, fontSize: 12))),
     ]));
-
-  // ── EN-TÊTE MÉTÉO ──────────────────────────────────────────────
-  Widget _buildWeatherHeader(WeatherData weather) {
-    final now = DateTime.now();
-    String dateStr;
-    try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
-    catch (_) { dateStr = DateFormat('yyyy-MM-dd').format(now); }
-
-    final city = _report?.zone ?? 'Kribi';
-    final cur  = weather.current;
-
-    String currentTemp = '--';
-    String currentIcon = '';
-    String currentDesc = '';
-    int    humidity    = 0;
-    double wind        = 0;
-
-    if (cur != null) {
-      currentTemp = cur.temperature.toStringAsFixed(0);
-      humidity    = cur.humidity;
-      wind        = cur.windSpeed;
-      currentIcon = weatherCodeIcon(cur.weatherCode);
-      currentDesc = weatherCodeLabel(cur.weatherCode);
-    }
-    if (weather.hourly.isNotEmpty) {
-      final h = weather.hourly.first;
-      if (cur == null) {
-        currentTemp = h.temperature.toStringAsFixed(0);
-        currentIcon = weatherCodeIcon(h.weatherCode);
-        currentDesc = weatherCodeLabel(h.weatherCode);
-        humidity    = h.humidity;
-        wind        = h.windSpeed;
-      }
-    } else if (weather.daily.isNotEmpty) {
-      final d = weather.daily.first;
-      if (cur == null) {
-        currentTemp = d.tempMax.toStringAsFixed(0);
-        currentIcon = weatherCodeIcon(d.weatherCode);
-        currentDesc = weatherCodeLabel(d.weatherCode);
-      }
-    }
-
-    String minMax = '';
-    if (weather.daily.isNotEmpty) {
-      final d = weather.daily.first;
-      minMax = '↑ ${d.tempMax.toStringAsFixed(0)}°  ↓ ${d.tempMin.toStringAsFixed(0)}°';
-    }
-
-    return Column(children: [
-      Text(city, style: const TextStyle(
-        color: Colors.white, fontSize: 26,
-        fontWeight: FontWeight.w300, letterSpacing: 1)),
-      Text(dateStr, style: const TextStyle(color: Colors.white60, fontSize: 13)),
-      const SizedBox(height: 12),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(currentIcon, style: const TextStyle(fontSize: 64)),
-          const SizedBox(width: 8),
-          Text('$currentTemp°', style: const TextStyle(
-            color: Colors.white, fontSize: 80,
-            fontWeight: FontWeight.w200, height: 1)),
-        ],
-      ),
-      Text(currentDesc, style: const TextStyle(
-        color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w400)),
-      const SizedBox(height: 4),
-      if (minMax.isNotEmpty)
-        Text(minMax, style: const TextStyle(color: Colors.white54, fontSize: 13)),
-      const SizedBox(height: 14),
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
-          Container(width: 1, height: 28, margin: const EdgeInsets.symmetric(horizontal: 24), color: Colors.white24),
-          _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', 'Vent'),
-        ],
-      ),
-    ]);
-  }
-
-  Widget _headerStat(IconData icon, String value, String label) =>
-    Row(children: [
-      Icon(icon, color: Colors.white60, size: 16),
-      const SizedBox(width: 6),
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: const TextStyle(
-          color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-      ]),
-    ]);
 
   // ── PRÉVISIONS HORAIRES ────────────────────────────────────────
   Widget _buildHourlySection(WeatherData weather) => _glassCard(
@@ -751,7 +944,6 @@ class _HomeScreenState extends State<HomeScreen>
                  r.methodeRisque == 'modele_ml';
 
     return [
-      // ── Tuiles indicateurs : seulement pluie reçue + pluie prévue ──
       Row(children: [
         _numericTile(
           icon: Icons.water_drop_outlined,
@@ -768,14 +960,12 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ]),
       const SizedBox(height: 10),
-      // Prévisions J+3 / J+7
       Row(children: [
         _prevCard('Dans 3 jours', r.prevu3j.niveauGlobal),
         const SizedBox(width: 10),
         _prevCard('Dans 7 jours', r.prevu7j.niveauGlobal),
       ]),
       const SizedBox(height: 10),
-      // Barres de risques
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
@@ -825,7 +1015,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
       const SizedBox(height: 10),
-      // Évolution
       _glassCard(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
@@ -933,6 +1122,17 @@ class _HomeScreenState extends State<HomeScreen>
     if (score < 0.75) return const Color(0xFFFFB74D);
     return const Color(0xFFEF5350);
   }
+
+  Widget _headerStat(IconData icon, String value, String label) =>
+    Row(children: [
+      Icon(icon, color: Colors.white60, size: 16),
+      const SizedBox(width: 6),
+      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(value, style: const TextStyle(
+          color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 11)),
+      ]),
+    ]);
 
   Widget _appleCard({required IconData icon, required String label, required Widget child}) =>
     Expanded(
@@ -1123,280 +1323,6 @@ class _HomeScreenState extends State<HomeScreen>
       fontWeight: FontWeight.w600, letterSpacing: 0.8));
 
   String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
-}
-
-// ══════════════════════════════════════════════════════════════════
-// Enum type de temps
-// ══════════════════════════════════════════════════════════════════
-enum _WeatherType { clear, partlyCloudy, cloudy, rain, thunderstorm, fog, snow }
-
-// ══════════════════════════════════════════════════════════════════
-// Widget fond animé météo
-// ══════════════════════════════════════════════════════════════════
-class _WeatherBackground extends StatelessWidget {
-  final _WeatherType weatherType;
-  final Animation<double> bgAnimation;
-  final Animation<double> rainAnimation;
-  final Animation<double> sunAnimation;
-  final int hour;
-
-  const _WeatherBackground({
-    required this.weatherType,
-    required this.bgAnimation,
-    required this.rainAnimation,
-    required this.sunAnimation,
-    required this.hour,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isNight = hour < 6 || hour >= 21;
-    return LayoutBuilder(builder: (context, constraints) {
-      final w = constraints.maxWidth;
-      final h = constraints.maxHeight;
-      return AnimatedBuilder(
-        animation: Listenable.merge([bgAnimation, rainAnimation, sunAnimation]),
-        builder: (_, __) {
-          return CustomPaint(
-            size: Size(w, h),
-            painter: _WeatherPainter(
-              type: weatherType,
-              bgProgress: bgAnimation.value,
-              rainProgress: rainAnimation.value,
-              sunProgress: sunAnimation.value,
-              isNight: isNight,
-            ),
-          );
-        },
-      );
-    });
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════
-// CustomPainter qui dessine les éléments météo
-// ══════════════════════════════════════════════════════════════════
-class _WeatherPainter extends CustomPainter {
-  final _WeatherType type;
-  final double bgProgress;   // 0..1 répété — déplacement nuages
-  final double rainProgress; // 0..1 répété — descente gouttes
-  final double sunProgress;  // 0..1 répété — pulsation soleil
-  final bool isNight;
-
-  const _WeatherPainter({
-    required this.type,
-    required this.bgProgress,
-    required this.rainProgress,
-    required this.sunProgress,
-    required this.isNight,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    switch (type) {
-      case _WeatherType.clear:
-        isNight ? _drawStars(canvas, size) : _drawSun(canvas, size);
-        break;
-      case _WeatherType.partlyCloudy:
-        if (!isNight) _drawSunSmall(canvas, size);
-        _drawClouds(canvas, size, count: 2, opacity: 0.55);
-        break;
-      case _WeatherType.cloudy:
-        _drawClouds(canvas, size, count: 4, opacity: 0.70);
-        break;
-      case _WeatherType.fog:
-        _drawFog(canvas, size);
-        break;
-      case _WeatherType.rain:
-        _drawClouds(canvas, size, count: 3, opacity: 0.80);
-        _drawRain(canvas, size, heavy: false);
-        break;
-      case _WeatherType.thunderstorm:
-        _drawClouds(canvas, size, count: 4, opacity: 0.90);
-        _drawRain(canvas, size, heavy: true);
-        _drawLightning(canvas, size);
-        break;
-      case _WeatherType.snow:
-        _drawClouds(canvas, size, count: 3, opacity: 0.65);
-        _drawSnow(canvas, size);
-        break;
-    }
-  }
-
-  // ── Soleil (grand, avec rayons) ──────────────────────────────
-  void _drawSun(Canvas canvas, Size size) {
-    final cx = size.width * 0.75;
-    final cy = size.height * 0.18;
-    final pulse = 0.95 + 0.05 * math.sin(sunProgress * 2 * math.pi);
-    final r = size.width * 0.10 * pulse;
-
-    // Halo extérieur
-    final haloPaint = Paint()
-      ..color = const Color(0xFFFFEB3B).withOpacity(0.15)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 40);
-    canvas.drawCircle(Offset(cx, cy), r * 2.2, haloPaint);
-
-    // Disque
-    final sunPaint = Paint()
-      ..color = const Color(0xFFFFF9C4).withOpacity(0.90)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
-    canvas.drawCircle(Offset(cx, cy), r, sunPaint);
-
-    // Rayons
-    final rayPaint = Paint()
-      ..color = const Color(0xFFFFF176).withOpacity(0.50)
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-    for (int i = 0; i < 12; i++) {
-      final angle = (i / 12) * 2 * math.pi + sunProgress * 2 * math.pi * 0.05;
-      final inner = r * 1.25;
-      final outer = r * 1.65;
-      canvas.drawLine(
-        Offset(cx + math.cos(angle) * inner, cy + math.sin(angle) * inner),
-        Offset(cx + math.cos(angle) * outer, cy + math.sin(angle) * outer),
-        rayPaint);
-    }
-  }
-
-  // ── Petit soleil (partiellement nuageux) ──────────────────────
-  void _drawSunSmall(Canvas canvas, Size size) {
-    final cx = size.width * 0.78;
-    final cy = size.height * 0.14;
-    final r  = size.width * 0.07;
-
-    final haloPaint = Paint()
-      ..color = const Color(0xFFFFEB3B).withOpacity(0.12)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25);
-    canvas.drawCircle(Offset(cx, cy), r * 2, haloPaint);
-
-    final sunPaint = Paint()
-      ..color = const Color(0xFFFFF9C4).withOpacity(0.80)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
-    canvas.drawCircle(Offset(cx, cy), r, sunPaint);
-  }
-
-  // ── Nuages animés ─────────────────────────────────────────────
-  void _drawClouds(Canvas canvas, Size size, {required int count, required double opacity}) {
-    final cloudPaint = Paint()..color = Colors.white.withOpacity(opacity);
-    final positions = [
-      Offset(size.width * 0.1 + bgProgress * size.width * 0.04, size.height * 0.08),
-      Offset(size.width * 0.55 + bgProgress * size.width * 0.03, size.height * 0.13),
-      Offset(size.width * 0.30 - bgProgress * size.width * 0.02, size.height * 0.05),
-      Offset(size.width * 0.70 - bgProgress * size.width * 0.025, size.height * 0.20),
-    ];
-    final scales = [0.18, 0.14, 0.12, 0.10];
-    for (int i = 0; i < math.min(count, positions.length); i++) {
-      _drawCloud(canvas, positions[i], size.width * scales[i], cloudPaint);
-    }
-  }
-
-  void _drawCloud(Canvas canvas, Offset center, double r, Paint paint) {
-    // Corps central
-    canvas.drawCircle(center, r, paint);
-    canvas.drawCircle(Offset(center.dx - r * 0.55, center.dy + r * 0.2), r * 0.75, paint);
-    canvas.drawCircle(Offset(center.dx + r * 0.55, center.dy + r * 0.2), r * 0.75, paint);
-    canvas.drawCircle(Offset(center.dx + r * 0.25, center.dy - r * 0.3), r * 0.65, paint);
-    // Base rectangulaire pour fermer le bas
-    canvas.drawRect(
-      Rect.fromLTRB(
-        center.dx - r * 1.3,
-        center.dy + r * 0.2,
-        center.dx + r * 1.3,
-        center.dy + r * 0.95,
-      ),
-      paint,
-    );
-  }
-
-  // ── Pluie ─────────────────────────────────────────────────────
-  void _drawRain(Canvas canvas, Size size, {required bool heavy}) {
-    final count = heavy ? 60 : 35;
-    final rainPaint = Paint()
-      ..color = const Color(0xFF7EC8E3).withOpacity(heavy ? 0.55 : 0.40)
-      ..strokeWidth = heavy ? 1.5 : 1.0
-      ..strokeCap = StrokeCap.round;
-
-    final rng = math.Random(42);
-    for (int i = 0; i < count; i++) {
-      final x = rng.nextDouble() * size.width;
-      final baseY = rng.nextDouble() * size.height;
-      // Décalage vertical animé
-      final y = (baseY + rainProgress * size.height * 0.6) % size.height;
-      final len = heavy ? 14.0 : 10.0;
-      canvas.drawLine(
-        Offset(x - len * 0.15, y),
-        Offset(x + len * 0.15, y + len),
-        rainPaint);
-    }
-  }
-
-  // ── Neige ─────────────────────────────────────────────────────
-  void _drawSnow(Canvas canvas, Size size) {
-    final snowPaint = Paint()..color = Colors.white.withOpacity(0.70);
-    final rng = math.Random(99);
-    for (int i = 0; i < 30; i++) {
-      final x = rng.nextDouble() * size.width;
-      final baseY = rng.nextDouble() * size.height;
-      final y = (baseY + rainProgress * size.height * 0.25) % size.height;
-      canvas.drawCircle(Offset(x, y), rng.nextDouble() * 2 + 1.5, snowPaint);
-    }
-  }
-
-  // ── Brouillard ────────────────────────────────────────────────
-  void _drawFog(Canvas canvas, Size size) {
-    final fogPaint = Paint()
-      ..color = Colors.white.withOpacity(0.18)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20);
-    for (int i = 0; i < 4; i++) {
-      final y = size.height * (0.1 + i * 0.25);
-      final offset = (i.isEven ? 1 : -1) * bgProgress * 30;
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(-20 + offset, y, size.width + 40, size.height * 0.10),
-          const Radius.circular(20)),
-        fogPaint);
-    }
-  }
-
-  // ── Étoiles (nuit) ────────────────────────────────────────────
-  void _drawStars(Canvas canvas, Size size) {
-    final starPaint = Paint()..color = Colors.white;
-    final rng = math.Random(7);
-    for (int i = 0; i < 60; i++) {
-      final x = rng.nextDouble() * size.width;
-      final y = rng.nextDouble() * size.height * 0.55;
-      final twinkle = 0.4 + 0.6 * math.sin(sunProgress * 2 * math.pi + i * 0.7);
-      starPaint.color = Colors.white.withOpacity(twinkle * 0.8);
-      canvas.drawCircle(Offset(x, y), rng.nextDouble() * 1.5 + 0.5, starPaint);
-    }
-  }
-
-  // ── Éclair ────────────────────────────────────────────────────
-  void _drawLightning(Canvas canvas, Size size) {
-    // Éclair visible seulement 10 % du temps (flash)
-    if ((bgProgress * 10).floor().isOdd) return;
-    if (bgProgress % 1.0 > 0.10) return;
-    final lightPaint = Paint()
-      ..color = const Color(0xFFFFF176).withOpacity(0.85)
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-    final path = Path();
-    final sx = size.width * 0.55;
-    path.moveTo(sx, size.height * 0.18);
-    path.lineTo(sx - 12, size.height * 0.30);
-    path.lineTo(sx + 6, size.height * 0.30);
-    path.lineTo(sx - 14, size.height * 0.46);
-    canvas.drawPath(path, lightPaint);
-  }
-
-  @override
-  bool shouldRepaint(_WeatherPainter old) =>
-    old.bgProgress != bgProgress ||
-    old.rainProgress != rainProgress ||
-    old.sunProgress != sunProgress ||
-    old.type != type;
 }
 
 // ══════════════════════════════════════════════════════════════════
