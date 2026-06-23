@@ -10,7 +10,10 @@ import 'settings_screen.dart';
 import 'history_screen.dart';
 
 // ══════════════════════════════════════════════════════════════════
-// Mapping code météo → WeatherType (adv_flutter_weather, 15 types)
+// Mapping code météo → WeatherType (adv_flutter_weather 1.0.0)
+// WeatherType valides : sunny, sunnyNight, cloudy, cloudyNight,
+//   overcast, foggy, hazy, dusty, lightRainy, middleRainy,
+//   heavyRainy, storm, lightSnow, middleSnow, heavySnow
 // ══════════════════════════════════════════════════════════════════
 WeatherType _codeToWeatherType(int? code, int hour) {
   final night = hour < 6 || hour >= 21;
@@ -27,8 +30,7 @@ WeatherType _codeToWeatherType(int? code, int hour) {
   if (code >= 74 && code <= 79) return WeatherType.middleSnow;
   if (code >= 80 && code <= 82) return WeatherType.heavyRainy;
   if (code >= 85 && code <= 86) return WeatherType.heavySnow;
-  if (code == 95)               return WeatherType.thunder;
-  if (code >= 96)               return WeatherType.hailStorm;
+  if (code >= 95)               return WeatherType.storm;
   return night ? WeatherType.sunnyNight : WeatherType.sunny;
 }
 
@@ -61,8 +63,7 @@ LinearGradient _pageGradient(WeatherType type) {
         begin: Alignment.topCenter, end: Alignment.bottomCenter,
         colors: [Color(0xFF243447), Color(0xFF2E4460)]);
     case WeatherType.heavyRainy:
-    case WeatherType.thunder:
-    case WeatherType.hailStorm:
+    case WeatherType.storm:
       return const LinearGradient(
         begin: Alignment.topCenter, end: Alignment.bottomCenter,
         colors: [Color(0xFF1A1A2E), Color(0xFF22304A)]);
