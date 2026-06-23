@@ -118,7 +118,8 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           }),
 
-          // COUCHE 3 — dégradé transparent → fond sombre
+          // COUCHE 3 — dégradé léger transparent → teinte sombre homogène
+          // Opacité réduite pour rester dans la palette du gradient météo
           IgnorePointer(
             child: Container(
               decoration: const BoxDecoration(
@@ -128,11 +129,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   colors: [
                     Colors.transparent,
                     Colors.transparent,
-                    Color(0xCC0D1A2E),
-                    Color(0xF20D1A2E),
-                    Color(0xFF0D1117),
+                    Color(0x660D1A2E),  // 40 % — transition douce
+                    Color(0xAA0D1A2E), // 67 % — profondeur légère
+                    Color(0xCC0D1A2E), // 80 % max — jamais noir pur
                   ],
-                  stops: [0.0, 0.38, 0.62, 0.78, 1.0],
+                  stops: [0.0, 0.45, 0.65, 0.82, 1.0],
                 ),
               ),
             ),
@@ -152,80 +153,67 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ═════════════════════════════════════════════════════════════════
-  // AppBar : titre + icônes sur une ligne, bandeau alerte dessous
-  //          Le bandeau est ENTRE le titre et le reste de l'écran.
+  // AppBar : totalement transparent — le fond météo passe au travers
   // ═════════════════════════════════════════════════════════════════
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: Size.fromHeight(kToolbarHeight + _alertBannerHeight),
-      child: ClipRect(
-        child: Container(
-          // Fond semi-opaque : garantit la lisibilité quelle que soit la météo
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xDD000000),  // 87 % opaque — titre toujours lisible
-                Color(0xBB000000),  // 73 % opaque — bandeau lisible
-                Color(0x00000000),  // transparent en bas
-              ],
-              stops: [0.0, 0.85, 1.0],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // ── Ligne principale : SAMCAM  |  (bandeau si alerte)  |  icônes
-                SizedBox(
-                  height: kToolbarHeight,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const SizedBox(width: 16),
-                      // Titre
-                      const Text(
-                        'SAMCAM',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          fontSize: 18,
-                        ),
+      child: Container(
+        // Transparent : le gradient météo est visible derrière
+        color: Colors.transparent,
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Ligne principale : SAMCAM  |  (bandeau si alerte)  |  icônes
+              SizedBox(
+                height: kToolbarHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 16),
+                    // Titre
+                    const Text(
+                      'SAMCAM',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        fontSize: 18,
+                        shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
                       ),
-                      const SizedBox(width: 12),
+                    ),
+                    const SizedBox(width: 12),
 
-                      // ── Bandeau alerte INLINE (entre le titre et les icônes)
-                      if (_hasAlert)
-                        Expanded(child: _buildInlineAlertBanner())
-                      else
-                        const Spacer(),
+                    // ── Bandeau alerte INLINE (entre le titre et les icônes)
+                    if (_hasAlert)
+                      Expanded(child: _buildInlineAlertBanner())
+                    else
+                      const Spacer(),
 
-                      // Icônes à droite
-                      IconButton(
-                        icon: const Icon(Icons.history, color: Colors.white70),
-                        onPressed: () => Navigator.push(
+                    // Icônes à droite
+                    IconButton(
+                      icon: const Icon(Icons.history, color: Colors.white70),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HistoryScreen()))),
+                    IconButton(
+                      icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const HistoryScreen()))),
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined, color: Colors.white70),
-                        onPressed: () async {
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                          _fetchAll();
-                        }),
-                      IconButton(
-                        icon: const Icon(Icons.refresh, color: Colors.white70),
-                        onPressed: _fetchAll),
-                    ],
-                  ),
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                        _fetchAll();
+                      }),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.white70),
+                      onPressed: _fetchAll),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -233,8 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ─────────────────────────────────────────────────────────────────
-  // Bandeau inline — s'insère entre le titre et les icônes
-  // Fond solide teinté couleur alerte pour lisibilité maximale
+  // Bandeau inline — fond semi-transparent léger, lisible et discret
   // ─────────────────────────────────────────────────────────────────
   Widget _buildInlineAlertBanner() {
     // ── Erreur serveur
@@ -243,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.08),
+          color: Colors.black.withOpacity(0.22),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.white24, width: 0.8),
         ),
@@ -283,11 +270,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final isOk   = r.niveauAlerte == 'VERT';
     final isInco = r.niveauAlerte == 'INCONNU';
 
-    // Fond teinté couleur alerte à 30% + noir 60% : toujours lisible
+    // Fond : noir très léger + teinte couleur alerte subtile → lisible sans être pesant
     final bgColor = Color.lerp(
-      Colors.black.withOpacity(0.55),
-      color.withOpacity(0.45),
-      0.40,
+      Colors.black.withOpacity(0.28),
+      color.withOpacity(0.30),
+      0.35,
     )!;
 
     return Container(
@@ -296,7 +283,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.55), width: 0.9),
+        border: Border.all(color: color.withOpacity(0.45), width: 0.9),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -341,9 +328,9 @@ class _HomeScreenState extends State<HomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.25),
+              color: color.withOpacity(0.20),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: color.withOpacity(0.8), width: 0.9),
+              border: Border.all(color: color.withOpacity(0.70), width: 0.9),
             ),
             child: Text(
               r.niveauAlerte,
@@ -701,7 +688,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             const SizedBox(height: 8),
             if (today?.sunset != null)
-              Text('Protection jusqu\'\\u00e0 $sunsetStr.',
+              Text('Protection jusqu\'à $sunsetStr.',
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
           ]),
         ),
