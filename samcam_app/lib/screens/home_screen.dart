@@ -80,7 +80,8 @@ WeatherScene _kindToScene(_WeatherKind kind, int hour) {
     case _WeatherKind.sunny:
       return night ? WeatherScene.scorchingSun : WeatherScene.scorchingSun;
     case _WeatherKind.partlyCloudy:
-      return WeatherScene.cloudyNight;
+      // cloudyNight supprimé en 1.2.0 → on utilise showerSleet (nuageux)
+      return night ? WeatherScene.showerSleet : WeatherScene.showerSleet;
     case _WeatherKind.cloudy:
       return WeatherScene.showerSleet;
     case _WeatherKind.fog:
@@ -286,7 +287,6 @@ class _HomeScreenState extends State<HomeScreen> {
             WrapperScene(
               colors: const [Color(0xFF0D5FA3), Color(0xFF1A7FC1)],
               sizeCanvas: const Size(double.maxFinite, 310),
-              isRunning: true,
               children: _sceneWidgets(scene),
             ),
             // ── Vignette d'assombrissement vers le bas pour lisibilité ──
@@ -358,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Construit la liste de widgets de scène weather_animation
+  /// Construit la liste de widgets de scène weather_animation (compatible 1.2.0)
   List<Widget> _sceneWidgets(WeatherScene scene) {
     switch (scene) {
       case WeatherScene.scorchingSun:
@@ -366,7 +366,6 @@ class _HomeScreenState extends State<HomeScreen> {
           const SunWidget(sunConfig: SunConfig(
             width: 250, blurSigma: 14, blurStyle: BlurStyle.solid,
             isLeftLocation: false,
-            cameraShakesActivated: false,
             sunColor: Color(0xFFFFF176),
             flareColor: Color(0xFFFFEB3B),
             flareWidth: 10, flareCount: 10,
@@ -374,12 +373,12 @@ class _HomeScreenState extends State<HomeScreen> {
             lensFlareWidth: 60,
           )),
         ];
-      case WeatherScene.cloudyNight:
+      // partlyCloudy (anciennement cloudyNight, supprimé en 1.2.0)
+      case WeatherScene.showerSleet:
         return [
           const SunWidget(sunConfig: SunConfig(
             width: 180, blurSigma: 10, blurStyle: BlurStyle.solid,
             isLeftLocation: false,
-            cameraShakesActivated: false,
             sunColor: Color(0xFFFFF9C4),
             flareColor: Color(0xFFFFF176),
             flareWidth: 6, flareCount: 8,
@@ -389,34 +388,31 @@ class _HomeScreenState extends State<HomeScreen> {
           const CloudWidget(cloudConfig: CloudConfig(
             size: 260, color: Color(0xC0B0BEC5),
             x: 0.05, y: 0.05,
-            scaleBegin: 0.95, scaleEnd: 1.03, scaleDuration: 4000,
+            scaleBegin: 0.95, scaleEnd: 1.03,
             slideX: 20, slideY: 0, slideDuration: 8000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 200, color: Color(0xA0CFD8DC),
             x: 0.45, y: 0.15,
-            scaleBegin: 1.0, scaleEnd: 1.05, scaleDuration: 5000,
+            scaleBegin: 1.0, scaleEnd: 1.05,
             slideX: 15, slideY: 0, slideDuration: 10000,
           )),
-        ];
-      case WeatherScene.showerSleet:
-        return [
           const CloudWidget(cloudConfig: CloudConfig(
             size: 320, color: Color(0xCC90A4AE),
             x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.03, scaleDuration: 4000,
+            scaleBegin: 0.97, scaleEnd: 1.03,
             slideX: 12, slideY: 0, slideDuration: 9000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 270, color: Color(0xCC78909C),
             x: 0.40, y: 0.10,
-            scaleBegin: 1.0, scaleEnd: 1.04, scaleDuration: 5500,
+            scaleBegin: 1.0, scaleEnd: 1.04,
             slideX: 10, slideY: 0, slideDuration: 11000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 220, color: Color(0xCC546E7A),
             x: 0.20, y: 0.05,
-            scaleBegin: 0.98, scaleEnd: 1.02, scaleDuration: 6000,
+            scaleBegin: 0.98, scaleEnd: 1.02,
             slideX: 8, slideY: 0, slideDuration: 13000,
           )),
         ];
@@ -425,13 +421,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const CloudWidget(cloudConfig: CloudConfig(
             size: 400, color: Color(0x99B0BEC5),
             x: -0.1, y: 0.0,
-            scaleBegin: 0.96, scaleEnd: 1.04, scaleDuration: 7000,
+            scaleBegin: 0.96, scaleEnd: 1.04,
             slideX: 5, slideY: 0, slideDuration: 15000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 300, color: Color(0x88CFD8DC),
             x: 0.30, y: 0.20,
-            scaleBegin: 1.0, scaleEnd: 1.03, scaleDuration: 8000,
+            scaleBegin: 1.0, scaleEnd: 1.03,
             slideX: 4, slideY: 0, slideDuration: 18000,
           )),
         ];
@@ -440,13 +436,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const CloudWidget(cloudConfig: CloudConfig(
             size: 340, color: Color(0xDD546E7A),
             x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.02, scaleDuration: 4500,
+            scaleBegin: 0.97, scaleEnd: 1.02,
             slideX: 14, slideY: 0, slideDuration: 8000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 280, color: Color(0xDD455A64),
             x: 0.35, y: 0.08,
-            scaleBegin: 1.0, scaleEnd: 1.03, scaleDuration: 5000,
+            scaleBegin: 1.0, scaleEnd: 1.03,
             slideX: 12, slideY: 0, slideDuration: 10000,
           )),
           RainWidget(rainConfig: RainConfig(
@@ -455,7 +451,6 @@ class _HomeScreenState extends State<HomeScreen> {
             widthDrop: 2,
             color: const Color(0x887EC8E3),
             isRoundedEndsDrop: true,
-            rainGap: 24,
             fallSpeed: 0.8,
             angle: 0,
             slideX: 1,
@@ -467,13 +462,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const CloudWidget(cloudConfig: CloudConfig(
             size: 380, color: Color(0xEE37474F),
             x: -0.05, y: 0.0,
-            scaleBegin: 0.95, scaleEnd: 1.05, scaleDuration: 3000,
+            scaleBegin: 0.95, scaleEnd: 1.05,
             slideX: 18, slideY: 0, slideDuration: 6000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 300, color: Color(0xEE263238),
             x: 0.30, y: 0.05,
-            scaleBegin: 1.0, scaleEnd: 1.06, scaleDuration: 3500,
+            scaleBegin: 1.0, scaleEnd: 1.06,
             slideX: 15, slideY: 0, slideDuration: 7500,
           )),
           RainWidget(rainConfig: RainConfig(
@@ -482,7 +477,6 @@ class _HomeScreenState extends State<HomeScreen> {
             widthDrop: 2,
             color: const Color(0x997EC8E3),
             isRoundedEndsDrop: true,
-            rainGap: 18,
             fallSpeed: 1.2,
             angle: 8,
             slideX: 2,
@@ -493,7 +487,6 @@ class _HomeScreenState extends State<HomeScreen> {
             blurSigma: 12,
             blurStyle: BlurStyle.outer,
             color: Color(0xCCFFF176),
-            flashStartMills: 200,
             flashEndMills: 1500,
             pauseMills: 3000,
           )),
@@ -503,20 +496,19 @@ class _HomeScreenState extends State<HomeScreen> {
           const CloudWidget(cloudConfig: CloudConfig(
             size: 300, color: Color(0xBBB0BEC5),
             x: -0.05, y: 0.0,
-            scaleBegin: 0.97, scaleEnd: 1.03, scaleDuration: 6000,
+            scaleBegin: 0.97, scaleEnd: 1.03,
             slideX: 10, slideY: 0, slideDuration: 12000,
           )),
           const CloudWidget(cloudConfig: CloudConfig(
             size: 240, color: Color(0xBBCFD8DC),
             x: 0.40, y: 0.10,
-            scaleBegin: 1.0, scaleEnd: 1.04, scaleDuration: 7000,
+            scaleBegin: 1.0, scaleEnd: 1.04,
             slideX: 8, slideY: 0, slideDuration: 14000,
           )),
           SnowWidget(snowConfig: SnowConfig(
             count: 40,
             size: 6,
             color: Colors.white.withOpacity(0.75),
-            snowFlakeShape: SnowFlakeShape.circle,
             snowFallSpeed: 0.4,
             snowFallGap: 3,
             snowFallAngle: 0,
