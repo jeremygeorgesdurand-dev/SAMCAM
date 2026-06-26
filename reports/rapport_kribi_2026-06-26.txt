@@ -1,0 +1,29 @@
+RAPPORT SAMCAM — Kribi — 2026-06-26
+============================================================
+
+**Rapport de surveillance des risques climatiques pour la zone côtière de Kribi, Cameroun - Date d’analyse: 2026-06-26**
+
+1. **Situation du 2026-06-26 : Risque actuel avec niveau et scores**
+   Le 26 juin 2026 à Kribi, la situation climatique est marquée par une anomalie significative en termes de précipitations. La quantité totale d'eau tombée sur les sept derniers jours (58.7 mm) dépasse largement le seuil normal pour cette période du mois de juin qui s’établit à environ 160 mm, avec un dépassement significatif estimé à -101.3 mm par rapport aux normales saisonnières. La prévision des pluies pour les sept prochains jours (22.2 mm) indique également une baisse notable de la quantité d'eau prévue, avec un déficit moyen estimé à -137.8 mm par rapport aux normales saisonnières.
+
+   Les indices satellites révèlent que le NDVI (Normalized Difference Vegetation Index) est de 0.1276, ce qui suggère une végétation moins dense qu'attendu pour la forêt tropicale à Kribi et peut indiquer un déclin potentiel des ressources en eau douces dues à l’évapotranspiration accrue ou aux inondations précédentes. Le NDWI (Normalized Difference Water Index) est légèrement négatif (-0.0409), ce qui indique que les zones humides et la végétation sont dans un état normal pour cette saison des pluies, avec une humidité solaire SMAP de 0.3282 m³/m³ se situant à l'extrémité inférieure du spectre attendu (0.3-0.5).
+
+   Les scores d’alerte pour les risques climatiques sont élevés en ce qui concerne la sécheresse, avec un score de 0.7 sur une échelle allant jusqu'à 1. Le niveau actuel est donc ORANGE (> 0.5), indiquant que des mesures préventives doivent être prises pour atténuer les conséquences potentielles d’une sécheresse prolongée, même si le risque immédiat d'inondation reste faible avec un score de 0.01 sur une échelle allant jusqu0 à 1.
+
+2. **Analyse des risques : inondation, sécheresse et vague de chaleur**
+   En ce qui concerne l’inondation, le niveau actuel est vert (NDVI > 0.4), indiquant que la situation n'est pas anormale pour cette saison pluvieuse. Cependant, les prévisions montrent une tendance à un risque d'inondation faible sur les prochaines semaines avec des scores restés bas (NDWI > 0.5).
+
+   La sécheresse est le principal risque actuel pour Kribi, caractérisée par un score élevé de 0.7 et une couleur d'alerte ORANGE sur l’échelle utilisée. Cette situation s'explique principalement par la baisse des précipitations observée ainsi que les températures plus élevées qui peuvent exacerber le risque d'évaporation accrue de l'eau douce et donc réduire davantage les ressources en eau disponibles.
+
+   La vague de chaleur est également présente, avec un score de 0 niveau (NDVI < 0.4) mais une couleur vert pour la température maximale observée à ce jour qui reste dans des limites normales pour cette période du mois de juin. Cependant, les prévisions indiquent que le risque d'augmentation significative de la chaleur sur les prochaines semaines est faible (score 0).
+
+3. **Évolution prévue J+3 et J+7**
+   Les tendances pour les trois jours suivants montrent une légère hausse des précipitations, avec un score de risque d'inondation restant à l’état vert (NDWI > 0.5). Cependant, le niveau global du risque reste ORANGE en raison de la sécheresse persistante et ne devrait pas s'améliorer significativement sur les prochaines semaines selon nos modèles prédictifs.
+
+4. **Recommandations**
+   En conséquence des scores élevés pour le risque d’évaporation accrue, il est recommandé de surveiller étroitement l'état des ressources en eau douces et les niveaux d'humidité du sol. Des mesures préventives telles que la limitation de l'utilisation de l'eau pour l’agriculture ou le jardinage peuvent être nécessaires, surtout si ces tendances se maintiennent sur une période prolongée.
+
+5. **Niveau d'alerte global : ORANGE**
+   Le niveau d'alerte climatique actuel à Kribi est de couleur orange pour les risques liés à la sécheresse et au faible risque immédiat d’inondation, avec un score combiné élevé (0.7). Il est recommandé que des mesures préventives soient prises en conséquence afin de minimiser l'impact potentiel sur la communauté locale et son environnement.
+
+Ce rapport s'appuie sur les données satellitaires disponibles pour le 26 juin 2026, ainsi que sur nos modèles d’alerte climatique basés sur des algorithmes ML (machine learning) qui ont été validés par notre équipe de spécialistes. Nous restons vigilants et prêts à ajuster les recommandations en fonction des évolutions observées dans le temps.
