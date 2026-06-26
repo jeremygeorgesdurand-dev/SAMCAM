@@ -72,7 +72,13 @@ LinearGradient weatherGradient(WeatherAnimType type) {
       return const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFF5A6475), Color(0xFF7A8494), Color(0xFF9EA8B0)]);
+          colors: [
+            Color(0xFF4A5260),
+            Color(0xFF6E7A88),
+            Color(0xFF909AA4),
+            Color(0xFFB8C0C8),
+          ],
+          stops: [0.0, 0.35, 0.70, 1.0]);
     case WeatherAnimType.lightRain:
       return const LinearGradient(
           begin: Alignment.topCenter,
@@ -116,9 +122,9 @@ class WeatherAnimationBg extends StatefulWidget {
 class _WeatherAnimationBgState extends State<WeatherAnimationBg>
     with TickerProviderStateMixin {
   late AnimationController _mainCtrl;   // 10s  — pluie, neige, étoiles
-  late AnimationController _cloudCtrl;  // 60s  — nuages lents (fond)
-  late AnimationController _cloud2Ctrl; // 36s  — nuages rapides (avant)
-  late AnimationController _sunCtrl;    // 12s  — rotation soleil
+  late AnimationController _cloudCtrl;  // 120s — nuages lents (fond)
+  late AnimationController _cloud2Ctrl; // 72s  — nuages rapides (avant)
+  late AnimationController _sunCtrl;    // 40s  — rotation soleil (lente)
   late AnimationController _pulseCtrl;  // 3s   — halo pulsant
   late AnimationController _ltCtrl;     // 120ms — éclair
 
@@ -126,9 +132,9 @@ class _WeatherAnimationBgState extends State<WeatherAnimationBg>
   void initState() {
     super.initState();
     _mainCtrl   = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    _cloudCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
-    _cloud2Ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 36))..repeat();
-    _sunCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
+    _cloudCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
+    _cloud2Ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 72))..repeat();
+    _sunCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 40))..repeat();
     _pulseCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
     _ltCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
     if (widget.type == WeatherAnimType.storm) _scheduleLightning();
@@ -262,7 +268,7 @@ class _WeatherPainter extends CustomPainter {
     final cx = size.width  * xFrac;
     final cy = size.height * yFrac;
     final r  = size.width  * 0.11 * scale;
-    final rot = tSun * 2 * pi;
+    final rot = tSun * 2 * pi; // tSun varie sur 40s — rotation très lente
 
     final outerGlow = Paint()
       ..shader = RadialGradient(colors: [
@@ -490,7 +496,6 @@ class _WeatherPainter extends CustomPainter {
       bottomColor = const Color(0xFFCCDEF0);
     }
 
-    // Ombre portée
     final shadowPaint = Paint()
       ..color = (dark
             ? const Color(0xFF0A1020)
@@ -505,8 +510,6 @@ class _WeatherPainter extends CustomPainter {
           width: r * 4.2, height: r * 0.62),
       shadowPaint);
 
-    // Bulles cumuliformes — (offsetX, offsetY, radiusFactor)
-    // Accès via .$1 .$2 .$3 (records Dart, pas d'opérateur [])
     const bubbles = [
       (-0.40, 0.70, 0.60),
       ( 0.30, 0.62, 0.82),
@@ -551,6 +554,144 @@ class _WeatherPainter extends CustomPainter {
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.35);
       canvas.drawCircle(Offset(cx + r * 1.0, cy - r * 0.05), r * 0.50, specPaint);
     }
+  }
+
+  // ══ BROUILLARD PREMIUM ════════════════════════════════════════════
+  //
+  //  Structure en 4 passes superposées :
+  //  1. Voile de fond diffus (gradient vertical)
+  //  2. Volutes de brume (puffs) en arrière-plan — très flous, grands
+  //  3. Volutes de brume en avant-plan — moins flous, plus petits
+  //  4. Couche de brume basse (nappe au sol)
+  //
+  void _drawFog(Canvas canvas, Size size) {
+    // ── 1. Voile de fond : gradient vertical doux qui donne la densité globale
+    final bgVeil = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0xFFB0BAC4).withOpacity(0.0),
+          const Color(0xFFC4CDD4).withOpacity(0.18),
+          const Color(0xFFD4DCE2).withOpacity(0.38),
+          const Color(0xFFDDE4E8).withOpacity(0.55),
+        ],
+        stops: const [0.0, 0.25, 0.60, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgVeil);
+
+    // ── 2. Volutes arrière-plan : grandes ellipses très floues
+    //    Chaque volute oscille lentement en X et en opacité
+    const backPuffs = [
+      // (xFrac, yFrac, wFrac, hFrac, phaseOffset, speedMult)
+      (0.05, 0.12, 1.20, 0.28, 0.00, 0.80),
+      (0.60, 0.28, 1.10, 0.24, 0.25, 0.65),
+      (0.20, 0.48, 1.30, 0.30, 0.50, 0.90),
+      (0.70, 0.65, 1.00, 0.22, 0.15, 0.70),
+      (0.00, 0.80, 1.40, 0.26, 0.70, 0.85),
+    ];
+
+    for (final p in backPuffs) {
+      final xBase  = p.$1 * size.width;
+      final yBase  = p.$2 * size.height;
+      final w      = p.$3 * size.width;
+      final h      = p.$4 * size.height;
+      final phase  = p.$5;
+      final spd    = p.$6;
+
+      // Dérive lente : aller-retour sinusoïdal
+      final drift = sin((tCloud * spd + phase) * 2 * pi) * size.width * 0.06;
+      // Pulsation d'opacité douce
+      final opBase = 0.22 + 0.10 * sin((tCloud * spd * 0.7 + phase * 1.3) * 2 * pi);
+
+      final puffPaint = Paint()
+        ..color = const Color(0xFFCED8DF).withOpacity(opBase)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.55);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(xBase + w * 0.5 + drift, yBase + h * 0.5),
+          width: w, height: h,
+        ),
+        puffPaint,
+      );
+    }
+
+    // ── 3. Volutes avant-plan : plus petites, moins floues, plus détaillées
+    //    Elles se déplacent légèrement plus vite que l'arrière-plan
+    const frontPuffs = [
+      (0.10, 0.08, 0.65, 0.18, 0.10, 1.10),
+      (0.55, 0.22, 0.58, 0.16, 0.40, 0.95),
+      (0.30, 0.42, 0.72, 0.20, 0.65, 1.20),
+      (0.75, 0.58, 0.60, 0.17, 0.30, 1.05),
+      (0.05, 0.70, 0.68, 0.19, 0.80, 0.90),
+      (0.50, 0.85, 0.75, 0.18, 0.55, 1.15),
+    ];
+
+    for (final p in frontPuffs) {
+      final xBase  = p.$1 * size.width;
+      final yBase  = p.$2 * size.height;
+      final w      = p.$3 * size.width;
+      final h      = p.$4 * size.height;
+      final phase  = p.$5;
+      final spd    = p.$6;
+
+      final drift = sin((tCloud2 * spd + phase) * 2 * pi) * size.width * 0.04
+                  + cos((tCloud2 * spd * 0.6 + phase * 0.8) * 2 * pi) * size.width * 0.02;
+      final opBase = 0.30 + 0.12 * cos((tCloud2 * spd * 0.5 + phase) * 2 * pi);
+
+      // Glow extérieur diffus
+      final glowPaint = Paint()
+        ..color = const Color(0xFFD8E2E8).withOpacity(opBase * 0.45)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.70);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(xBase + w * 0.5 + drift, yBase + h * 0.5),
+          width: w * 1.25, height: h * 1.40,
+        ),
+        glowPaint,
+      );
+
+      // Corps de la volute
+      final bodyPaint = Paint()
+        ..color = const Color(0xFFE0E8EC).withOpacity(opBase * 0.75)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, h * 0.28);
+      canvas.drawOval(
+        Rect.fromCenter(
+          center: Offset(xBase + w * 0.5 + drift, yBase + h * 0.5),
+          width: w, height: h,
+        ),
+        bodyPaint,
+      );
+    }
+
+    // ── 4. Nappe de brume basse (bas de l'écran)
+    //    Gradient qui monte depuis le bas pour simuler la brume au sol
+    final groundMist = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [
+          const Color(0xFFE0E8EC).withOpacity(0.70),
+          const Color(0xFFD4DCE2).withOpacity(0.40),
+          const Color(0xFFCDD5DA).withOpacity(0.10),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.15, 0.35, 0.60],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), groundMist);
+
+    // ── 5. Voile de luminosité diffuse au centre (le soleil filtre à travers)
+    final glowX = size.width * 0.5;
+    final glowY = size.height * 0.3;
+    final sunGlow = Paint()
+      ..shader = RadialGradient(colors: [
+        const Color(0xFFECF2F6).withOpacity(0.28),
+        const Color(0xFFD8E4EA).withOpacity(0.10),
+        Colors.transparent,
+      ], stops: const [0.0, 0.45, 1.0])
+      .createShader(Rect.fromCircle(
+          center: Offset(glowX, glowY), radius: size.width * 0.55));
+    canvas.drawCircle(Offset(glowX, glowY), size.width * 0.55, sunGlow);
   }
 
   // ══ PLUIE RÉALISTE ════════════════════════════════════════════════
@@ -645,29 +786,6 @@ class _WeatherPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round);
-  }
-
-  // ══ BROUILLARD ════════════════════════════════════════════════════
-  void _drawFog(Canvas canvas, Size size) {
-    for (int i = 0; i < 8; i++) {
-      final yFrac   = 0.05 + i * 0.12;
-      final phase   = tCloud + i * 0.13;
-      final shift   = sin(phase * 2 * pi) * size.width * 0.05
-                    + cos(phase * pi * 1.3) * size.width * 0.02;
-      final opacity = 0.06 + 0.05 * sin(t * 2 * pi + i * 0.9);
-      final grad    = Paint()
-        ..shader = LinearGradient(colors: [
-          Colors.transparent,
-          const Color(0xFFCED6DF).withOpacity(opacity * 2.2),
-          const Color(0xFFD8E0E8).withOpacity(opacity * 2.8),
-          const Color(0xFFCED6DF).withOpacity(opacity * 2.2),
-          Colors.transparent,
-        ], stops: const [0.0, 0.2, 0.5, 0.8, 1.0]).createShader(
-            Rect.fromLTWH(shift, 0, size.width, size.height));
-      final y = yFrac * size.height;
-      canvas.drawRect(
-          Rect.fromLTWH(shift, y, size.width * 1.1, size.height * 0.08), grad);
-    }
   }
 
   // ══ NEIGE ═════════════════════════════════════════════════════════
