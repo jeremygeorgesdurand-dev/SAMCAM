@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.2 — Module d'inférence des risques climatiques
+SAMCAM V4.3 — Module d'inférence des risques climatiques
+
+NOUVEAUTÉS V4.3 :
+    - et0_semaine ajouté dans FEATURES_BASE (17 features de base)
+    - ratio_et0_pluie ajouté dans FEATURES_DERIVEES
+      → bilan hydrique : ET0 / pluie → stress hydrique direct
+    - Imputation via normales mensuelles ET0 si données manquantes
+    - Total : 19 features utilisées pour l'inférence ML
 
 NOUVEAUTÉS V4.2 :
     - trend_sm calculé via un historique glissant en mémoire
-      (plus de valeur 0 fixe — donnée réelle entre deux appels successifs)
     - Meilleure gestion des features manquantes (imputation médiane)
     - reset_historique() pour forcer la remise à zéro du cache sm
 
@@ -27,6 +33,12 @@ NORMALES_MENSUELLES = {
     7: 80,  8: 100, 9: 180, 10: 200, 11: 150, 12: 50,
 }
 
+# ET0 normales mensuelles Kribi (mm/semaine) — ERA5-Land climatologie
+ET0_NORMALES_MENSUELLES = {
+    1: 25, 2: 27, 3: 24, 4: 21, 5: 20, 6: 19,
+    7: 18, 8: 18, 9: 19, 10: 20, 11: 21, 12: 23,
+}
+
 SCORE_VERS_NIVEAU = {
     (0.75, 1.01): "ROUGE",
     (0.50, 0.75): "ORANGE",
@@ -37,13 +49,14 @@ SCORE_VERS_NIVEAU = {
 FEATURES_BASE = [
     "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
     "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
-    "ndvi", "ndwi",
+    "ndvi", "ndwi", "et0_semaine",  # V4.3
 ]
 
 FEATURES_DERIVEES = [
     "sin_mois", "cos_mois",
     "anomalie_pluie", "ratio_30j_7j",
     "trend_sm", "sm_deficit",
+    "ratio_et0_pluie",  # V4.3
 ]
 
 FEATURES_ORDER = FEATURES_BASE + FEATURES_DERIVEES
@@ -74,7 +87,6 @@ DESCRIPTIONS = {
 # HISTORIQUE GLISSANT — trend_sm en temps réel (V4.2)
 # ───────────────────────────────────────────────────────────────────────────────
 
-# Stocke la dernière valeur sm_surface observée (persistante entre appels pipeline)
 _sm_surface_historique: Optional[float] = None
 
 
@@ -85,12 +97,6 @@ def reset_historique():
 
 
 def _get_trend_sm(sm_surface_actuel: float) -> float:
-    """
-    V4.2 — Calcule la vraie variation d'humidité sol entre deux appels.
-    Retourne 0.0 au premier appel (pas d'historique disponible).
-    Valeurs positives → sol qui se sature (risque inondation ↑)
-    Valeurs négatives → sol qui se dessèche (risque sécheresse ↑)
-    """
     global _sm_surface_historique
     if _sm_surface_historique is None:
         trend = 0.0
@@ -168,13 +174,16 @@ def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
     return min(1.0, score)
 
 
-def _risque_secheresse_physique(pluie_30j, ndvi, sm_rootzone, mois):
+def _risque_secheresse_physique(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     normale_30j = NORMALES_MENSUELLES.get(mois, 120) * (30 / 7)
+    et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 21)
     score = 0.0
     deficit = max(0, (normale_30j - pluie_30j) / normale_30j)
-    score += min(0.40, deficit * 0.5)
-    score += min(0.35, max(0, (0.55 - ndvi) * 1.2))
-    score += min(0.25, max(0, (0.28 - sm_rootzone) * 2.0))
+    score += min(0.35, deficit * 0.5)
+    score += min(0.30, max(0, (0.55 - ndvi) * 1.2))
+    score += min(0.20, max(0, (0.28 - sm_rootzone) * 2.0))
+    # V4.3 : bonus ET0 élevée
+    score += min(0.15, max(0, (et0_semaine - et0_normale) / et0_normale * 0.15))
     return min(1.0, score)
 
 
@@ -186,7 +195,7 @@ def _risque_chaleur_physique(temp_max, temp_max_3j):
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# CONSTRUCTION DES FEATURES (V4.2 : trend_sm live)
+# CONSTRUCTION DES FEATURES (V4.3 : + et0_semaine + ratio_et0_pluie)
 # ───────────────────────────────────────────────────────────────────────────────
 
 def _features_from_data(data: dict, use_previsions: bool = False,
@@ -195,6 +204,7 @@ def _features_from_data(data: dict, use_previsions: bool = False,
     ind  = data.get("indicateurs_risque", {})
     sat  = data.get("satellitaire", {}).get("smap", {}).get("humidite_sol", {})
     prev = data.get("meteorologie", {}).get("previsions_daily", {})
+    meteo = data.get("meteorologie", {})
 
     pluie_7j    = float(ind.get("pluie_cumulee_7j_mm",  0) or 0)
     pluie_30j   = float(ind.get("pluie_cumulee_30j_mm", pluie_7j * 4) or pluie_7j * 4)
@@ -203,21 +213,37 @@ def _features_from_data(data: dict, use_previsions: bool = False,
     ndvi        = float(ind.get("ndvi_moyen",  0.70) or 0.70)
     ndwi        = float(ind.get("ndwi_moyen",  0.20) or 0.20)
 
+    # V4.3 : ET0 depuis les données collectées ou normale mensuelle
+    et0_raw = (
+        meteo.get("et0_semaine_mm") or
+        meteo.get("actuel", {}).get("et0_fao_evapotranspiration") or
+        ind.get("et0_semaine_mm")
+    )
+    if et0_raw is not None:
+        et0_semaine = float(et0_raw)
+    else:
+        et0_semaine = float(ET0_NORMALES_MENSUELLES.get(mois, 21))
+
     if use_previsions:
         precip_list = (prev.get("precipitation_sum",  []) or [])[:horizon_jours]
         temp_list   = (prev.get("temperature_2m_max", []) or [])[:horizon_jours]
+        et0_list    = (prev.get("et0_fao_evapotranspiration", []) or [])[:horizon_jours]
         pluie_prev  = sum(float(p or 0) for p in precip_list)
         temp_max    = max((float(t or 28) for t in temp_list), default=28.0)
         t3 = [float(t or 28) for t in temp_list[:3]]
         temp_max_3j = sum(t3) / len(t3) if t3 else temp_max
         pluie_7j_feat = pluie_prev
+        # ET0 prévisionnelle si disponible
+        if et0_list:
+            et0_semaine = sum(float(e or 0) for e in et0_list)
+        else:
+            et0_semaine = float(ET0_NORMALES_MENSUELLES.get(mois, 21))
     else:
         pluie_prev  = float(ind.get("pluie_prevue_7j_mm", 0) or 0)
         temp_max    = float(ind.get("temperature_max_c",  29.0) or 29.0)
         temp_max_3j = float(ind.get("temperature_max_3j_c", temp_max - 0.5) or temp_max - 0.5)
         pluie_7j_feat = pluie_7j
 
-    # ── Features dérivées (V4.2 : trend_sm calculé depuis l'historique live) ──
     normale = NORMALES_MENSUELLES.get(mois, 120)
 
     sin_mois  = round(math.sin(2 * math.pi * mois / 12), 4)
@@ -225,28 +251,32 @@ def _features_from_data(data: dict, use_previsions: bool = False,
     anomalie  = round((pluie_7j_feat - normale) / max(1.0, normale), 4)
     ratio     = round(pluie_30j / max(1.0, pluie_7j_feat * (30 / 7)), 4) if pluie_7j_feat > 0 else 1.0
     ratio     = min(ratio, 5.0)
-
-    # V4.2 : trend_sm depuis l'historique glissant en mémoire (plus de 0 fixe)
     trend_sm  = _get_trend_sm(sm_surface) if not use_previsions else 0.0
     sm_def    = round(max(0.0, (0.30 - sm_rootzone) / 0.30), 4)
 
+    # V4.3 : ratio ET0 / pluie — bilan hydrique
+    ratio_et0_pluie = round(et0_semaine / max(1.0, pluie_7j_feat), 4)
+    ratio_et0_pluie = min(ratio_et0_pluie, 10.0)
+
     return {
-        "mois":          mois,
-        "pluie_7j":      round(pluie_7j_feat, 2),
-        "pluie_30j":     round(pluie_30j,     2),
-        "pluie_prev_7j": round(pluie_prev,    2),
-        "temp_max":      round(temp_max,       2),
-        "temp_max_3j":   round(temp_max_3j,    2),
-        "sm_surface":    round(sm_surface,     4),
-        "sm_rootzone":   round(sm_rootzone,    4),
-        "ndvi":          round(ndvi,           4),
-        "ndwi":          round(ndwi,           4),
-        "sin_mois":       sin_mois,
-        "cos_mois":       cos_mois,
-        "anomalie_pluie": anomalie,
-        "ratio_30j_7j":   ratio,
-        "trend_sm":       trend_sm,
-        "sm_deficit":     sm_def,
+        "mois":             mois,
+        "pluie_7j":         round(pluie_7j_feat, 2),
+        "pluie_30j":        round(pluie_30j,     2),
+        "pluie_prev_7j":    round(pluie_prev,    2),
+        "temp_max":         round(temp_max,       2),
+        "temp_max_3j":      round(temp_max_3j,    2),
+        "sm_surface":       round(sm_surface,     4),
+        "sm_rootzone":      round(sm_rootzone,    4),
+        "ndvi":             round(ndvi,           4),
+        "ndwi":             round(ndwi,           4),
+        "et0_semaine":      round(et0_semaine,    2),  # V4.3
+        "sin_mois":          sin_mois,
+        "cos_mois":          cos_mois,
+        "anomalie_pluie":    anomalie,
+        "ratio_30j_7j":      ratio,
+        "trend_sm":          trend_sm,
+        "sm_deficit":        sm_def,
+        "ratio_et0_pluie":   ratio_et0_pluie,  # V4.3
     }
 
 
@@ -273,7 +303,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
 
         if clf is not None:
             try:
-                # Imputation médiane pour les features inconnues (robustesse)
                 feats_modele = {}
                 for k in features_modele:
                     val = feats.get(k)
@@ -286,7 +315,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
                     X = [[feats_modele[f] for f in features_modele]]
 
                 score = float(clf.predict_proba(X)[0][1])
-                methode_utilisee[nom] = "modele_ml_v4.2"
+                methode_utilisee[nom] = "modele_ml_v4.3"
             except Exception as e:
                 print(f"[RISK] Erreur modèle {nom} : {e} → fallback règles physiques")
                 score = None
@@ -303,7 +332,8 @@ def predire_risques(data: dict, use_previsions: bool = False,
             elif nom == "secheresse":
                 score = _risque_secheresse_physique(
                     feats["pluie_30j"], feats["ndvi"],
-                    feats["sm_rootzone"], feats["mois"])
+                    feats["sm_rootzone"], feats["mois"],
+                    feats["et0_semaine"])
             else:
                 score = _risque_chaleur_physique(
                     feats["temp_max"], feats["temp_max_3j"])
@@ -324,13 +354,13 @@ def predire_risques(data: dict, use_previsions: bool = False,
     )
 
     return {
-        "scores":           {k: v["score"]       for k, v in resultats.items()},
-        "niveaux":          {k: v["niveau"]      for k, v in resultats.items()},
-        "confiances":       {k: v["confiance"]   for k, v in resultats.items()},
-        "descriptions":     {k: v["description"] for k, v in resultats.items()},
-        "niveau_global":    niveau_global,
-        "methode_globale":  "modele_ml_v4.2" if any(
-            v == "modele_ml_v4.2" for v in methode_utilisee.values()
+        "scores":            {k: v["score"]       for k, v in resultats.items()},
+        "niveaux":           {k: v["niveau"]      for k, v in resultats.items()},
+        "confiances":        {k: v["confiance"]   for k, v in resultats.items()},
+        "descriptions":      {k: v["description"] for k, v in resultats.items()},
+        "niveau_global":     niveau_global,
+        "methode_globale":   "modele_ml_v4.3" if any(
+            v == "modele_ml_v4.3" for v in methode_utilisee.values()
         ) else "regles_physiques",
         "features_utilisees": feats,
         "modeles_charges":    modeles_disponibles(),
@@ -380,10 +410,15 @@ if __name__ == "__main__":
         "satellitaire": {"smap": {"humidite_sol": {
             "sm_surface": 0.54, "sm_rootzone": 0.41
         }}},
-        "meteorologie": {"previsions_daily": {
-            "precipitation_sum":  [45, 38, 52, 30, 25, 42, 55],
-            "temperature_2m_max": [30, 31, 30, 29, 30, 31, 32],
-        }},
+        "meteorologie": {
+            "et0_semaine_mm": 18.5,
+            "previsions_daily": {
+                "precipitation_sum":           [45, 38, 52, 30, 25, 42, 55],
+                "temperature_2m_max":          [30, 31, 30, 29, 30, 31, 32],
+                "et0_fao_evapotranspiration":  [2.8, 2.9, 2.7, 3.0, 3.1, 2.9, 3.0],
+            },
+        },
     }
+    import json
     resultats = evaluer_previsions(data_test)
     print(json.dumps(resultats, ensure_ascii=False, indent=2))

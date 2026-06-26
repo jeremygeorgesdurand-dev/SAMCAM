@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.2 — Construction du dataset historique
+SAMCAM V4.3 — Construction du dataset historique
+
+NOUVEAUTÉS V4.3 :
+    - et0_semaine ajouté comme feature dans toutes les lignes du dataset
+      (modes openmeteo, gee, simulation)
+    - ratio_et0_pluie calculé dans features_derivees
+      → bilan hydrique synthétique direct pour le risque sécheresse
 
 NOUVEAUTÉS V4.2 :
     - Mode --openmeteo : télécharge les VRAIES données historiques via
       Open-Meteo Historical API (gratuit, sans clé API, données depuis 1940)
-      → remplace la simulation synthétique qui causait des incohérences
     - Variables récupérées : pluie, température max, humidité sol
-      (surface + racines), rayonnement (proxy NDVI/NDWI)
+      (surface + racines), rayonnement (proxy NDVI/NDWI), ET0
     - Fallback simulation conservé si pas d'accès réseau (--no-gee)
 
 Usage :
@@ -43,6 +48,14 @@ NORMALES_MENSUELLES = {
     7: 80,  8: 100, 9: 180, 10: 200, 11: 150, 12: 50,
 }
 
+# ET0 normales mensuelles Kribi (mm/semaine) — estimées clima ERA5-Land
+# Saison sèche (déc-fév) : ET0 plus élevée car ensoleillement fort + vent
+# Saison des pluies (mai-oct) : ET0 modérée (humidité élevée)
+ET0_NORMALES_MENSUELLES = {
+    1: 25, 2: 27, 3: 24, 4: 21, 5: 20, 6: 19,
+    7: 18, 8: 18, 9: 19, 10: 20, 11: 21, 12: 23,
+}
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # FEATURES DÉRIVÉES
@@ -50,6 +63,7 @@ NORMALES_MENSUELLES = {
 
 def features_derivees(mois: int, pluie_7j: float, pluie_30j: float,
                       sm_surface: float, sm_rootzone: float,
+                      et0_semaine: float = 0.0,
                       sm_surface_prev: float = None) -> dict:
     normale = NORMALES_MENSUELLES.get(mois, 120)
 
@@ -61,13 +75,20 @@ def features_derivees(mois: int, pluie_7j: float, pluie_30j: float,
     trend = round(sm_surface - sm_surface_prev, 4) if sm_surface_prev is not None else 0.0
     sm_deficit_racine = round(max(0.0, (0.30 - sm_rootzone) / 0.30), 4)
 
+    # V4.3 — Bilan hydrique : ratio ET0 / pluie
+    # > 1 : la végétation perd plus d'eau qu'elle n'en reçoit → stress hydrique
+    # < 1 : excédent d'eau → potentiel inondation
+    ratio_et0_pluie = round(et0_semaine / max(1.0, pluie_7j), 4)
+    ratio_et0_pluie = min(ratio_et0_pluie, 10.0)  # cap à 10 pour éviter outliers
+
     return {
-        "sin_mois":       sin_m,
-        "cos_mois":       cos_m,
-        "anomalie_pluie": anomalie,
-        "ratio_30j_7j":   ratio,
-        "trend_sm":       trend,
-        "sm_deficit":     sm_deficit_racine,
+        "sin_mois":        sin_m,
+        "cos_mois":        cos_m,
+        "anomalie_pluie":  anomalie,
+        "ratio_30j_7j":    ratio,
+        "trend_sm":        trend,
+        "sm_deficit":      sm_deficit_racine,
+        "ratio_et0_pluie": ratio_et0_pluie,
     }
 
 
@@ -85,12 +106,16 @@ def label_inondation(pluie_7j, pluie_prev_7j, sm_surface, ndwi, mois):
     return 1 if score >= 2 else 0
 
 
-def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois):
+def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     normale_30j = NORMALES_MENSUELLES.get(mois, 120) * (30 / 7)
+    et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 21)
     score = 0
-    if pluie_30j   < normale_30j * 0.65: score += 1
-    if ndvi        < 0.55:               score += 1
-    if sm_rootzone < 0.25:               score += 1
+    if pluie_30j   < normale_30j * 0.65:     score += 1
+    if ndvi        < 0.55:                   score += 1
+    if sm_rootzone < 0.25:                   score += 1
+    # V4.3 : ET0 élevée + pluie faible = stress hydrique confirmé
+    if et0_semaine > et0_normale * 1.2 and pluie_30j < normale_30j * 0.80:
+        score += 1
     return 1 if score >= 2 else 0
 
 
@@ -99,14 +124,14 @@ def label_chaleur(temp_max, temp_max_3j_moy):
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# MODE OPEN-METEO HISTORIQUE (NOUVEAU V4.2) — DONNÉES RÉELLES GRATUITES
+# MODE OPEN-METEO HISTORIQUE — DONNÉES RÉELLES GRATUITES
 # ───────────────────────────────────────────────────────────────────────────────
 
 def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
     """
     Télécharge les données météo historiques réelles via Open-Meteo Historical API.
     Totalement gratuit, sans clé API, données depuis 1940.
-    Variables : précipitations, température max, humidité sol (ERA5-Land).
+    Variables : précipitations, température max, humidité sol (ERA5-Land), ET0.
 
     Documentation : https://open-meteo.com/en/docs/historical-weather-api
     """
@@ -121,7 +146,6 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             "  pip install openmeteo-requests requests-cache retry-requests pandas"
         )
 
-    # Client avec cache (évite de re-télécharger si relancé)
     cache_session = requests_cache.CachedSession(
         os.path.join(DATA_DIR, ".openmeteo_cache"), expire_after=3600
     )
@@ -142,8 +166,8 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             "temperature_2m_max",
             "soil_moisture_0_to_7cm_mean",
             "soil_moisture_7_to_28cm_mean",
-            "shortwave_radiation_sum",   # proxy NDVI (rayonnement absorbé)
-            "et0_fao_evapotranspiration", # proxy stress hydrique
+            "shortwave_radiation_sum",
+            "et0_fao_evapotranspiration",
         ],
         "timezone": "Africa/Douala",
     }
@@ -152,7 +176,6 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
     response  = responses[0]
     daily     = response.Daily()
 
-    # Reconstruction DataFrame journalier
     dates = pd.date_range(
         start=pd.to_datetime(daily.Time(), unit="s"),
         end=pd.to_datetime(daily.TimeEnd(), unit="s"),
@@ -162,18 +185,17 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
 
     df_daily = pd.DataFrame({
         "date":       dates,
-        "precip":     daily.Variables(0).ValuesAsNumpy(),  # mm/jour
-        "temp_max":   daily.Variables(1).ValuesAsNumpy(),  # °C
-        "sm_surface": daily.Variables(2).ValuesAsNumpy(),  # m³/m³
-        "sm_root":    daily.Variables(3).ValuesAsNumpy(),  # m³/m³
-        "radiation":  daily.Variables(4).ValuesAsNumpy(),  # MJ/m²
-        "et0":        daily.Variables(5).ValuesAsNumpy(),  # mm
+        "precip":     daily.Variables(0).ValuesAsNumpy(),
+        "temp_max":   daily.Variables(1).ValuesAsNumpy(),
+        "sm_surface": daily.Variables(2).ValuesAsNumpy(),
+        "sm_root":    daily.Variables(3).ValuesAsNumpy(),
+        "radiation":  daily.Variables(4).ValuesAsNumpy(),
+        "et0":        daily.Variables(5).ValuesAsNumpy(),
     })
-    df_daily = df_daily.fillna(method="ffill").fillna(0)
+    df_daily = df_daily.ffill().fillna(0)
 
     print(f"[OPEN-METEO] {len(df_daily)} jours téléchargés ({annee_debut}→{annee_fin})")
 
-    # ── Agrégation hebdomadaire ────────────────────────────────────────────────
     lignes = []
     sm_surface_prev = None
     historique_temp = []
@@ -189,15 +211,11 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
 
     while current + delta_7j <= date_fin:
         mois = current.month
-
-        # Fenêtres de dates
         fin_7j  = current + delta_7j
         fin_30j = current + delta_30j
 
-        # Filtre DataFrame
         mask_7j  = (df_daily["date"].dt.date >= current) & (df_daily["date"].dt.date < fin_7j)
         mask_30j = (df_daily["date"].dt.date >= current) & (df_daily["date"].dt.date < fin_30j)
-        # Prévision J+7→J+14 (semaine suivante) comme proxy pluie prévue
         mask_prev = (df_daily["date"].dt.date >= fin_7j) & \
                     (df_daily["date"].dt.date < current + datetime.timedelta(days=14))
 
@@ -215,25 +233,23 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
         temp_max    = float(w7["temp_max"].max())
         sm_surface  = float(w7["sm_surface"].mean())
         sm_rootzone = float(w7["sm_root"].mean())
+        et0_semaine = float(w7["et0"].sum())  # V4.3 : ET0 cumulée sur 7j (mm)
 
-        # temp_max_3j : vraie moyenne glissante sur 3 semaines
         historique_temp.append(temp_max)
         if len(historique_temp) > 3:
             historique_temp.pop(0)
         temp_max_3j = sum(historique_temp) / len(historique_temp)
 
-        # NDVI/NDWI proxy depuis rayonnement et humidité sol
         rad_mean = float(w7["radiation"].mean())
-        et0_mean = float(w7["et0"].mean())
-        # NDVI proxy : plus de rayonnement + humidité sol bonne = végétation active
         ndvi = min(0.95, max(0.20,
             0.45 + (sm_rootzone - 0.25) * 0.8 + (rad_mean - 15) * 0.005))
-        # NDWI proxy : surtout piloté par humidité sol surface
         ndwi = min(0.80, max(0.00,
             0.10 + (sm_surface - 0.25) * 0.6 + (pluie_7j / max(1, NORMALES_MENSUELLES[mois]) - 1) * 0.08))
 
         deriv = features_derivees(mois, pluie_7j, pluie_30j,
-                                   sm_surface, sm_rootzone, sm_surface_prev)
+                                   sm_surface, sm_rootzone,
+                                   et0_semaine=et0_semaine,
+                                   sm_surface_prev=sm_surface_prev)
         sm_surface_prev = sm_surface
 
         lignes.append({
@@ -248,9 +264,10 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             "sm_rootzone":      round(sm_rootzone, 4),
             "ndvi":             round(ndvi,        4),
             "ndwi":             round(ndwi,        4),
+            "et0_semaine":      round(et0_semaine, 2),  # V4.3
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": label_inondation(pluie_7j, pluie_prev, sm_surface, ndwi, mois),
-            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois),
+            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
             "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
             "source":           "open-meteo-real",
         })
@@ -260,8 +277,7 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             print(f"[OPEN-METEO] {compteur}/{total} semaines traitées")
         current += delta_7j
 
-    n_real = len(lignes)
-    print(f"[OPEN-METEO] ✅ {n_real} semaines construites à partir de vraies données")
+    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines construites (V4.3 avec ET0)")
     return lignes
 
 
@@ -270,12 +286,6 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
 # ───────────────────────────────────────────────────────────────────────────────
 
 def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
-    """
-    Collecte les features hebdomadaires via GEE :
-    - CHIRPS : pluie cumulée 7j et 30j
-    - ERA5-Land : temp max, humidité sol
-    - MODIS : NDVI/NDWI
-    """
     try:
         import ee
         ee.Initialize()
@@ -349,8 +359,13 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
             ndvi = (modis.get("NDVI", 6000) or 6000) / 10000
             ndwi = max(0.0, (modis.get("EVI",  4000) or 4000) / 10000 - 0.3)
 
+            # V4.3 : ET0 estimée via normales mensuelles en mode GEE (ERA5 n'expose pas ET0)
+            et0_semaine = float(ET0_NORMALES_MENSUELLES.get(mois, 21))
+
             deriv = features_derivees(mois, chirps_7j, chirps_30j,
-                                      sm_surface, sm_root, sm_surface_prev)
+                                      sm_surface, sm_root,
+                                      et0_semaine=et0_semaine,
+                                      sm_surface_prev=sm_surface_prev)
             sm_surface_prev = sm_surface
 
             row = {
@@ -365,9 +380,10 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
                 "sm_rootzone":      round(sm_root,     4),
                 "ndvi":             round(ndvi,        4),
                 "ndwi":             round(ndwi,        4),
+                "et0_semaine":      round(et0_semaine, 2),  # V4.3
                 **{k: round(v, 4) for k, v in deriv.items()},
                 "label_inondation": label_inondation(chirps_7j, chirps_prev, sm_surface, ndwi, mois),
-                "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois),
+                "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois, et0_semaine),
                 "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
                 "source":           "gee",
             }
@@ -403,7 +419,7 @@ def _facteur_enso(annee: int) -> tuple:
 
 
 def generer_simulation(annee_debut: int, annee_fin: int) -> list:
-    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.2)...")
+    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.3)...")
     print(f"[SIM] ⚠️  Mode simulation : données synthétiques uniquement.")
     print(f"[SIM]    Utilisez --openmeteo pour de vraies données historiques.")
     rng = random.Random(42)
@@ -432,6 +448,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
         annee = current.year
         normale_7j  = NORMALES_MENSUELLES[mois]
         normale_30j = normale_7j * (30 / 7)
+        et0_normale = ET0_NORMALES_MENSUELLES[mois]
         facteur_pluie, facteur_sech = _facteur_enso(annee)
 
         pluie_7j   = max(0.0, rng.gauss(normale_7j  * facteur_pluie, normale_7j  * 0.45))
@@ -452,6 +469,9 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
         ndwi = max(0.00, min(0.80,
             0.18 + (sm_surface - 0.32) * 0.55 + rng.gauss(0, 0.03)))
 
+        # V4.3 : ET0 simulée depuis normale mensuelle + bruit
+        et0_semaine = max(5.0, rng.gauss(et0_normale * facteur_sech, et0_normale * 0.15))
+
         if idx in injections_inond and mois in _MOIS_POINTE_PLUIES:
             mult = rng.uniform(1.6, 2.8)
             pluie_7j   = normale_7j  * mult
@@ -461,6 +481,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             sm_rootzone = rng.uniform(0.38, 0.55)
             ndwi = rng.uniform(0.32, 0.65)
             ndvi = max(0.40, ndvi)
+            et0_semaine = max(5.0, et0_semaine * rng.uniform(0.7, 0.9))  # ET0 basse quand pluie forte
         elif idx in injections_sech:
             pluie_7j   = normale_7j  * rng.uniform(0.20, 0.55)
             pluie_prev = normale_7j  * rng.uniform(0.25, 0.55)
@@ -469,6 +490,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             sm_rootzone = rng.uniform(0.10, 0.23)
             ndvi = rng.uniform(0.25, 0.52)
             ndwi = rng.uniform(0.00, 0.15)
+            et0_semaine = et0_semaine * rng.uniform(1.1, 1.4)  # ET0 haute en sécheresse
 
         historique_temp.append(temp_max)
         if len(historique_temp) > 3:
@@ -476,7 +498,9 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
         temp_max_3j = sum(historique_temp) / len(historique_temp)
 
         deriv = features_derivees(mois, pluie_7j, pluie_30j,
-                                   sm_surface, sm_rootzone, sm_surface_prev)
+                                   sm_surface, sm_rootzone,
+                                   et0_semaine=et0_semaine,
+                                   sm_surface_prev=sm_surface_prev)
         sm_surface_prev = sm_surface
 
         lignes.append({
@@ -491,9 +515,10 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             "sm_rootzone":      round(sm_rootzone, 4),
             "ndvi":             round(ndvi,        4),
             "ndwi":             round(ndwi,        4),
+            "et0_semaine":      round(et0_semaine, 2),  # V4.3
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": label_inondation(pluie_7j, pluie_prev, sm_surface, ndwi, mois),
-            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois),
+            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
             "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
             "source":           "simulation",
         })
@@ -526,6 +551,7 @@ def exporter_csv(lignes: list, chemin: str):
     source = lignes[0].get("source", "?") if lignes else "?"
 
     print(f"\n[BUILD] Dataset exporté : {chemin}")
+    print(f"        Version         : V4.3 (avec ET0)")
     print(f"        Source          : {source}")
     print(f"        Lignes totales  : {n}")
     print(f"        Features        : {len(entetes) - 5} (+ date, mois, labels, source)")
@@ -541,7 +567,7 @@ def exporter_csv(lignes: list, chemin: str):
 # ───────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.2 — Build dataset historique")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.3 — Build dataset historique")
     parser.add_argument("--start",       type=int, default=1990, help="Année de début (défaut: 1990)")
     parser.add_argument("--end",         type=int, default=2024, help="Année de fin (défaut: 2024)")
     parser.add_argument("--no-gee",      action="store_true",   help="Mode simulation (démo sans réseau)")
