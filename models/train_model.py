@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.5.1 — Entraînement des modèles de classification de risques climatiques
+SAMCAM V4.5.2 — Entraînement des modèles de classification de risques climatiques
+
+FIX V4.5.2 :
+    - extraire_feature_importance : calibrated_classifiers_ testé EN PREMIER
+      avant 'estimator' pour ne pas récupérer l'estimateur non-entraîné de
+      CalibratedClassifierCV (corrige : ⚠️  Impossible d'extraire les importances)
+    - sauvegarder_rapport : f1_avant_selection ajouté dans le dict modèle
+      pour que afficher_resume() affiche correctement "F1 avant" (corrige : N/A)
 
 FIX V4.5.1 :
     - SyntaxError : 'global SEUIL_IMPORTANCE' déplacée en tête de main()
@@ -183,18 +190,35 @@ def seuil_optimal_f1(y_true, y_proba):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def extraire_feature_importance(clf, features):
+    """
+    Extrait les importances depuis un estimateur sklearn, y compris lorsqu'il
+    est encapsulé dans CalibratedClassifierCV.
+
+    FIX V4.5.2 : on teste calibrated_classifiers_ EN PREMIER pour éviter de
+    récupérer l'attribut 'estimator' non-entraîné de CalibratedClassifierCV.
+    Ordre de résolution :
+      1. calibrated_classifiers_[0].estimator  (CalibratedClassifierCV entraîné)
+      2. base_estimator / estimator             (Pipeline ou wrappeur simple)
+      3. clf directement
+    """
     import numpy as np
     importances = None
-    estimateur = clf
-    for attr in ("base_estimator", "estimator", "calibrated_classifiers_"):
-        if hasattr(clf, attr):
-            val = getattr(clf, attr)
-            if attr == "calibrated_classifiers_" and isinstance(val, list) and val:
-                inner = val[0]
-                estimateur = getattr(inner, "estimator", getattr(inner, "base_estimator", inner))
-            else:
-                estimateur = val
-            break
+    estimateur  = clf
+
+    # 1. CalibratedClassifierCV — accès via calibrated_classifiers_
+    if hasattr(clf, "calibrated_classifiers_"):
+        val   = clf.calibrated_classifiers_
+        if isinstance(val, list) and val:
+            inner      = val[0]
+            estimateur = getattr(inner, "estimator",
+                         getattr(inner, "base_estimator", inner))
+    # 2. Wrappeur générique (Pipeline, etc.)
+    elif hasattr(clf, "base_estimator"):
+        estimateur = clf.base_estimator
+    elif hasattr(clf, "estimator"):
+        estimateur = clf.estimator
+
+    # Extraction des importances
     if hasattr(estimateur, "feature_importances_"):
         importances = estimateur.feature_importances_
     elif hasattr(estimateur, "estimators_"):
@@ -204,9 +228,11 @@ def extraire_feature_importance(clf, features):
                  if hasattr(e, "feature_importances_")], axis=0)
         except Exception:
             pass
+
     if importances is None:
         print("  [IMPORTANCE] ⚠️  Impossible d'extraire les importances")
         return {}
+
     importance_dict = {f: round(float(imp), 6) for f, imp in zip(features, importances)}
     return dict(sorted(importance_dict.items(), key=lambda x: x[1], reverse=True))
 
@@ -411,7 +437,7 @@ def sauvegarder_feature_importance(resultats):
     import numpy as np
     chemin = os.path.join(MODELS_DIR, "feature_importance.json")
     rapport = {
-        "version": "V4.5.1",
+        "version": "V4.5.2",
         "date": datetime.datetime.now().isoformat(),
         "seuil_selection": SEUIL_IMPORTANCE,
         "modeles": {},
@@ -445,7 +471,7 @@ def sauvegarder_feature_importance(resultats):
 def sauvegarder_rapport(resultats):
     chemin = os.path.join(MODELS_DIR, "training_report.json")
     rapport = {
-        "version": "V4.5.1",
+        "version": "V4.5.2",
         "date": datetime.datetime.now().isoformat(),
         "features_all": FEATURES_ALL,
         "n_features_all": len(FEATURES_ALL),
@@ -463,6 +489,7 @@ def sauvegarder_rapport(resultats):
             "type":                   r.get("type", "ml"),
             "features_selectionnees": r.get("features_selectionnees", FEATURES_ALL),
             "features_supprimees":    r.get("features_supprimees", []),
+            "f1_avant_selection":     r.get("f1_avant_selection"),   # FIX V4.5.2
             "gain_f1_selection":      r.get("gain_f1_selection"),
         }
     with open(chemin, "w", encoding="utf-8") as f:
@@ -473,7 +500,7 @@ def sauvegarder_rapport(resultats):
 
 def afficher_resume(rapport_train, rapport_fi):
     print("\n" + "═" * 70)
-    print("  SAMCAM V4.5.1 — Résumé de l'entraînement")
+    print("  SAMCAM V4.5.2 — Résumé de l'entraînement")
     print("═" * 70)
     print(f"  Features initiales : {rapport_train['n_features_all']}  |  Seuil : {rapport_train['seuil_selection']*100:.0f}%")
     print()
@@ -502,7 +529,7 @@ def main():
     # ── global déclaré EN TÊTE de fonction, avant tout accès ────────────────
     global SEUIL_IMPORTANCE
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.5.1 — Entraînement modèles")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.5.2 — Entraînement modèles")
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--no-grid", action="store_true")
     parser.add_argument("--verbose", action="store_true")
@@ -516,7 +543,7 @@ def main():
     SEUIL_IMPORTANCE = args.seuil_importance
 
     print("\n" + "═" * 70)
-    print("  SAMCAM V4.5.1 — Feature Importance + Sélection automatique")
+    print("  SAMCAM V4.5.2 — Feature Importance + Sélection automatique")
     print("  Mode : " + ("RAPIDE" if args.no_grid else "COMPLET (GridSearchCV + TimeSeriesSplit)"))
     print(f"  Seuil sélection : {SEUIL_IMPORTANCE*100:.0f}%")
     print("═" * 70)
