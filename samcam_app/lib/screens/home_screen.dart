@@ -634,6 +634,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // ── TUILES MÉTÉO
+  // Chaque Row est enveloppée dans IntrinsicHeight pour que les deux tuiles
+  // d'une même ligne adoptent automatiquement la même hauteur (celle du plus grand).
   Widget _buildWeatherTiles(WeatherData weather) {
     final cur   = weather.current;
     final today = weather.daily.isNotEmpty ? weather.daily.first : null;
@@ -644,6 +646,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final visibility = cur?.visibility ?? 10.0;
     final gusts      = cur?.windGusts ?? 0.0;
     final windSpeed  = cur?.windSpeed ?? (weather.hourly.isNotEmpty ? weather.hourly.first.windSpeed : 0.0);
+    final humidity   = cur?.humidity ?? (weather.hourly.isNotEmpty ? weather.hourly.first.humidity : 0);
     final precipToday    = today?.precipitationSum ?? 0.0;
     final precipTomorrow = weather.daily.length > 1 ? weather.daily[1].precipitationSum : 0.0;
 
@@ -657,153 +660,184 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Column(children: [
-      Row(children: [
-        _appleCard(
-          icon: Icons.wb_sunny_outlined, label: 'INDICE UV',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('$uv', style: const TextStyle(
-              color: Colors.white, fontSize: 36,
-              fontWeight: FontWeight.w200, height: 1.1)),
-            Text(uvLabel(uv), style: const TextStyle(
-              color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: Container(
-                height: 5,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    Color(0xFF4CAF50), Color(0xFFFFEB3B),
-                    Color(0xFFFF9800), Color(0xFFF44336), Color(0xFF9C27B0),
-                  ])),
-                child: Align(
-                  alignment: Alignment(((uv / 11.0) * 2 - 1).clamp(-1.0, 1.0), 0),
-                  child: Container(
-                    width: 8, height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.white, shape: BoxShape.circle,
-                      boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 2)])),
+      // ── Ligne 1 : UV + Soleil
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _appleCard(
+            icon: Icons.wb_sunny_outlined, label: 'INDICE UV',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('$uv', style: const TextStyle(
+                color: Colors.white, fontSize: 36,
+                fontWeight: FontWeight.w200, height: 1.1)),
+              Text(uvLabel(uv), style: const TextStyle(
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: Container(
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(colors: [
+                      Color(0xFF4CAF50), Color(0xFFFFEB3B),
+                      Color(0xFFFF9800), Color(0xFFF44336), Color(0xFF9C27B0),
+                    ])),
+                  child: Align(
+                    alignment: Alignment(((uv / 11.0) * 2 - 1).clamp(-1.0, 1.0), 0),
+                    child: Container(
+                      width: 8, height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.white, shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 2)])),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            if (today?.sunset != null)
-              Text('Protection jusqu\'à $sunsetStr.',
+              const SizedBox(height: 8),
+              if (today?.sunset != null)
+                Text('Protection jusqu\'à $sunsetStr.',
+                  style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          _appleCard(
+            icon: Icons.wb_twilight_outlined, label: 'SOLEIL',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Coucher', style: TextStyle(color: Colors.white60, fontSize: 13)),
+              Text(sunsetStr, style: const TextStyle(
+                color: Colors.white, fontSize: 36,
+                fontWeight: FontWeight.w200, height: 1.1)),
+              const SizedBox(height: 8),
+              _sunArc(sunriseStr, sunsetStr),
+              const SizedBox(height: 6),
+              Text('Lever : $sunriseStr', style: const TextStyle(
+                color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 10),
+      // ── Ligne 2 : Vent + Précipitations
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _appleCard(
+            icon: Icons.air, label: 'VENT',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${windSpeed.toStringAsFixed(0)} km/h', style: const TextStyle(
+                color: Colors.white, fontSize: 30,
+                fontWeight: FontWeight.w200, height: 1.1)),
+              const SizedBox(height: 4),
+              if (gusts > 0)
+                Text('Rafales : ${gusts.toStringAsFixed(0)} km/h',
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              const Text('Vent moyen en surface.',
+                style: TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          _appleCard(
+            icon: Icons.water_drop_outlined, label: 'PRÉCIPITATIONS',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('${precipToday.toStringAsFixed(0)}', style: const TextStyle(
+                  color: Colors.white, fontSize: 36,
+                  fontWeight: FontWeight.w200, height: 1)),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 6, left: 3),
+                  child: Text('mm', style: TextStyle(color: Colors.white70, fontSize: 16))),
+              ]),
+              const Text("Aujourd'hui", style: TextStyle(
+                color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 8),
+              Text('${precipTomorrow.toStringAsFixed(0)} mm demain.',
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        _appleCard(
-          icon: Icons.wb_twilight_outlined, label: 'SOLEIL',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Coucher', style: TextStyle(color: Colors.white60, fontSize: 13)),
-            Text(sunsetStr, style: const TextStyle(
-              color: Colors.white, fontSize: 36,
-              fontWeight: FontWeight.w200, height: 1.1)),
-            const SizedBox(height: 8),
-            _sunArc(sunriseStr, sunsetStr),
-            const SizedBox(height: 6),
-            Text('Lever : $sunriseStr', style: const TextStyle(
-              color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-      ]),
-      const SizedBox(height: 10),
-      Row(children: [
-        _appleCard(
-          icon: Icons.air, label: 'VENT',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${windSpeed.toStringAsFixed(0)} km/h', style: const TextStyle(
-              color: Colors.white, fontSize: 30,
-              fontWeight: FontWeight.w200, height: 1.1)),
-            const SizedBox(height: 4),
-            if (gusts > 0)
-              Text('Rafales : ${gusts.toStringAsFixed(0)} km/h',
-                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            const Text('Vent moyen en surface.',
-              style: TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        _appleCard(
-          icon: Icons.water_drop_outlined, label: 'PRÉCIPITATIONS',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('${precipToday.toStringAsFixed(0)}', style: const TextStyle(
-                color: Colors.white, fontSize: 36,
-                fontWeight: FontWeight.w200, height: 1)),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6, left: 3),
-                child: Text('mm', style: TextStyle(color: Colors.white70, fontSize: 16))),
             ]),
-            const Text("Aujourd'hui", style: TextStyle(
-              color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Text('${precipTomorrow.toStringAsFixed(0)} mm demain.',
-              style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-      ]),
+          ),
+        ]),
+      ),
       const SizedBox(height: 10),
-      Row(children: [
-        _appleCard(
-          icon: Icons.thermostat_outlined, label: 'RESSENTI',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('${feelsLike.toStringAsFixed(0)}°', style: const TextStyle(
-              color: Colors.white, fontSize: 36,
-              fontWeight: FontWeight.w200, height: 1.1)),
-            const SizedBox(height: 8),
-            Text(
-              feelsLike > (cur?.temperature ?? feelsLike)
-                ? 'Ressenti plus élevé que la réalité.'
-                : 'Similaire à la température réelle.',
-              style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        _appleCard(
-          icon: Icons.compress, label: 'PRESSION',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(pressure.toStringAsFixed(0), style: const TextStyle(
-                color: Colors.white, fontSize: 32,
-                fontWeight: FontWeight.w200, height: 1.1)),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 4, left: 4),
-                child: Text('hPa', style: TextStyle(color: Colors.white60, fontSize: 13))),
-            ]),
-            const SizedBox(height: 8),
-            Text(
-              pressure < 1005 ? 'Pression basse.' :
-              pressure > 1020 ? 'Pression haute.' : 'Pression normale.',
-              style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-      ]),
-      const SizedBox(height: 10),
-      Row(children: [
-        _appleCard(
-          icon: Icons.visibility_outlined, label: 'VISIBILITÉ',
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(visibility.toStringAsFixed(0), style: const TextStyle(
+      // ── Ligne 3 : Ressenti + Pression
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _appleCard(
+            icon: Icons.thermostat_outlined, label: 'RESSENTI',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${feelsLike.toStringAsFixed(0)}°', style: const TextStyle(
                 color: Colors.white, fontSize: 36,
                 fontWeight: FontWeight.w200, height: 1.1)),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 6, left: 4),
-                child: Text('km', style: TextStyle(color: Colors.white60, fontSize: 14))),
+              const SizedBox(height: 8),
+              Text(
+                feelsLike > (cur?.temperature ?? feelsLike)
+                  ? 'Ressenti plus élevé que la réalité.'
+                  : 'Similaire à la température réelle.',
+                style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
-            const SizedBox(height: 8),
-            Text(
-              visibility >= 10 ? 'Vue parfaitement dégagée.' :
-              visibility >= 5  ? 'Visibilité réduite.' : 'Brouillard possible.',
-              style: const TextStyle(color: Colors.white60, fontSize: 12)),
-          ]),
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: const SizedBox()),
-      ]),
+          ),
+          const SizedBox(width: 10),
+          _appleCard(
+            icon: Icons.compress, label: 'PRESSION',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(pressure.toStringAsFixed(0), style: const TextStyle(
+                  color: Colors.white, fontSize: 32,
+                  fontWeight: FontWeight.w200, height: 1.1)),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 4, left: 4),
+                  child: Text('hPa', style: TextStyle(color: Colors.white60, fontSize: 13))),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                pressure < 1005 ? 'Pression basse.' :
+                pressure > 1020 ? 'Pression haute.' : 'Pression normale.',
+                style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 10),
+      // ── Ligne 4 : Visibilité + Humidité
+      // Anciennement : Visibilité seule + SizedBox vide → tuile solitaire non alignée.
+      // Maintenant : Humidité ajoutée pour compléter la grille 2×4.
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _appleCard(
+            icon: Icons.visibility_outlined, label: 'VISIBILITÉ',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text(visibility.toStringAsFixed(0), style: const TextStyle(
+                  color: Colors.white, fontSize: 36,
+                  fontWeight: FontWeight.w200, height: 1.1)),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 6, left: 4),
+                  child: Text('km', style: TextStyle(color: Colors.white60, fontSize: 14))),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                visibility >= 10 ? 'Vue parfaitement dégagée.' :
+                visibility >= 5  ? 'Visibilité réduite.' : 'Brouillard possible.',
+                style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+          const SizedBox(width: 10),
+          _appleCard(
+            icon: Icons.water_drop_outlined, label: 'HUMIDITÉ',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                Text('$humidity', style: const TextStyle(
+                  color: Colors.white, fontSize: 36,
+                  fontWeight: FontWeight.w200, height: 1.1)),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 6, left: 3),
+                  child: Text('%', style: TextStyle(color: Colors.white60, fontSize: 14))),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                humidity >= 80 ? 'Humidité très élevée.' :
+                humidity >= 60 ? 'Humidité modérée.' : 'Air relativement sec.',
+                style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            ]),
+          ),
+        ]),
+      ),
     ]);
   }
 
@@ -834,27 +868,31 @@ class _HomeScreenState extends State<HomeScreen> {
                  r.methodeRisque == 'modele_ml';
 
     return [
-      Row(children: [
-        _numericTile(
-          icon: Icons.water_drop_outlined,
-          value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
-          label: 'Pluie reçue (7j)',
-          tooltip: 'Quantité totale de pluie tombée ces 7 derniers jours',
-        ),
-        const SizedBox(width: 10),
-        _numericTile(
-          icon: Icons.umbrella_outlined,
-          value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
-          label: 'Pluie prévue (7j)',
-          tooltip: 'Précipitations attendues dans les 7 prochains jours',
-        ),
-      ]),
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _numericTile(
+            icon: Icons.water_drop_outlined,
+            value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
+            label: 'Pluie reçue (7j)',
+            tooltip: 'Quantité totale de pluie tombée ces 7 derniers jours',
+          ),
+          const SizedBox(width: 10),
+          _numericTile(
+            icon: Icons.umbrella_outlined,
+            value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
+            label: 'Pluie prévue (7j)',
+            tooltip: 'Précipitations attendues dans les 7 prochains jours',
+          ),
+        ]),
+      ),
       const SizedBox(height: 10),
-      Row(children: [
-        _prevCard('Dans 3 jours', r.prevu3j.niveauGlobal),
-        const SizedBox(width: 10),
-        _prevCard('Dans 7 jours', r.prevu7j.niveauGlobal),
-      ]),
+      IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          _prevCard('Dans 3 jours', r.prevu3j.niveauGlobal),
+          const SizedBox(width: 10),
+          _prevCard('Dans 7 jours', r.prevu7j.niveauGlobal),
+        ]),
+      ),
       const SizedBox(height: 10),
       _glassCard(
         child: Padding(
