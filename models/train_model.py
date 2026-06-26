@@ -1,6 +1,16 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.4.3 — Entraînement des modèles de classification de risques climatiques
+SAMCAM V4.4.4 — Entraînement des modèles de classification de risques climatiques
+
+FIX V4.4.4 :
+    - HeuristiqueChaleur recalibrée pour Kribi :
+        • Ancienne formule : linéaire sur percentile 95 (~30.2°C) → faux positifs
+          constants en saison sèche normale
+        • Nouvelle formule : sigmoïde centrée sur 34°C (vraie anomalie thermique)
+          avec pente douce, 3 niveaux : normal / stress modéré / anomalie
+          • 32°C → proba ≈26% (stress léger, jamais ALERTE seul)
+          • 34°C → proba ≈50% (seuil alerte)
+          • 36°C → proba ≈82% (anomalie confirmée)
 
 FIX V4.4.3 :
     - HeuristiqueChaleur déplacée au niveau module pour être sérialisable
@@ -8,7 +18,7 @@ FIX V4.4.3 :
 
 FIX V4.4.2 :
     - Chaleur (0 positifs) : skip + modèle heuristique basé sur temp_max
-    - Inondation (<30 positifs) : RandomForest sans calibration (plus robuste)
+    - Inondation (<30 positifs) : RandomForest sans calibration
     - Protection générale : vérifie le nb de positifs avant tout entraînement
 
 FIX V4.4.1 :
@@ -50,18 +60,44 @@ TARGETS = {
     "chaleur":    "label_chaleur",
 }
 
+# ── Seuils thermiques Kribi ──────────────────────────────────────
+# T_REF  : température de référence climatique de Kribi (~30.2°C, p95)
+# T_ALERTE : centre de la sigmoïde — vraie anomalie thermique Kribi
+#            32°C est la normale saison sèche, 34°C = véritable anomalie
+# T_PENTE  : largeur de la transition (1°C = montee rapide, 3°C = douce)
+T_ALERTE = 34.0   # °C — centre de la sigmoïde
+T_PENTE  = 1.5    # °C — pente de la transition
+# ─────────────────────────────────────────────────────────────
+
 
 class HeuristiqueChaleur:
-    """Pseudo-estimateur sklearn-compatible sérialisable par joblib."""
+    """
+    Pseudo-estimateur sklearn-compatible sérialisable par joblib.
 
-    def __init__(self, seuil: float, idx: int):
-        self.seuil = seuil
-        self.idx = idx
+    Score basé sur une sigmoïde centrée sur T_ALERTE (34°C pour Kribi) :
+
+        score = 1 / (1 + exp(-(temp - T_ALERTE) / T_PENTE))
+
+    Valeurs représentatives :
+        30°C  → proba ~0.07  (🟢 normal)
+        32°C  → proba ~0.27  (🟢 stress léger — saison sèche habituelle)
+        33°C  → proba ~0.40  (🟡 stress modéré)
+        34°C  → proba ~0.50  (🟡 seuil alerte)
+        35°C  → proba ~0.65  (🔴 anomalie probable)
+        36°C  → proba ~0.82  (🔴 anomalie confirmée)
+    """
+
+    def __init__(self, t_alerte: float = T_ALERTE, t_pente: float = T_PENTE, idx: int = 0):
+        self.t_alerte = t_alerte
+        self.t_pente  = t_pente
+        self.idx      = idx
+        # Compat ascendante : expose aussi self.seuil utilisé dans certains logs
+        self.seuil    = t_alerte
 
     def predict_proba(self, X):
         import numpy as np
-        temp = X[:, self.idx]
-        scores = np.clip((temp - self.seuil) / max(self.seuil * 0.05, 1.0), 0, 1)
+        temp   = X[:, self.idx]
+        scores = 1.0 / (1.0 + np.exp(-(temp - self.t_alerte) / self.t_pente))
         return np.column_stack([1 - scores, scores])
 
     def predict(self, X):
@@ -139,28 +175,29 @@ def charger_dataset(chemin: str):
 
 
 def creer_modele_heuristique_chaleur(df) -> dict:
-    import numpy as np
-
     idx_temp = FEATURES_ALL.index("temp_max")
-    seuil_p95 = float(np.percentile(df["temp_max"].values, 95))
-    print(f"[CHALEUR] ⚠️  0 positifs → modèle heuristique (seuil temp_max = {seuil_p95:.1f}°C)")
+    print(
+        f"[CHALEUR] ⚠️  0 positifs → modèle heuristique sigmoïde"
+        f" (centre={T_ALERTE}°C, pente={T_PENTE}°C)"
+    )
 
-    clf = HeuristiqueChaleur(seuil=seuil_p95, idx=idx_temp)
+    clf = HeuristiqueChaleur(t_alerte=T_ALERTE, t_pente=T_PENTE, idx=idx_temp)
 
     return {
-        "clf": clf,
-        "seuil": 0.50,
+        "clf":    clf,
+        "seuil":  0.50,   # 50% ≈ 34°C
         "features": FEATURES_ALL,
         "metriques": {
-            "f1": None,
-            "recall": None,
-            "precision": None,
-            "auc_roc": None,
-            "f1_cv": None,
+            "f1": None, "recall": None, "precision": None,
+            "auc_roc": None, "f1_cv": None,
         },
-        "params_optimaux": {"type": "heuristique", "seuil_temp_max": seuil_p95},
+        "params_optimaux": {
+            "type":       "heuristique_sigmoide",
+            "t_alerte":   T_ALERTE,
+            "t_pente":    T_PENTE,
+        },
         "n_train": len(df),
-        "n_test": 0,
+        "n_test":  0,
         "n_positifs": 0,
         "type": "heuristique",
     }
@@ -346,8 +383,8 @@ def sauvegarder_modele(nom: str, result: dict):
     import joblib
     chemin = os.path.join(MODELS_DIR, f"model_{nom}.pkl")
     joblib.dump({
-        "clf": result["clf"],
-        "seuil": result["seuil"],
+        "clf":      result["clf"],
+        "seuil":    result["seuil"],
         "features": result["features"],
     }, chemin)
     print(f"[SAVE] ✅ {chemin} sauvegardé")
@@ -356,7 +393,7 @@ def sauvegarder_modele(nom: str, result: dict):
 def sauvegarder_rapport(resultats: dict):
     chemin = os.path.join(MODELS_DIR, "training_report.json")
     rapport = {
-        "version": "V4.4.3",
+        "version": "V4.4.4",
         "date": datetime.datetime.now().isoformat(),
         "features": FEATURES_ALL,
         "n_features": len(FEATURES_ALL),
@@ -364,13 +401,13 @@ def sauvegarder_rapport(resultats: dict):
     }
     for nom, r in resultats.items():
         rapport["modeles"][nom] = {
-            "metriques": r["metriques"],
-            "seuil": r["seuil"],
+            "metriques":      r["metriques"],
+            "seuil":          r["seuil"],
             "params_optimaux": r["params_optimaux"],
-            "n_train": r["n_train"],
-            "n_test": r["n_test"],
-            "n_positifs": r["n_positifs"],
-            "type": r.get("type", "ml"),
+            "n_train":        r["n_train"],
+            "n_test":         r["n_test"],
+            "n_positifs":     r["n_positifs"],
+            "type":           r.get("type", "ml"),
         }
     with open(chemin, "w", encoding="utf-8") as f:
         json.dump(rapport, f, ensure_ascii=False, indent=2)
@@ -380,25 +417,28 @@ def sauvegarder_rapport(resultats: dict):
 
 def afficher_resume(rapport: dict):
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.4.3 — Résumé de l'entraînement")
+    print("  SAMCAM V4.4.4 — Résumé de l'entraînement")
     print("═" * 64)
     print(f"  Features utilisées : {rapport['n_features']}")
     print(f"  Date               : {rapport['date'][:19]}")
     print()
-    print(f"  {'Modèle':<15} {'Type':<14} {'F1':>6} {'Recall':>8} {'AUC':>7} {'Seuil':>7}")
-    print(f"  {'-'*15} {'-'*14} {'-'*6} {'-'*8} {'-'*7} {'-'*7}")
+    print(f"  {'Modèle':<15} {'Type':<22} {'F1':>6} {'Recall':>8} {'AUC':>7} {'Seuil':>7}")
+    print(f"  {'-'*15} {'-'*22} {'-'*6} {'-'*8} {'-'*7} {'-'*7}")
     for nom, m in rapport["modeles"].items():
         mt = m["metriques"]
         tp = m.get("type", "ml")
-        f1 = f"{mt['f1']:.4f}" if mt["f1"] else "  N/A "
-        rec = f"{mt['recall']:.4f}" if mt["recall"] else "  N/A "
+        f1  = f"{mt['f1']:.4f}"     if mt["f1"]      else "  N/A "
+        rec = f"{mt['recall']:.4f}" if mt["recall"]  else "  N/A "
         auc = f"{mt['auc_roc']:.4f}" if mt["auc_roc"] else "  N/A "
-        print(f"  {nom:<15} {tp:<14} {f1:>6} {rec:>8} {auc:>7} {m['seuil']:>7.2f}")
+        print(f"  {nom:<15} {tp:<22} {f1:>6} {rec:>8} {auc:>7} {m['seuil']:>7.2f}")
+    print("═" * 64)
+    print("  Note chaleur : heuristique_sigmoide centrée 34°C")
+    print("    32°C → ~0.27 (🟢 normal) | 34°C → ~0.50 (🟡) | 36°C → ~0.82 (🔴)")
     print("═" * 64)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.4.3 — Entraînement modèles")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.4 — Entraînement modèles")
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--no-grid", action="store_true")
     parser.add_argument("--verbose", action="store_true")
@@ -406,7 +446,7 @@ def main():
     args = parser.parse_args()
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.4.3 — Entraînement avec GridSearchCV")
+    print("  SAMCAM V4.4.4 — Entraînement avec GridSearchCV")
     print("  Mode : " + ("RAPIDE (sans GridSearchCV)" if args.no_grid else "COMPLET (GridSearchCV + TimeSeriesSplit)"))
     print("═" * 64)
 
