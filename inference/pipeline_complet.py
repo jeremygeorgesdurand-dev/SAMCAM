@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.4.3 — Pipeline complet : collecte + prédiction V4 + dashboard
+SAMCAM V4.4.4 — Pipeline complet : collecte + prédiction V4 + dashboard
+
+FIX V4.4.4 :
+    - Importe HeuristiqueChaleur depuis models.train_model avant joblib.load
+      pour éviter AttributeError lors de la désérialisation du .pkl chaleur
 
 Ce pipeline orchestre les 3 étapes dans l'ordre :
   1. Collecte des données météo/satellite (data_collection/collect_kribi.py)
@@ -30,6 +34,14 @@ import time
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(BASE, "..")
+
+# Rendre models/ importable
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+# ── Import CRITIQUE : nécessaire pour que joblib puisse désérialiser
+#    model_chaleur.pkl qui contient une instance de HeuristiqueChaleur
+from models.train_model import HeuristiqueChaleur  # noqa: F401
 
 SEUIL_RETRAIN = 12
 
@@ -95,98 +107,45 @@ def ouvrir_dashboard():
 
 # ─────────────────────────────────────────────────────────────
 # MODE TEST — prédiction directe sans collecte réseau
-# Simule des données météo réalistes pour Kribi en saison sèche
 # ─────────────────────────────────────────────────────────────
 
 def test_prediction_v4():
     """
-    Test rapide des 3 modèles V4.4.3 avec des données simulées.
+    Test rapide des 3 modèles V4.4.4 avec des données simulées.
     Vérifie que les .pkl se chargent et retournent des prédictions cohérentes.
     """
+    import math
     import numpy as np
     import joblib
 
     MODELS_DIR = os.path.join(ROOT, "models")
-    FEATURES = [
-        "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
-        "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
-        "ndvi", "ndwi", "et0_semaine",
-        "sin_mois", "cos_mois",
-        "anomalie_pluie", "ratio_30j_7j",
-        "trend_sm", "sm_deficit",
-        "ratio_et0_pluie",
-    ]
 
-    # ── Scénarios de test ────────────────────────────────────
     scenarios = [
         {
             "nom": "Saison sèche normale (janvier)",
             "valeurs": [
-                1,      # mois
-                5.0,    # pluie_7j  (mm)
-                30.0,   # pluie_30j
-                8.0,    # pluie_prev_7j
-                29.0,   # temp_max
-                28.5,   # temp_max_3j
-                0.20,   # sm_surface
-                0.25,   # sm_rootzone
-                0.55,   # ndvi
-                0.05,   # ndwi
-                4.5,    # et0_semaine
-                # dérivées
-                round(__import__('math').sin(2 * __import__('math').pi * 1 / 12), 4),
-                round(__import__('math').cos(2 * __import__('math').pi * 1 / 12), 4),
-                -0.3,   # anomalie_pluie
-                0.17,   # ratio_30j_7j
-                -0.02,  # trend_sm
-                0.10,   # sm_deficit
-                0.15,   # ratio_et0_pluie
+                1, 5.0, 30.0, 8.0, 29.0, 28.5, 0.20, 0.25, 0.55, 0.05, 4.5,
+                round(math.sin(2 * math.pi * 1 / 12), 4),
+                round(math.cos(2 * math.pi * 1 / 12), 4),
+                -0.3, 0.17, -0.02, 0.10, 0.15,
             ],
         },
         {
             "nom": "Forte pluie octobre (risque inondation)",
             "valeurs": [
-                10,     # mois
-                120.0,  # pluie_7j  (mm élevé)
-                280.0,  # pluie_30j
-                90.0,   # pluie_prev_7j
-                28.0,   # temp_max
-                27.5,   # temp_max_3j
-                0.45,   # sm_surface (saturé)
-                0.50,   # sm_rootzone
-                0.72,   # ndvi
-                0.35,   # ndwi (élevé)
-                3.0,    # et0_semaine
-                round(__import__('math').sin(2 * __import__('math').pi * 10 / 12), 4),
-                round(__import__('math').cos(2 * __import__('math').pi * 10 / 12), 4),
-                1.8,    # anomalie_pluie
-                2.33,   # ratio_30j_7j
-                0.05,   # trend_sm
-                0.0,    # sm_deficit
-                0.025,  # ratio_et0_pluie
+                10, 120.0, 280.0, 90.0, 28.0, 27.5, 0.45, 0.50, 0.72, 0.35, 3.0,
+                round(math.sin(2 * math.pi * 10 / 12), 4),
+                round(math.cos(2 * math.pi * 10 / 12), 4),
+                1.8, 2.33, 0.05, 0.0, 0.025,
             ],
         },
         {
             "nom": "Sécheresse sévère (août)",
             "valeurs": [
-                8,      # mois
-                0.0,    # pluie_7j
-                10.0,   # pluie_30j
-                2.0,    # pluie_prev_7j
-                32.0,   # temp_max
-                31.5,   # temp_max_3j
-                0.08,   # sm_surface (très bas)
-                0.12,   # sm_rootzone
-                0.30,   # ndvi (dégradé)
-                -0.05,  # ndwi
-                6.5,    # et0_semaine (fort)
-                round(__import__('math').sin(2 * __import__('math').pi * 8 / 12), 4),
-                round(__import__('math').cos(2 * __import__('math').pi * 8 / 12), 4),
-                -1.5,   # anomalie_pluie
-                0.083,  # ratio_30j_7j
-                -0.08,  # trend_sm
-                0.28,   # sm_deficit
-                0.65,   # ratio_et0_pluie
+                8, 0.0, 10.0, 2.0, 32.0, 31.5, 0.08, 0.12, 0.30, -0.05, 6.5,
+                round(math.sin(2 * math.pi * 8 / 12), 4),
+                round(math.cos(2 * math.pi * 8 / 12), 4),
+                -1.5, 0.083, -0.08, 0.28, 0.65,
             ],
         },
     ]
@@ -194,10 +153,9 @@ def test_prediction_v4():
     modeles = ["inondation", "secheresse", "chaleur"]
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.4.3 — Test de prédiction des 3 modèles")
+    print("  SAMCAM V4.4.4 — Test de prédiction des 3 modèles")
     print("═" * 64)
 
-    # Vérifier que les modèles existent
     for nom in modeles:
         pkl = os.path.join(MODELS_DIR, f"model_{nom}.pkl")
         if not os.path.exists(pkl):
@@ -206,7 +164,6 @@ def test_prediction_v4():
 
     print(f"  ✅ Les 3 fichiers .pkl sont présents\n")
 
-    # Charger les modèles
     modeles_charges = {}
     for nom in modeles:
         pkl  = os.path.join(MODELS_DIR, f"model_{nom}.pkl")
@@ -216,13 +173,12 @@ def test_prediction_v4():
 
     print()
 
-    # Lancer les 3 scénarios
     resultats = []
     for scenario in scenarios:
         print(f"  ─── Scénario : {scenario['nom']} ───")
         X = np.array([scenario["valeurs"]])
 
-        scores = {}
+        scores  = {}
         alertes = {}
         for nom in modeles:
             d      = modeles_charges[nom]
@@ -235,20 +191,15 @@ def test_prediction_v4():
             statut = "🔴 ALERTE" if alerte else "🟢 ok"
             print(f"    {nom:12s} : proba={proba:.3f}  seuil={seuil:.2f}  {statut}")
 
-        # Niveau d'alerte global
         n_alertes = sum(alertes.values())
         if n_alertes >= 2:
-            niveau = "ÉLEVÉ"
-            icone  = "🔴"
+            niveau, icone = "ÉLEVÉ",  "🔴"
         elif n_alertes == 1:
-            niveau = "MODÉRÉ"
-            icone  = "🟡"
+            niveau, icone = "MODÉRÉ", "🟡"
         else:
-            niveau = "FAIBLE"
-            icone  = "🟢"
+            niveau, icone = "FAIBLE", "🟢"
 
-        print(f"    → Niveau global : {icone} {niveau}")
-        print()
+        print(f"    → Niveau global : {icone} {niveau}\n")
 
         resultats.append({
             "scenario": scenario["nom"],
@@ -257,14 +208,13 @@ def test_prediction_v4():
             "niveau":   niveau,
         })
 
-    # Sauvegarder le résultat dans reports/
     reports_dir = os.path.join(ROOT, "reports")
     os.makedirs(reports_dir, exist_ok=True)
     ts      = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     outpath = os.path.join(reports_dir, f"test_prediction_{ts}.json")
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": "V4.4.3", "date": datetime.datetime.now().isoformat(),
+            {"version": "V4.4.4", "date": datetime.datetime.now().isoformat(),
              "resultats": resultats},
             f, ensure_ascii=False, indent=2
         )
@@ -280,7 +230,7 @@ def test_prediction_v4():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.4.3 — Pipeline complet")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.4 — Pipeline complet")
     parser.add_argument("--days",       type=int, default=7)
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--retrain",    action="store_true",
@@ -289,24 +239,20 @@ if __name__ == "__main__":
                         help="Test rapide : prédit sur 3 scénarios simulés (sans collecte réseau)")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V4.4.3 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.4.4 — {datetime.date.today().isoformat()}")
 
-    # ── Mode test uniquement ──────────────────────────────────
     if args.test:
         ok = test_prediction_v4()
         sys.exit(0 if ok else 1)
 
-    # ── Mode pipeline complet ────────────────────────────────
     n_data = compter_donnees_reelles()
     print(f"   Données collectées disponibles : {n_data} fichiers")
 
-    # Étape 1 — Collecte
     run(
         [sys.executable, "data_collection/collect_kribi.py", "--days", str(args.days)],
         "[1/3] Collecte météo + satellite"
     )
 
-    # Étape 2 — Ré-entraînement conditionnel
     if verifier_retrain_necessaire(force=args.retrain):
         run(
             [sys.executable, "models/train_model.py"],
@@ -316,16 +262,14 @@ if __name__ == "__main__":
         print(f"\n[PIPELINE] ⏭️  Ré-entraînement ignoré "
               f"({n_data}/{SEUIL_RETRAIN} — --retrain pour forcer)")
 
-    # Étape 3 — Prédiction V4
     run(
         [sys.executable, "inference/risk_model.py"],
         "[3/3] Prédiction de risque V4"
     )
 
-    # Export JSON → dashboard/
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline V4.4.3 terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.4.4 terminé. Rapports disponibles dans reports/")
 
     if not args.no_browser:
         ouvrir_dashboard()
