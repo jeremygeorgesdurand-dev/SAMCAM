@@ -78,10 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return 0;
   }
 
-  // ══ Bandeau présent si alerte ou erreur
   bool get _hasAlert => _report != null || _error != null;
-
-  // Hauteur du bandeau alerte (36px) + ligne du titre (kToolbarHeight)
   double get _alertBannerHeight => _hasAlert ? 36.0 : 0.0;
 
   @override
@@ -97,13 +94,10 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: _buildAppBar(),
       body: Stack(
         children: [
-          // COUCHE 1 — gradient de base
           AnimatedContainer(
             duration: const Duration(seconds: 2),
             decoration: BoxDecoration(gradient: gradient),
           ),
-
-          // COUCHE 2 — animation météo plein écran + parallaxe
           LayoutBuilder(builder: (ctx, constraints) {
             final parallaxOffset = _scrollOffset * 0.30;
             return ClipRect(
@@ -117,9 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             );
           }),
-
-          // COUCHE 3 — dégradé léger transparent → teinte sombre homogène
-          // Opacité réduite pour rester dans la palette du gradient météo
           IgnorePointer(
             child: Container(
               decoration: const BoxDecoration(
@@ -129,17 +120,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   colors: [
                     Colors.transparent,
                     Colors.transparent,
-                    Color(0x660D1A2E),  // 40 % — transition douce
-                    Color(0xAA0D1A2E), // 67 % — profondeur légère
-                    Color(0xCC0D1A2E), // 80 % max — jamais noir pur
+                    Color(0x660D1A2E),
+                    Color(0xAA0D1A2E),
+                    Color(0xCC0D1A2E),
                   ],
                   stops: [0.0, 0.45, 0.65, 0.82, 1.0],
                 ),
               ),
             ),
           ),
-
-          // COUCHE 4 — contenu scrollable
           SafeArea(
             top: true, bottom: false,
             child: RefreshIndicator(
@@ -152,14 +141,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // AppBar : totalement transparent — le fond météo passe au travers
-  // ═════════════════════════════════════════════════════════════════
   PreferredSizeWidget _buildAppBar() {
     return PreferredSize(
       preferredSize: Size.fromHeight(kToolbarHeight + _alertBannerHeight),
       child: Container(
-        // Transparent : le gradient météo est visible derrière
         color: Colors.transparent,
         child: SafeArea(
           bottom: false,
@@ -167,14 +152,12 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Ligne principale : SAMCAM  |  (bandeau si alerte)  |  icônes
               SizedBox(
                 height: kToolbarHeight,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(width: 16),
-                    // Titre
                     const Text(
                       'SAMCAM',
                       style: TextStyle(
@@ -186,14 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-
-                    // ── Bandeau alerte INLINE (entre le titre et les icônes)
                     if (_hasAlert)
                       Expanded(child: _buildInlineAlertBanner())
                     else
                       const Spacer(),
-
-                    // Icônes à droite
                     IconButton(
                       icon: const Icon(Icons.history, color: Colors.white70),
                       onPressed: () => Navigator.push(
@@ -220,11 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // Bandeau inline — fond semi-transparent léger, lisible et discret
-  // ─────────────────────────────────────────────────────────────────
   Widget _buildInlineAlertBanner() {
-    // ── Erreur serveur
     if (_report == null && _error != null) {
       return Container(
         height: 28,
@@ -264,13 +239,10 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // ── Alerte SAMCAM
     final r      = _report!;
     final color  = _alertColor(r.niveauAlerte);
     final isOk   = r.niveauAlerte == 'VERT';
     final isInco = r.niveauAlerte == 'INCONNU';
-
-    // Fond : noir très léger + teinte couleur alerte subtile → lisible sans être pesant
     final bgColor = Color.lerp(
       Colors.black.withOpacity(0.28),
       color.withOpacity(0.30),
@@ -324,7 +296,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          // Badge niveau d'alerte
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
@@ -347,9 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ═════════════════════════════════════════════════════════════════
-  // Body
-  // ═════════════════════════════════════════════════════════════════
   Widget _buildBody(WeatherAnimType animType) {
     if (_loading) {
       return ListView(
@@ -369,7 +337,6 @@ class _HomeScreenState extends State<HomeScreen> {
       controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
-        // Header météo transparent (plus de bandeau ici)
         _buildWeatherHeaderOverlay(weather),
         const SizedBox(height: 20),
         _buildHourlySection(weather),
@@ -383,9 +350,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ─────────────────────────────────────────────────────────────────
-  // Header météo transparent
-  // ─────────────────────────────────────────────────────────────────
   Widget _buildWeatherHeaderOverlay(WeatherData weather) {
     final now = DateTime.now();
     String dateStr;
@@ -491,7 +455,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── SQUELETTES
   Widget _buildSkeletonHeader() => const SizedBox(
     height: 300,
     child: Center(
@@ -504,7 +467,6 @@ class _HomeScreenState extends State<HomeScreen> {
     child: const Center(
       child: CircularProgressIndicator(color: Colors.white30, strokeWidth: 2)));
 
-  // ── PRÉVISIONS HORAIRES
   Widget _buildHourlySection(WeatherData weather) => _glassCard(
     child: Column(children: [
       _expandableHeader(
@@ -556,7 +518,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── PRÉVISIONS 7 JOURS
+  // ══ PRÉVISIONS 7 JOURS
   Widget _buildDailySection(WeatherData weather) => _glassCard(
     child: Column(children: [
       _expandableHeader(
@@ -570,10 +532,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<Widget> _buildDailyContent(WeatherData weather) {
     if (weather.daily.isEmpty) return [_emptyState()];
-    return List.generate(weather.daily.length, (i) => _dailyRow(weather.daily[i], i == 0));
+
+    // Plage dynamique : min/max global sur tous les jours affichés
+    // On ajoute 1° de marge de chaque côté pour que les extrêmes ne soient
+    // pas collés au bord de la barre.
+    final globalMin = weather.daily.map((d) => d.tempMin).reduce((a, b) => a < b ? a : b) - 1;
+    final globalMax = weather.daily.map((d) => d.tempMax).reduce((a, b) => a > b ? a : b) + 1;
+
+    return List.generate(
+      weather.daily.length,
+      (i) => _dailyRow(weather.daily[i], i == 0, globalMin, globalMax),
+    );
   }
 
-  Widget _dailyRow(DailyForecast d, bool isToday) {
+  Widget _dailyRow(DailyForecast d, bool isToday, double globalMin, double globalMax) {
     String dayLabel;
     try {
       final raw = DateFormat('EEEE', 'fr_FR').format(d.date);
@@ -582,9 +554,14 @@ class _HomeScreenState extends State<HomeScreen> {
       const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
       dayLabel = isToday ? "Auj." : days[d.date.weekday % 7];
     }
-    const double minR = 15.0, maxR = 45.0;
-    final double barStart = ((d.tempMin - minR) / (maxR - minR)).clamp(0.0, 1.0);
-    final double barWidth  = ((d.tempMax - d.tempMin) / (maxR - minR)).clamp(0.05, 1.0 - barStart);
+
+    // Plage dynamique : la barre s'étire sur la plage globale des 7 jours.
+    // barStart = position relative du tempMin du jour dans la plage globale
+    // barWidth = largeur relative de la plage tempMin→tempMax du jour
+    final range    = (globalMax - globalMin).clamp(1.0, double.infinity);
+    final barStart = ((d.tempMin - globalMin) / range).clamp(0.0, 1.0);
+    final barEnd   = ((d.tempMax - globalMin) / range).clamp(0.0, 1.0);
+    final barWidth = (barEnd - barStart).clamp(0.04, 1.0 - barStart);
 
     return Column(children: [
       Padding(
@@ -633,9 +610,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // ── TUILES MÉTÉO
-  // Chaque Row est enveloppée dans IntrinsicHeight pour que les deux tuiles
-  // d'une même ligne adoptent automatiquement la même hauteur (celle du plus grand).
   Widget _buildWeatherTiles(WeatherData weather) {
     final cur   = weather.current;
     final today = weather.daily.isNotEmpty ? weather.daily.first : null;
@@ -660,7 +634,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Column(children: [
-      // ── Ligne 1 : UV + Soleil
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
@@ -715,7 +688,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ),
       const SizedBox(height: 10),
-      // ── Ligne 2 : Vent + Précipitations
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
@@ -755,7 +727,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ),
       const SizedBox(height: 10),
-      // ── Ligne 3 : Ressenti + Pression
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
@@ -794,9 +765,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ),
       const SizedBox(height: 10),
-      // ── Ligne 4 : Visibilité + Humidité
-      // Anciennement : Visibilité seule + SizedBox vide → tuile solitaire non alignée.
-      // Maintenant : Humidité ajoutée pour compléter la grille 2×4.
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
@@ -841,7 +809,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ]);
   }
 
-  // ── ARC SOLAIRE
   Widget _sunArc(String sunriseStr, String sunsetStr) {
     final now     = TimeOfDay.now();
     final nowMins = now.hour * 60 + now.minute;
@@ -860,7 +827,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── SECTION RISQUES SAMCAM
   List<Widget> _buildRiskSection(RiskReport r) {
     final isML = r.methodeRisque.toLowerCase().contains('ia') ||
                  r.methodeRisque.toLowerCase().contains('ai') ||
