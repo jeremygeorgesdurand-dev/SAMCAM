@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.5.2 — Entraînement des modèles de classification de risques climatiques
+SAMCAM V4.5.3 — Entraînement des modèles de classification de risques climatiques
+
+FIX V4.5.3 :
+    - extraire_feature_importance : fallback explicite sur clf lui-même pour les
+      estimateurs bruts (ex: RandomForestClassifier), corrige importances inondation
+    - pipeline 2 passes : conserve automatiquement le meilleur modèle entre
+      passe 1 et passe 2 si la sélection de features dégrade le F1 test
 
 FIX V4.5.2 :
     - extraire_feature_importance : calibrated_classifiers_ testé EN PREMIER
@@ -44,8 +50,7 @@ DEFAULT_DATASET = os.path.join(DATA_DIR, "dataset_kribi_historical.csv")
 MIN_POSITIFS_ML    = 10
 MIN_POSITIFS_CALIB = 30
 
-# Seuil de feature selection : features dont l'importance < SEUIL sont supprimées
-SEUIL_IMPORTANCE = 0.01   # 1%
+SEUIL_IMPORTANCE = 0.01
 
 FEATURES_BASE = [
     "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
@@ -73,11 +78,6 @@ T_PENTE  = 1.5
 
 
 class HeuristiqueChaleur:
-    """
-    Pseudo-estimateur sklearn-compatible sérialisable par joblib.
-    Sigmoïde centrée sur T_ALERTE (34°C) pour Kribi.
-    """
-
     def __init__(self, t_alerte=T_ALERTE, t_pente=T_PENTE, idx=0):
         self.t_alerte = t_alerte
         self.t_pente  = t_pente
@@ -170,7 +170,8 @@ def creer_modele_heuristique_chaleur(df):
         "metriques": {"f1": None, "recall": None, "precision": None, "auc_roc": None, "f1_cv": None},
         "params_optimaux": {"type": "heuristique_sigmoide", "t_alerte": T_ALERTE, "t_pente": T_PENTE},
         "n_train": len(df), "n_test": 0, "n_positifs": 0, "type": "heuristique",
-        "feature_importance": {}, "features_selectionnees": FEATURES_ALL, "features_supprimees": [],
+        "feature_importance": {}, "feature_importance_all": {},
+        "features_selectionnees": FEATURES_ALL, "features_supprimees": [],
         "f1_avant_selection": None, "gain_f1_selection": None,
     }
 
@@ -185,49 +186,35 @@ def seuil_optimal_f1(y_true, y_proba):
     return round(meilleur_seuil, 2)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FEATURE IMPORTANCE & SELECTION
-# ─────────────────────────────────────────────────────────────────────────────
-
 def extraire_feature_importance(clf, features):
-    """
-    Extrait les importances depuis un estimateur sklearn, y compris lorsqu'il
-    est encapsulé dans CalibratedClassifierCV.
-
-    FIX V4.5.2 : on teste calibrated_classifiers_ EN PREMIER pour éviter de
-    récupérer l'attribut 'estimator' non-entraîné de CalibratedClassifierCV.
-    Ordre de résolution :
-      1. calibrated_classifiers_[0].estimator  (CalibratedClassifierCV entraîné)
-      2. base_estimator / estimator             (Pipeline ou wrappeur simple)
-      3. clf directement
-    """
     import numpy as np
     importances = None
-    estimateur  = clf
+    estimateur = clf
 
-    # 1. CalibratedClassifierCV — accès via calibrated_classifiers_
     if hasattr(clf, "calibrated_classifiers_"):
-        val   = clf.calibrated_classifiers_
+        val = clf.calibrated_classifiers_
         if isinstance(val, list) and val:
-            inner      = val[0]
-            estimateur = getattr(inner, "estimator",
-                         getattr(inner, "base_estimator", inner))
-    # 2. Wrappeur générique (Pipeline, etc.)
+            inner = val[0]
+            estimateur = getattr(inner, "estimator", getattr(inner, "base_estimator", inner))
     elif hasattr(clf, "base_estimator"):
         estimateur = clf.base_estimator
     elif hasattr(clf, "estimator"):
         estimateur = clf.estimator
+    else:
+        estimateur = clf
 
-    # Extraction des importances
     if hasattr(estimateur, "feature_importances_"):
         importances = estimateur.feature_importances_
     elif hasattr(estimateur, "estimators_"):
         try:
-            importances = np.mean(
-                [e.feature_importances_ for e in estimateur.estimators_
-                 if hasattr(e, "feature_importances_")], axis=0)
+            valeurs = [e.feature_importances_ for e in estimateur.estimators_ if hasattr(e, "feature_importances_")]
+            if valeurs:
+                importances = np.mean(valeurs, axis=0)
         except Exception:
             pass
+
+    if importances is None and hasattr(clf, "feature_importances_"):
+        importances = clf.feature_importances_
 
     if importances is None:
         print("  [IMPORTANCE] ⚠️  Impossible d'extraire les importances")
@@ -257,10 +244,6 @@ def afficher_top_features(nom, importance_dict, n=5):
         print(f"    {i}. {feat:<22} {imp:.4f}  {bar}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ENTRAÎNEMENT
-# ─────────────────────────────────────────────────────────────────────────────
-
 def _print_metriques(nom, f1, recall, prec, auc):
     print(f"[{nom.upper()}] ── Métriques test ──")
     print(f"[{nom.upper()}]   F1={f1}  Recall={recall}  Precision={prec}  AUC={auc}")
@@ -272,7 +255,9 @@ def _build_result(clf, seuil, features, f1, recall, prec, auc, f1_cv, params, X_
         "metriques": {"f1": f1, "recall": recall, "precision": prec, "auc_roc": auc, "f1_cv": f1_cv},
         "params_optimaux": params,
         "n_train": len(X_train), "n_test": len(X_test), "n_positifs": n_positifs,
-        "feature_importance": {}, "features_selectionnees": features,
+        "feature_importance": {}, "feature_importance_all": {},
+        "features_selectionnees": features, "features_supprimees": [],
+        "f1_avant_selection": None, "gain_f1_selection": None,
     }
 
 
@@ -366,10 +351,6 @@ def entrainer_random_forest(nom, df, features, param_grid, verbose):
                          grid.best_params_, X_train, X_test, int(y.sum()))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PIPELINE 2 PASSES
-# ─────────────────────────────────────────────────────────────────────────────
-
 def entrainer_modele(nom, df, fast, prefix, verbose):
     label_col  = TARGETS[nom]
     n_positifs = int(df[label_col].sum())
@@ -380,7 +361,6 @@ def entrainer_modele(nom, df, fast, prefix, verbose):
     if n_positifs < MIN_POSITIFS_ML:
         return creer_modele_heuristique_chaleur(df)
 
-    # Passe 1 — rapide sur toutes les features
     print(f"\n[{nom.upper()}] ── Passe 1 : toutes les features ({len(FEATURES_ALL)}) ──")
     if n_positifs < MIN_POSITIFS_CALIB:
         r1 = entrainer_random_forest(nom, df, FEATURES_ALL, _build_param_grid_rf(True), False)
@@ -395,7 +375,6 @@ def entrainer_modele(nom, df, fast, prefix, verbose):
         print("  [SELECTION] Importance indisponible → toutes les features conservées")
         features_sel = FEATURES_ALL
 
-    # Passe 2 — GridSearchCV complet sur features sélectionnées
     if set(features_sel) == set(FEATURES_ALL):
         print(f"\n[{nom.upper()}] ── Passe 2 : toutes features conservées ──")
     else:
@@ -409,7 +388,20 @@ def entrainer_modele(nom, df, fast, prefix, verbose):
     imp2  = extraire_feature_importance(r2["clf"], features_sel)
     f1_p1 = r1["metriques"]["f1"]
     f1_p2 = r2["metriques"]["f1"]
-    delta = round((f1_p2 - f1_p1) * 100, 2) if f1_p1 and f1_p2 else 0
+
+    if f1_p1 is not None and f1_p2 is not None and f1_p2 < f1_p1:
+        delta = 0.0
+        print(f"\n[{nom.upper()}] ⚠️  Passe 2 moins bonne → modèle passe 1 conservé")
+        print(f"[{nom.upper()}] 📊 F1 : {f1_p1} → {f1_p2} (rejetée, gain retenu {delta:+.2f}%)")
+        r1["feature_importance"]     = imp1
+        r1["feature_importance_all"] = imp1
+        r1["features_selectionnees"] = FEATURES_ALL
+        r1["features_supprimees"]    = []
+        r1["f1_avant_selection"]     = f1_p1
+        r1["gain_f1_selection"]      = delta
+        return r1
+
+    delta = round((f1_p2 - f1_p1) * 100, 2) if f1_p1 is not None and f1_p2 is not None else 0.0
     print(f"\n[{nom.upper()}] 📊 F1 : {f1_p1} → {f1_p2} ({'+' if delta>=0 else ''}{delta}%)")
 
     r2["feature_importance"]     = imp2
@@ -420,10 +412,6 @@ def entrainer_modele(nom, df, fast, prefix, verbose):
     r2["gain_f1_selection"]      = delta
     return r2
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# SAUVEGARDE
-# ─────────────────────────────────────────────────────────────────────────────
 
 def sauvegarder_modele(nom, result):
     import joblib
@@ -437,7 +425,7 @@ def sauvegarder_feature_importance(resultats):
     import numpy as np
     chemin = os.path.join(MODELS_DIR, "feature_importance.json")
     rapport = {
-        "version": "V4.5.2",
+        "version": "V4.5.3",
         "date": datetime.datetime.now().isoformat(),
         "seuil_selection": SEUIL_IMPORTANCE,
         "modeles": {},
@@ -471,7 +459,7 @@ def sauvegarder_feature_importance(resultats):
 def sauvegarder_rapport(resultats):
     chemin = os.path.join(MODELS_DIR, "training_report.json")
     rapport = {
-        "version": "V4.5.2",
+        "version": "V4.5.3",
         "date": datetime.datetime.now().isoformat(),
         "features_all": FEATURES_ALL,
         "n_features_all": len(FEATURES_ALL),
@@ -489,7 +477,7 @@ def sauvegarder_rapport(resultats):
             "type":                   r.get("type", "ml"),
             "features_selectionnees": r.get("features_selectionnees", FEATURES_ALL),
             "features_supprimees":    r.get("features_supprimees", []),
-            "f1_avant_selection":     r.get("f1_avant_selection"),   # FIX V4.5.2
+            "f1_avant_selection":     r.get("f1_avant_selection"),
             "gain_f1_selection":      r.get("gain_f1_selection"),
         }
     with open(chemin, "w", encoding="utf-8") as f:
@@ -500,7 +488,7 @@ def sauvegarder_rapport(resultats):
 
 def afficher_resume(rapport_train, rapport_fi):
     print("\n" + "═" * 70)
-    print("  SAMCAM V4.5.2 — Résumé de l'entraînement")
+    print("  SAMCAM V4.5.3 — Résumé de l'entraînement")
     print("═" * 70)
     print(f"  Features initiales : {rapport_train['n_features_all']}  |  Seuil : {rapport_train['seuil_selection']*100:.0f}%")
     print()
@@ -509,8 +497,8 @@ def afficher_resume(rapport_train, rapport_fi):
     for nom, m in rapport_train["modeles"].items():
         mt   = m["metriques"]
         tp   = m.get("type", "ml")
-        f1ap = f"{mt['f1']:.4f}"               if mt["f1"]                    else "   N/A "
-        f1av = f"{m['f1_avant_selection']:.4f}" if m.get("f1_avant_selection") else "   N/A "
+        f1ap = f"{mt['f1']:.4f}" if mt["f1"] is not None else "   N/A "
+        f1av = f"{m['f1_avant_selection']:.4f}" if m.get("f1_avant_selection") is not None else "   N/A "
         gain = f"{m['gain_f1_selection']:+.2f}%" if m.get("gain_f1_selection") is not None else "   N/A "
         nsel = len(m.get("features_selectionnees", FEATURES_ALL))
         print(f"  {nom:<15} {tp:<22} {f1av:>9} {f1ap:>9} {gain:>7} {nsel:>5}/{len(FEATURES_ALL)}")
@@ -526,10 +514,9 @@ def afficher_resume(rapport_train, rapport_fi):
 
 
 def main():
-    # ── global déclaré EN TÊTE de fonction, avant tout accès ────────────────
     global SEUIL_IMPORTANCE
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.5.2 — Entraînement modèles")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.5.3 — Entraînement modèles")
     parser.add_argument("--dataset", default=DEFAULT_DATASET)
     parser.add_argument("--no-grid", action="store_true")
     parser.add_argument("--verbose", action="store_true")
@@ -543,7 +530,7 @@ def main():
     SEUIL_IMPORTANCE = args.seuil_importance
 
     print("\n" + "═" * 70)
-    print("  SAMCAM V4.5.2 — Feature Importance + Sélection automatique")
+    print("  SAMCAM V4.5.3 — Feature Importance + Sélection automatique")
     print("  Mode : " + ("RAPIDE" if args.no_grid else "COMPLET (GridSearchCV + TimeSeriesSplit)"))
     print(f"  Seuil sélection : {SEUIL_IMPORTANCE*100:.0f}%")
     print("═" * 70)
