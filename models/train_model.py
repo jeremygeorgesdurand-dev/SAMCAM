@@ -1,32 +1,26 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.4 — Entraînement des modèles de classification de risques climatiques
+SAMCAM V4.4.2 — Entraînement des modèles de classification de risques climatiques
 
-NOUVEAUTÉS V4.4 :
-    - GridSearchCV sur GradientBoostingClassifier (hyperparamètres optimaux)
-    - TimeSeriesSplit (5 folds) : validation temporelle stricte
-      (pas de fuite de données futures dans le training)
-    - CalibratedClassifierCV : calibration des probabilités de sortie
-    - Seuil de décision optimal calculé par maximisation du F1
-    - Rapport de métriques complet : F1, recall, precision, AUC-ROC
-    - Sauvegarde format dict {clf, seuil, features} pour risk_model.py
+FIX V4.4.2 :
+    - Chaleur (0 positifs) : skip + modèle heuristique basé sur temp_max
+    - Inondation (<30 positifs) : RandomForest sans calibration (plus robuste)
+    - Protection générale : vérifie le nb de positifs avant tout entraînement
+    - Inondation F1 CV=nan : remplacé par RandomForestClassifier qui gère
+      mieux les classes ultra-rares avec class_weight='balanced'
 
 FIX V4.4.1 :
-    - PARAM_GRID : détection automatique du préfixe 'estimator__' vs
-      'base_estimator__' selon la version de scikit-learn installée.
-      sklearn ≥ 1.2 → 'estimator__'  (nouveau nom)
-      sklearn ≤ 1.1 → 'base_estimator__' (ancien nom)
+    - PARAM_GRID : détection automatique préfixe 'estimator__' vs 'base_estimator__'
 
 Usage :
     python3 models/train_model.py
-    python3 models/train_model.py --dataset data/dataset_kribi_historical.csv
     python3 models/train_model.py --no-grid   # rapide, sans GridSearchCV
     python3 models/train_model.py --verbose
 
 Sortie :
     models/model_inondation.pkl
     models/model_secheresse.pkl
-    models/model_chaleur.pkl
+    models/model_chaleur.pkl      ← heuristique si 0 positifs
     models/training_report.json
 """
 
@@ -37,12 +31,16 @@ import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
-MODELS_DIR = os.path.join(os.path.dirname(__file__))
-DATA_DIR   = os.path.join(os.path.dirname(__file__), "..", "data")
+MODELS_DIR      = os.path.join(os.path.dirname(__file__))
+DATA_DIR        = os.path.join(os.path.dirname(__file__), "..", "data")
 DEFAULT_DATASET = os.path.join(DATA_DIR, "dataset_kribi_historical.csv")
 
+# Seuil minimum de positifs pour entraîner un modèle ML
+MIN_POSITIFS_ML   = 10   # en dessous → heuristique
+MIN_POSITIFS_CALIB = 30  # en dessous → RandomForest sans calibration
+
 # ─────────────────────────────────────────────────────────────────────────────
-# FEATURES (doit être identique à risk_model.py V4.3)
+# FEATURES
 # ─────────────────────────────────────────────────────────────────────────────
 
 FEATURES_BASE = [
@@ -66,31 +64,23 @@ TARGETS = {
     "chaleur":    "label_chaleur",
 }
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# COMPATIBILITÉ SKLEARN — détection du bon préfixe de paramètre
-#
-# Dans sklearn ≥ 1.2, CalibratedClassifierCV a renommé son argument :
-#   base_estimator=...  →  estimator=...
-# Le préfixe pour GridSearchCV suit ce renommage :
-#   "base_estimator__xxx"  →  "estimator__xxx"
+# COMPATIBILITÉ SKLEARN
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _get_param_prefix() -> str:
-    """Retourne le préfixe correct pour les params de CalibratedClassifierCV."""
     try:
         import sklearn
         parts = sklearn.__version__.split(".")
-        major, minor = int(parts[0]), int(parts[1])
-        if (major, minor) >= (1, 2):
+        if (int(parts[0]), int(parts[1])) >= (1, 2):
             return "estimator__"
     except Exception:
         pass
     return "base_estimator__"
 
 
-def _build_param_grid(prefix: str, fast: bool) -> dict:
-    """Construit la grille d'hyperparamètres avec le bon préfixe."""
+def _build_param_grid_gb(prefix: str, fast: bool) -> dict:
+    """Grille pour GradientBoosting (sécheresse)."""
     if fast:
         return {
             f"{prefix}n_estimators":     [200],
@@ -105,6 +95,21 @@ def _build_param_grid(prefix: str, fast: bool) -> dict:
         f"{prefix}learning_rate":    [0.05, 0.10, 0.15],
         f"{prefix}subsample":        [0.75, 0.85, 1.0],
         f"{prefix}min_samples_leaf": [5, 10, 20],
+    }
+
+
+def _build_param_grid_rf(fast: bool) -> dict:
+    """Grille pour RandomForest (inondation, classes rares)."""
+    if fast:
+        return {
+            "n_estimators": [200],
+            "max_depth":    [None],
+            "min_samples_leaf": [1],
+        }
+    return {
+        "n_estimators":     [100, 200, 300],
+        "max_depth":        [None, 8, 15],
+        "min_samples_leaf": [1, 3, 5],
     }
 
 
@@ -129,12 +134,9 @@ def charger_dataset(chemin: str):
     print(f"[TRAIN] Période : {df['date'].min().date()} → {df['date'].max().date()}")
     print(f"[TRAIN] Source  : {df['source'].value_counts().to_dict()}")
 
-    features_manquantes = [f for f in FEATURES_ALL if f not in df.columns]
-    if features_manquantes:
-        print(f"[TRAIN] ⚠️  Features absentes du dataset : {features_manquantes}")
-        for f in features_manquantes:
+    for f in FEATURES_ALL:
+        if f not in df.columns:
             df[f] = 0.0
-
     for col in FEATURES_ALL:
         if df[col].isna().any():
             df[col] = df[col].fillna(df[col].median())
@@ -143,123 +145,226 @@ def charger_dataset(chemin: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# SEUIL OPTIMAL — maximise F1 sur les probabilités de validation
+# MODÈLE HEURISTIQUE — pour chaleur (0 positifs dans dataset Kribi)
+#
+# Kribi est une ville côtière équatoriale (~27°C stable).  Les vagues de
+# chaleur extrême n'apparaissent pas dans les données historiques 1990-2024.
+# On crée un modèle déterministe basé sur le percentile 95 de temp_max.
+# Quand de vraies données de chaleur seront disponibles, remplacer par ML.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def creer_modele_heuristique_chaleur(df) -> dict:
+    import numpy as np
+
+    idx_temp = FEATURES_ALL.index("temp_max")
+    seuil_p95 = float(np.percentile(df["temp_max"].values, 95))
+    print(f"[CHALEUR] ⚠️  0 positifs → modèle heuristique (seuil temp_max = {seuil_p95:.1f}°C)")
+
+    class HeuristiqueChaleur:
+        """Pseudo-estimateur sklearn-compatible basé sur temp_max > seuil."""
+        def __init__(self, seuil: float, idx: int):
+            self.seuil = seuil
+            self.idx   = idx
+
+        def predict_proba(self, X):
+            import numpy as np
+            temp = X[:, self.idx]
+            # Score linéaire : 0 sous le seuil, monte jusqu'à 1 au-delà
+            scores = np.clip((temp - self.seuil) / max(self.seuil * 0.05, 1.0), 0, 1)
+            return np.column_stack([1 - scores, scores])
+
+        def predict(self, X):
+            return (self.predict_proba(X)[:, 1] >= 0.5).astype(int)
+
+    clf = HeuristiqueChaleur(seuil=seuil_p95, idx=idx_temp)
+
+    return {
+        "clf":      clf,
+        "seuil":    0.50,
+        "features": FEATURES_ALL,
+        "metriques": {
+            "f1":        None,
+            "recall":    None,
+            "precision": None,
+            "auc_roc":   None,
+            "f1_cv":     None,
+        },
+        "params_optimaux": {"type": "heuristique", "seuil_temp_max": seuil_p95},
+        "n_train":    len(df),
+        "n_test":     0,
+        "n_positifs": 0,
+        "type":       "heuristique",
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SEUIL OPTIMAL F1
 # ─────────────────────────────────────────────────────────────────────────────
 
 def seuil_optimal_f1(y_true, y_proba) -> float:
     from sklearn.metrics import f1_score
 
-    meilleur_seuil = 0.5
-    meilleur_f1    = 0.0
+    meilleur_seuil, meilleur_f1 = 0.5, 0.0
     for s in [i / 100 for i in range(20, 81)]:
-        preds = (y_proba >= s).astype(int)
-        f1 = f1_score(y_true, preds, zero_division=0)
+        f1 = f1_score(y_true, (y_proba >= s).astype(int), zero_division=0)
         if f1 > meilleur_f1:
-            meilleur_f1    = f1
-            meilleur_seuil = s
+            meilleur_f1, meilleur_seuil = f1, s
     return round(meilleur_seuil, 2)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ENTRAÎNEMENT D'UN MODÈLE
+# ENTRAÎNEMENT — GradientBoosting + CalibratedClassifierCV
+# Utilisé pour : sécheresse (>= MIN_POSITIFS_CALIB positifs)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def entrainer_modele(nom: str, df, param_grid: dict, verbose: bool = False) -> dict:
+def entrainer_gradient_boosting(nom: str, df, param_grid: dict, verbose: bool) -> dict:
     from sklearn.ensemble import GradientBoostingClassifier
     from sklearn.calibration import CalibratedClassifierCV
     from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
-    from sklearn.metrics import (
-        f1_score, recall_score, precision_score,
-        roc_auc_score, classification_report
-    )
+    from sklearn.metrics import f1_score, recall_score, precision_score, roc_auc_score
     import numpy as np
 
     label_col = TARGETS[nom]
-    X = df[FEATURES_ALL].values
-    y = df[label_col].values
+    X, y      = df[FEATURES_ALL].values, df[label_col].values
 
-    n_positifs = int(y.sum())
-    n_total    = len(y)
-    print(f"\n[{nom.upper()}] Positifs : {n_positifs}/{n_total} ({100*n_positifs//n_total}%)")
+    split_idx               = int(len(X) * 0.80)
+    X_train, X_test         = X[:split_idx], X[split_idx:]
+    y_train, y_test         = y[:split_idx], y[split_idx:]
 
-    split_idx = int(len(X) * 0.80)
-    X_train, X_test = X[:split_idx], X[split_idx:]
-    y_train, y_test = y[:split_idx], y[split_idx:]
-    print(f"[{nom.upper()}] Train : {len(X_train)} | Test : {len(X_test)}")
-
-    ratio = max(1, (y_train == 0).sum() / max(1, (y_train == 1).sum()))
+    ratio        = max(1, (y_train == 0).sum() / max(1, (y_train == 1).sum()))
     class_weight = {0: 1.0, 1: min(ratio, 10.0)}
     print(f"[{nom.upper()}] Ratio déséquilibre : {ratio:.1f}x → class_weight[1]={class_weight[1]:.1f}")
 
-    base_clf   = GradientBoostingClassifier(random_state=42)
-    calibrated = CalibratedClassifierCV(base_clf, cv=3, method="isotonic")
-    tscv       = TimeSeriesSplit(n_splits=5)
-
+    calibrated = CalibratedClassifierCV(
+        GradientBoostingClassifier(random_state=42), cv=3, method="isotonic"
+    )
+    tscv     = TimeSeriesSplit(n_splits=5)
     n_combis = _count_combinations(param_grid)
-    print(f"[{nom.upper()}] GridSearchCV en cours (5 folds × {n_combis} combinaisons)...")
+    print(f"[{nom.upper()}] GridSearchCV GradientBoosting (5 folds × {n_combis} combinaisons)...")
 
     grid = GridSearchCV(
-        calibrated,
-        param_grid,
-        cv=tscv,
-        scoring="f1",
-        n_jobs=-1,
-        verbose=1 if verbose else 0,
-        refit=True,
+        calibrated, param_grid, cv=tscv,
+        scoring="f1", n_jobs=-1,
+        verbose=1 if verbose else 0, refit=True,
     )
+    sw = np.array([class_weight[int(yi)] for yi in y_train])
+    grid.fit(X_train, y_train, **{"sample_weight": sw})
 
-    sample_weights = np.array([class_weight[int(yi)] for yi in y_train])
-    grid.fit(X_train, y_train, **{"sample_weight": sample_weights})
-
-    meilleur_clf      = grid.best_estimator_
-    meilleurs_params  = grid.best_params_
-    meilleur_score_cv = round(grid.best_score_, 4)
-
+    clf              = grid.best_estimator_
+    meilleurs_params = grid.best_params_
+    f1_cv            = round(grid.best_score_, 4)
     print(f"[{nom.upper()}] Meilleurs params : {meilleurs_params}")
-    print(f"[{nom.upper()}] Meilleur F1 CV   : {meilleur_score_cv}")
+    print(f"[{nom.upper()}] Meilleur F1 CV   : {f1_cv}")
 
-    # Seuil optimal sur le dernier fold de validation
     folds = list(tscv.split(X_train))
-    _, idx_val_last = folds[-1]
-    y_proba_val = meilleur_clf.predict_proba(X_train[idx_val_last])[:, 1]
-    seuil = seuil_optimal_f1(y_train[idx_val_last], y_proba_val)
+    _, idx_val = folds[-1]
+    seuil = seuil_optimal_f1(y_train[idx_val], clf.predict_proba(X_train[idx_val])[:, 1])
     print(f"[{nom.upper()}] Seuil optimal F1 : {seuil}")
 
-    # Évaluation finale sur le test set
-    y_proba_test = meilleur_clf.predict_proba(X_test)[:, 1]
-    y_pred_test  = (y_proba_test >= seuil).astype(int)
-
-    f1        = round(f1_score(y_test,        y_pred_test, zero_division=0), 4)
-    recall    = round(recall_score(y_test,    y_pred_test, zero_division=0), 4)
-    precision = round(precision_score(y_test, y_pred_test, zero_division=0), 4)
+    y_proba = clf.predict_proba(X_test)[:, 1]
+    y_pred  = (y_proba >= seuil).astype(int)
+    f1      = round(f1_score(y_test, y_pred, zero_division=0), 4)
+    recall  = round(recall_score(y_test, y_pred, zero_division=0), 4)
+    prec    = round(precision_score(y_test, y_pred, zero_division=0), 4)
     try:
-        auc = round(roc_auc_score(y_test, y_proba_test), 4)
+        auc = round(roc_auc_score(y_test, y_proba), 4)
     except Exception:
         auc = None
 
+    _print_metriques(nom, f1, recall, prec, auc)
+    return _build_result(clf, seuil, f1, recall, prec, auc, f1_cv,
+                         meilleurs_params, X_train, X_test, int(y.sum()))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ENTRAÎNEMENT — RandomForestClassifier sans calibration
+# Utilisé pour : inondation (classes très rares, < MIN_POSITIFS_CALIB)
+# RandomForest gère nativement class_weight='balanced_subsample' et ne
+# plante pas quand un fold ne contient qu'une seule classe.
+# ─────────────────────────────────────────────────────────────────────────────
+
+def entrainer_random_forest(nom: str, df, param_grid: dict, verbose: bool) -> dict:
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import GridSearchCV, TimeSeriesSplit
+    from sklearn.metrics import f1_score, recall_score, precision_score, roc_auc_score
+    import numpy as np
+
+    label_col               = TARGETS[nom]
+    X, y                    = df[FEATURES_ALL].values, df[label_col].values
+    split_idx               = int(len(X) * 0.80)
+    X_train, X_test         = X[:split_idx], X[split_idx:]
+    y_train, y_test         = y[:split_idx], y[split_idx:]
+
+    print(f"[{nom.upper()}] → RandomForest (class_weight=balanced_subsample)")
+
+    # balanced_subsample recalcule les poids à chaque arbre → très robuste
+    # aux classes rares, pas besoin de sample_weight externe
+    clf_base = RandomForestClassifier(
+        class_weight="balanced_subsample",
+        random_state=42,
+        n_jobs=-1,
+    )
+    tscv     = TimeSeriesSplit(n_splits=5)
+    n_combis = _count_combinations(param_grid)
+    print(f"[{nom.upper()}] GridSearchCV RandomForest (5 folds × {n_combis} combinaisons)...")
+
+    grid = GridSearchCV(
+        clf_base, param_grid, cv=tscv,
+        scoring="f1", n_jobs=1,   # n_jobs=1 car clf_base a déjà n_jobs=-1
+        verbose=1 if verbose else 0, refit=True,
+        error_score=0.0,           # ne pas planter si un fold est mono-classe
+    )
+    grid.fit(X_train, y_train)
+
+    clf              = grid.best_estimator_
+    meilleurs_params = grid.best_params_
+    f1_cv            = round(grid.best_score_, 4)
+    print(f"[{nom.upper()}] Meilleurs params : {meilleurs_params}")
+    print(f"[{nom.upper()}] Meilleur F1 CV   : {f1_cv}")
+
+    folds = list(tscv.split(X_train))
+    _, idx_val = folds[-1]
+    seuil = seuil_optimal_f1(y_train[idx_val], clf.predict_proba(X_train[idx_val])[:, 1])
+    print(f"[{nom.upper()}] Seuil optimal F1 : {seuil}")
+
+    y_proba = clf.predict_proba(X_test)[:, 1]
+    y_pred  = (y_proba >= seuil).astype(int)
+    f1      = round(f1_score(y_test, y_pred, zero_division=0), 4)
+    recall  = round(recall_score(y_test, y_pred, zero_division=0), 4)
+    prec    = round(precision_score(y_test, y_pred, zero_division=0), 4)
+    try:
+        auc = round(roc_auc_score(y_test, y_proba), 4)
+    except Exception:
+        auc = None
+
+    _print_metriques(nom, f1, recall, prec, auc)
+    return _build_result(clf, seuil, f1, recall, prec, auc, f1_cv,
+                         meilleurs_params, X_train, X_test, int(y.sum()))
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _print_metriques(nom, f1, recall, prec, auc):
     print(f"[{nom.upper()}] ── Métriques test ──")
     print(f"[{nom.upper()}]   F1        : {f1}")
     print(f"[{nom.upper()}]   Recall    : {recall}")
-    print(f"[{nom.upper()}]   Precision : {precision}")
+    print(f"[{nom.upper()}]   Precision : {prec}")
     print(f"[{nom.upper()}]   AUC-ROC   : {auc}")
 
-    if verbose:
-        print(classification_report(y_test, y_pred_test,
-                                    target_names=["négatif", "positif"],
-                                    zero_division=0))
 
+def _build_result(clf, seuil, f1, recall, prec, auc, f1_cv,
+                  params, X_train, X_test, n_positifs) -> dict:
     return {
-        "clf":      meilleur_clf,
+        "clf":      clf,
         "seuil":    seuil,
         "features": FEATURES_ALL,
         "metriques": {
-            "f1":        f1,
-            "recall":    recall,
-            "precision": precision,
-            "auc_roc":   auc,
-            "f1_cv":     meilleur_score_cv,
+            "f1": f1, "recall": recall, "precision": prec,
+            "auc_roc": auc, "f1_cv": f1_cv,
         },
-        "params_optimaux": meilleurs_params,
+        "params_optimaux": params,
         "n_train":    len(X_train),
         "n_test":     len(X_test),
         "n_positifs": n_positifs,
@@ -271,6 +376,33 @@ def _count_combinations(param_grid: dict) -> int:
     for v in param_grid.values():
         total *= len(v)
     return total
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ROUTEUR — choisit la bonne stratégie selon le nombre de positifs
+# ─────────────────────────────────────────────────────────────────────────────
+
+def entrainer_modele(nom: str, df, fast: bool, prefix: str, verbose: bool) -> dict:
+    label_col  = TARGETS[nom]
+    n_positifs = int(df[label_col].sum())
+    n_total    = len(df)
+
+    print(f"\n[{nom.upper()}] Positifs : {n_positifs}/{n_total} ({100*n_positifs//max(n_total,1)}%)")
+    split_idx  = int(len(df) * 0.80)
+    print(f"[{nom.upper()}] Train : {split_idx} | Test : {n_total - split_idx}")
+
+    # Cas 1 : 0 positifs → modèle heuristique
+    if n_positifs < MIN_POSITIFS_ML:
+        return creer_modele_heuristique_chaleur(df)
+
+    # Cas 2 : classes très rares → RandomForest sans calibration
+    if n_positifs < MIN_POSITIFS_CALIB:
+        pg = _build_param_grid_rf(fast)
+        return entrainer_random_forest(nom, df, pg, verbose)
+
+    # Cas 3 : suffisamment de positifs → GradientBoosting + calibration
+    pg = _build_param_grid_gb(prefix, fast)
+    return entrainer_gradient_boosting(nom, df, pg, verbose)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -289,9 +421,9 @@ def sauvegarder_modele(nom: str, result: dict):
 
 
 def sauvegarder_rapport(resultats: dict):
-    chemin = os.path.join(MODELS_DIR, "training_report.json")
+    chemin  = os.path.join(MODELS_DIR, "training_report.json")
     rapport = {
-        "version":    "V4.4",
+        "version":    "V4.4.2",
         "date":       datetime.datetime.now().isoformat(),
         "features":   FEATURES_ALL,
         "n_features": len(FEATURES_ALL),
@@ -305,6 +437,7 @@ def sauvegarder_rapport(resultats: dict):
             "n_train":         r["n_train"],
             "n_test":          r["n_test"],
             "n_positifs":      r["n_positifs"],
+            "type":            r.get("type", "ml"),
         }
     with open(chemin, "w", encoding="utf-8") as f:
         json.dump(rapport, f, ensure_ascii=False, indent=2)
@@ -317,26 +450,28 @@ def sauvegarder_rapport(resultats: dict):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def afficher_resume(rapport: dict):
-    print("\n" + "═" * 60)
-    print("  SAMCAM V4.4 — Résumé de l'entraînement")
-    print("═" * 60)
+    print("\n" + "═" * 64)
+    print("  SAMCAM V4.4.2 — Résumé de l'entraînement")
+    print("═" * 64)
     print(f"  Features utilisées : {rapport['n_features']}")
     print(f"  Date               : {rapport['date'][:19]}")
     print()
-    print(f"  {'Modèle':<15} {'F1':>6} {'Recall':>8} {'Précision':>10} {'AUC':>7} {'Seuil':>7}")
-    print(f"  {'-'*15} {'-'*6} {'-'*8} {'-'*10} {'-'*7} {'-'*7}")
+    print(f"  {'Modèle':<15} {'Type':<14} {'F1':>6} {'Recall':>8} {'AUC':>7} {'Seuil':>7}")
+    print(f"  {'-'*15} {'-'*14} {'-'*6} {'-'*8} {'-'*7} {'-'*7}")
     for nom, m in rapport["modeles"].items():
-        mt  = m["metriques"]
-        auc = f"{mt['auc_roc']:.4f}" if mt["auc_roc"] else "  N/A "
-        print(f"  {nom:<15} {mt['f1']:>6.4f} {mt['recall']:>8.4f} "
-              f"{mt['precision']:>10.4f} {auc:>7} {m['seuil']:>7.2f}")
-    print("═" * 60)
+        mt   = m["metriques"]
+        tp   = m.get("type", "ml")
+        f1   = f"{mt['f1']:.4f}"   if mt["f1"]      else "  N/A "
+        rec  = f"{mt['recall']:.4f}" if mt["recall"]  else "  N/A "
+        auc  = f"{mt['auc_roc']:.4f}" if mt["auc_roc"] else "  N/A "
+        print(f"  {nom:<15} {tp:<14} {f1:>6} {rec:>8} {auc:>7} {m['seuil']:>7.2f}")
+    print("═" * 64)
     print()
     print("  Prochaines étapes :")
     print("  1. Vérifier les métriques ci-dessus")
     print("  2. Redémarrer le serveur : bash server/start.sh")
     print("  3. Tester : curl http://localhost:8000/api/risk")
-    print("═" * 60 + "\n")
+    print("═" * 64 + "\n")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -344,33 +479,33 @@ def afficher_resume(rapport: dict):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.4 — Entraînement modèles")
-    parser.add_argument("--dataset",  default=DEFAULT_DATASET)
-    parser.add_argument("--no-grid",  action="store_true",
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.2 — Entraînement modèles")
+    parser.add_argument("--dataset", default=DEFAULT_DATASET)
+    parser.add_argument("--no-grid", action="store_true",
                         help="Désactive GridSearchCV (rapide, baseline)")
-    parser.add_argument("--verbose",  action="store_true")
-    parser.add_argument("--modeles",  nargs="+",
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--modeles", nargs="+",
                         default=["inondation", "secheresse", "chaleur"])
     args = parser.parse_args()
 
-    print("\n" + "═" * 60)
-    print("  SAMCAM V4.4 — Entraînement avec GridSearchCV")
+    print("\n" + "═" * 64)
+    print("  SAMCAM V4.4.2 — Entraînement avec GridSearchCV")
     print("  Mode : " + ("RAPIDE (sans GridSearchCV)" if args.no_grid
                          else "COMPLET (GridSearchCV + TimeSeriesSplit)"))
-    print("═" * 60)
+    print("═" * 64)
 
     prefix = _get_param_prefix()
     print(f"  sklearn prefix détecté : '{prefix}' (compat automatique)")
 
-    df         = charger_dataset(args.dataset)
-    param_grid = _build_param_grid(prefix, fast=args.no_grid)
+    df = charger_dataset(args.dataset)
 
     resultats = {}
     for nom in args.modeles:
         if nom not in TARGETS:
             print(f"[TRAIN] ⚠️  Modèle inconnu ignoré : {nom}")
             continue
-        result = entrainer_modele(nom, df, param_grid, verbose=args.verbose)
+        result = entrainer_modele(nom, df, fast=args.no_grid,
+                                  prefix=prefix, verbose=args.verbose)
         sauvegarder_modele(nom, result)
         resultats[nom] = result
 
