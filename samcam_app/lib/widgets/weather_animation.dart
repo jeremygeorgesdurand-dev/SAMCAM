@@ -126,9 +126,6 @@ class _WeatherAnimationBgState extends State<WeatherAnimationBg>
   void initState() {
     super.initState();
     _mainCtrl   = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    // Durées allonges : le cycle correspond au temps pour parcourir
-    // tout le bandeau (2.4x largeur) — pas de saut visible car
-    // la position est calculée en continu par modulo sur le bandeau.
     _cloudCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
     _cloud2Ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 36))..repeat();
     _sunCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
@@ -422,28 +419,7 @@ class _WeatherPainter extends CustomPainter {
     }
   }
 
-  // ══ NUAGES 3D MULTICOUCHES — DÉFILEMENT INFINI ═══════════════════════
-  //
-  //  Principe du tiling infini (comme un fond de jeu 2D) :
-  //  -------------------------------------------------------
-  //  On définit un « bandeau » virtuel de largeur BAND = 2.4 * width.
-  //  Chaque nuage i occupe une « case » de largeur BAND/count
-  //  dans ce bandeau, avec un décalage aléatoire à l'intérieur
-  //  de sa case (± 30 % de la largeur de case) pour éviter la
-  //  régularité métronome.
-  //
-  //  Position dans le bandeau = slot_center + jitter - offset_anime
-  //  offset_animé = anim * BAND  (croissant de 0 à BAND sur la durée
-  //                               du controller, puis repart à 0).
-  //
-  //  On projette ensuite la position avec modulo BAND, ce qui crée
-  //  un recyclage parfaitement invisible : quand un nuage sort à
-  //  gauche, son « clone » arrive depuis la droite dans la même case.
-  //  Le saut se produit hors écran (dans la zone > width ou < -marge).
-  //
-  //  layer 0 = fond  (petits, lents, transparents)
-  //  layer 1 = milieu
-  //  layer 2 = avant (grands, rapides, opaques)
+  // ══ NUAGES 3D MULTICOUCHES — DÉFILEMENT INFINI ═══════════════════
   void _drawCloudLayer(Canvas canvas, Size size, double anim, {
     required int layer,
     bool night = false,
@@ -452,51 +428,19 @@ class _WeatherPainter extends CustomPainter {
     bool storm = false,
   }) {
     final int count = layer == 2 ? 4 : (dense ? 6 : 5);
-
-    // Largeur du bandeau virtuel (en pixels logiques normalisés sur [0..1])
-    // On travaille en fractions de width pour rester indépendant de la taille.
-    const double band = 2.4; // = 2.4 * size.width
-
-    // Vitesse du layer : fraction du bandeau parcourue par cycle du controller
-    // Le controller boucle indéfiniment, donc anim ∈ [0, 1[ en permanence.
-    // En multipliant par band, on parcourt le bandeau entier en 1 cycle.
-    final double layerSpeed = layer == 0 ? 1.0 : layer == 1 ? 1.0 : 1.0;
-    // (la vitesse réelle est contrôlée par la durée du controller :
-    //  layer 0 : 60s, layer 1 & 2 : 36s — layer 2 défile 60/36 = 1.67x plus vite)
-
-    final double slotWidth = band / count; // largeur d'une case
+    const double band = 2.4;
+    final double slotWidth = band / count;
 
     for (int i = 0; i < count; i++) {
       final rng = Random(layer * 41 + i * 19 + 3);
-
-      // Centre de la case i dans le bandeau
       final double slotCenter = (i + 0.5) * slotWidth;
-
-      // Jitter aléatoire à l'intérieur de la case (± 30 % de slotWidth)
-      // Seed fixe ⇒ position stable entre les frames
       final double jitter = (rng.nextDouble() - 0.5) * slotWidth * 0.60;
-
-      // Variation de vitesse individuelle (± 15 %) pour éviter le « peloton »
       final double speedVar = 0.85 + rng.nextDouble() * 0.30;
-
-      // Offset animé : progresse de 0 à band sur un cycle, puis repart
-      // On ajoute i*0.07 pour déphaser les nuages d'une même couche
-      final double offset = (anim * band * layerSpeed * speedVar + i * 0.07 * band) % band;
-
-      // Position brute dans le bandeau (D→G : on soustrait l'offset)
-      double rawPos = slotCenter + jitter - offset;
-
-      // Recyclage : on ramène rawPos dans [-0.35*band .. band]
-      // pour que le nuage soit toujours à portail de l'écran ou juste après
-      rawPos = rawPos % band;
+      final double offset = (anim * band * speedVar + i * 0.07 * band) % band;
+      double rawPos = (slotCenter + jitter - offset) % band;
       if (rawPos < -0.35 * band) rawPos += band;
-
-      // Conversion en pixels : [-0.3*width .. 2.1*width]
-      // Les nuages hors écran (< -large_nuage ou > width+marge) sont
-      // dessinés mais invisibles — coût négligeable.
       final double x = (rawPos - 0.3) * size.width;
 
-      // Position Y aléatoire fixée par seed
       final double yFrac = layer == 0
           ? 0.03 + rng.nextDouble() * 0.20
           : layer == 1
@@ -504,7 +448,6 @@ class _WeatherPainter extends CustomPainter {
               : 0.05 + rng.nextDouble() * 0.42;
       final double y = yFrac * size.height;
 
-      // Taille
       final double cloudScale = layer == 0
           ? 0.30 + rng.nextDouble() * 0.38
           : layer == 1
@@ -562,31 +505,27 @@ class _WeatherPainter extends CustomPainter {
           width: r * 4.2, height: r * 0.62),
       shadowPaint);
 
-    // Bulles du nuage — forme cumuliforme organique
-    // Rayon COMPLET (non pondéré par baseOpacity) pour éviter l'effet croissant.
-    // L'opacité est appliquée sur les couleurs du gradient.
+    // Bulles cumuliformes — (offsetX, offsetY, radiusFactor)
+    // Accès via .$1 .$2 .$3 (records Dart, pas d'opérateur [])
     const bubbles = [
-      // rangee basse (base large et stable)
       (-0.40, 0.70, 0.60),
       ( 0.30, 0.62, 0.82),
       ( 1.50, 0.58, 0.80),
       ( 2.70, 0.62, 0.78),
       ( 3.40, 0.70, 0.58),
-      // rangee intermediaire
       ( 0.55, 0.20, 0.92),
       ( 1.55, 0.13, 1.02),
       ( 2.50, 0.18, 0.88),
-      // bosses superieures
       ( 0.95,-0.06, 0.96),
-      ( 1.88,-0.20, 1.10),  // pic central
+      ( 1.88,-0.20, 1.10),
       ( 2.82,-0.10, 0.91),
     ];
 
     final effectiveOpacity = baseOpacity.clamp(0.0, 1.0);
     for (final b in bubbles) {
-      final bx = b[0] as double;
-      final by = b[1] as double;
-      final br = b[2] as double;
+      final bx = b.$1;
+      final by = b.$2;
+      final br = b.$3;
       final bCx = cx + bx * r;
       final bCy = cy + by * r;
       final bR  = br * r;
@@ -606,7 +545,6 @@ class _WeatherPainter extends CustomPainter {
       canvas.drawCircle(Offset(bCx, bCy), bR, bubblePaint);
     }
 
-    // Reflet spéculaire haut-gauche
     if (!dark) {
       final specPaint = Paint()
         ..color = Colors.white.withOpacity(baseOpacity * (night ? 0.10 : 0.27))
