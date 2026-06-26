@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.3 — Construction du dataset historique
+SAMCAM V4.4.4 — Construction du dataset historique
+
+FIX V4.4.4 :
+    - Année de début par défaut : 1990 → 1984
+      Raison : ERA5-Land (sm_surface, sm_rootzone, ET0) est fiable dès 1984.
+      NDVI/NDWI avant 1990 est interp. par Open-Meteo depuis NOAA AVHRR (8km)
+      mais le volume de données supplémentaire (+6 ans = ~312 semaines)
+      compense largement le bruit introduit.
 
 NOUVEAUTÉS V4.3 :
     - et0_semaine ajouté comme feature dans toutes les lignes du dataset
@@ -233,7 +240,7 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
         temp_max    = float(w7["temp_max"].max())
         sm_surface  = float(w7["sm_surface"].mean())
         sm_rootzone = float(w7["sm_root"].mean())
-        et0_semaine = float(w7["et0"].sum())  # V4.3 : ET0 cumulée sur 7j (mm)
+        et0_semaine = float(w7["et0"].sum())
 
         historique_temp.append(temp_max)
         if len(historique_temp) > 3:
@@ -264,7 +271,7 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             "sm_rootzone":      round(sm_rootzone, 4),
             "ndvi":             round(ndvi,        4),
             "ndwi":             round(ndwi,        4),
-            "et0_semaine":      round(et0_semaine, 2),  # V4.3
+            "et0_semaine":      round(et0_semaine, 2),
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": label_inondation(pluie_7j, pluie_prev, sm_surface, ndwi, mois),
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
@@ -277,7 +284,7 @@ def collecter_via_openmeteo(annee_debut: int, annee_fin: int) -> list:
             print(f"[OPEN-METEO] {compteur}/{total} semaines traitées")
         current += delta_7j
 
-    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines construites (V4.3 avec ET0)")
+    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines construites (V4.4.4 — 1984→{annee_fin})")
     return lignes
 
 
@@ -359,7 +366,6 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
             ndvi = (modis.get("NDVI", 6000) or 6000) / 10000
             ndwi = max(0.0, (modis.get("EVI",  4000) or 4000) / 10000 - 0.3)
 
-            # V4.3 : ET0 estimée via normales mensuelles en mode GEE (ERA5 n'expose pas ET0)
             et0_semaine = float(ET0_NORMALES_MENSUELLES.get(mois, 21))
 
             deriv = features_derivees(mois, chirps_7j, chirps_30j,
@@ -380,7 +386,7 @@ def collecter_via_gee(annee_debut: int, annee_fin: int) -> list:
                 "sm_rootzone":      round(sm_root,     4),
                 "ndvi":             round(ndvi,        4),
                 "ndwi":             round(ndwi,        4),
-                "et0_semaine":      round(et0_semaine, 2),  # V4.3
+                "et0_semaine":      round(et0_semaine, 2),
                 **{k: round(v, 4) for k, v in deriv.items()},
                 "label_inondation": label_inondation(chirps_7j, chirps_prev, sm_surface, ndwi, mois),
                 "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois, et0_semaine),
@@ -419,7 +425,7 @@ def _facteur_enso(annee: int) -> tuple:
 
 
 def generer_simulation(annee_debut: int, annee_fin: int) -> list:
-    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.3)...")
+    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.4.4)...")
     print(f"[SIM] ⚠️  Mode simulation : données synthétiques uniquement.")
     print(f"[SIM]    Utilisez --openmeteo pour de vraies données historiques.")
     rng = random.Random(42)
@@ -469,7 +475,6 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
         ndwi = max(0.00, min(0.80,
             0.18 + (sm_surface - 0.32) * 0.55 + rng.gauss(0, 0.03)))
 
-        # V4.3 : ET0 simulée depuis normale mensuelle + bruit
         et0_semaine = max(5.0, rng.gauss(et0_normale * facteur_sech, et0_normale * 0.15))
 
         if idx in injections_inond and mois in _MOIS_POINTE_PLUIES:
@@ -481,7 +486,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             sm_rootzone = rng.uniform(0.38, 0.55)
             ndwi = rng.uniform(0.32, 0.65)
             ndvi = max(0.40, ndvi)
-            et0_semaine = max(5.0, et0_semaine * rng.uniform(0.7, 0.9))  # ET0 basse quand pluie forte
+            et0_semaine = max(5.0, et0_semaine * rng.uniform(0.7, 0.9))
         elif idx in injections_sech:
             pluie_7j   = normale_7j  * rng.uniform(0.20, 0.55)
             pluie_prev = normale_7j  * rng.uniform(0.25, 0.55)
@@ -490,7 +495,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             sm_rootzone = rng.uniform(0.10, 0.23)
             ndvi = rng.uniform(0.25, 0.52)
             ndwi = rng.uniform(0.00, 0.15)
-            et0_semaine = et0_semaine * rng.uniform(1.1, 1.4)  # ET0 haute en sécheresse
+            et0_semaine = et0_semaine * rng.uniform(1.1, 1.4)
 
         historique_temp.append(temp_max)
         if len(historique_temp) > 3:
@@ -515,7 +520,7 @@ def generer_simulation(annee_debut: int, annee_fin: int) -> list:
             "sm_rootzone":      round(sm_rootzone, 4),
             "ndvi":             round(ndvi,        4),
             "ndwi":             round(ndwi,        4),
-            "et0_semaine":      round(et0_semaine, 2),  # V4.3
+            "et0_semaine":      round(et0_semaine, 2),
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": label_inondation(pluie_7j, pluie_prev, sm_surface, ndwi, mois),
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
@@ -551,7 +556,7 @@ def exporter_csv(lignes: list, chemin: str):
     source = lignes[0].get("source", "?") if lignes else "?"
 
     print(f"\n[BUILD] Dataset exporté : {chemin}")
-    print(f"        Version         : V4.3 (avec ET0)")
+    print(f"        Version         : V4.4.4 (1984→{lignes[-1]['date'][:4]})")
     print(f"        Source          : {source}")
     print(f"        Lignes totales  : {n}")
     print(f"        Features        : {len(entetes) - 5} (+ date, mois, labels, source)")
@@ -567,11 +572,14 @@ def exporter_csv(lignes: list, chemin: str):
 # ───────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.3 — Build dataset historique")
-    parser.add_argument("--start",       type=int, default=1990, help="Année de début (défaut: 1990)")
-    parser.add_argument("--end",         type=int, default=2024, help="Année de fin (défaut: 2024)")
-    parser.add_argument("--no-gee",      action="store_true",   help="Mode simulation (démo sans réseau)")
-    parser.add_argument("--openmeteo",   action="store_true",   help="[RECOMMANDÉ] Vraies données Open-Meteo (sans clé API)")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.4 — Build dataset historique")
+    parser.add_argument(
+        "--start", type=int, default=1984,
+        help="Année de début (défaut: 1984 — limite basse ERA5-Land fiable)"
+    )
+    parser.add_argument("--end",       type=int, default=2024, help="Année de fin (défaut: 2024)")
+    parser.add_argument("--no-gee",    action="store_true",   help="Mode simulation (démo sans réseau)")
+    parser.add_argument("--openmeteo", action="store_true",   help="[RECOMMANDÉ] Vraies données Open-Meteo (sans clé API)")
     args = parser.parse_args()
 
     if args.openmeteo:
