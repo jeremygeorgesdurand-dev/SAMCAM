@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 // ══════════════════════════════════════════════════════════════════
 // WeatherAnimationBg — animation météo premium style Apple/iOS 17
 // Nuages 3D multicouches, soleil avec lens-flare, parallaxe
+// Défilement infini droite → gauche, répartition harmonieuse
 // ══════════════════════════════════════════════════════════════════
 
 enum WeatherAnimType {
@@ -115,8 +116,8 @@ class WeatherAnimationBg extends StatefulWidget {
 class _WeatherAnimationBgState extends State<WeatherAnimationBg>
     with TickerProviderStateMixin {
   late AnimationController _mainCtrl;   // 10s  — pluie, neige, étoiles
-  late AnimationController _cloudCtrl;  // 30s  — nuages lents (fond)
-  late AnimationController _cloud2Ctrl; // 18s  — nuages rapides (avant)
+  late AnimationController _cloudCtrl;  // 60s  — nuages lents (fond)
+  late AnimationController _cloud2Ctrl; // 36s  — nuages rapides (avant)
   late AnimationController _sunCtrl;    // 12s  — rotation soleil
   late AnimationController _pulseCtrl;  // 3s   — halo pulsant
   late AnimationController _ltCtrl;     // 120ms — éclair
@@ -125,8 +126,11 @@ class _WeatherAnimationBgState extends State<WeatherAnimationBg>
   void initState() {
     super.initState();
     _mainCtrl   = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    _cloudCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
-    _cloud2Ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 18))..repeat();
+    // Durées allonges : le cycle correspond au temps pour parcourir
+    // tout le bandeau (2.4x largeur) — pas de saut visible car
+    // la position est calculée en continu par modulo sur le bandeau.
+    _cloudCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
+    _cloud2Ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 36))..repeat();
     _sunCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
     _pulseCtrl  = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat(reverse: true);
     _ltCtrl     = AnimationController(vsync: this, duration: const Duration(milliseconds: 120));
@@ -263,7 +267,6 @@ class _WeatherPainter extends CustomPainter {
     final r  = size.width  * 0.11 * scale;
     final rot = tSun * 2 * pi;
 
-    // ── Outer diffuse glow (atmospheric)
     final outerGlow = Paint()
       ..shader = RadialGradient(colors: [
         const Color(0xFFFFE580).withOpacity(0.18),
@@ -273,7 +276,6 @@ class _WeatherPainter extends CustomPainter {
       .createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r * 4.0));
     canvas.drawCircle(Offset(cx, cy), r * 4.0, outerGlow);
 
-    // ── Lens flare corona
     final pulse = 0.96 + 0.04 * tPulse;
     final corona = Paint()
       ..shader = RadialGradient(colors: [
@@ -284,7 +286,6 @@ class _WeatherPainter extends CustomPainter {
       .createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r * 2.2));
     canvas.drawCircle(Offset(cx, cy), r * 2.2, corona);
 
-    // ── Long thin rays (éloignés)
     final longRayPaint = Paint()
       ..color = const Color(0xFFFFE060).withOpacity(0.22)
       ..strokeWidth = 1.2
@@ -297,7 +298,6 @@ class _WeatherPainter extends CustomPainter {
         longRayPaint);
     }
 
-    // ── Short thick rays (proches)
     final shortRayPaint = Paint()
       ..color = const Color(0xFFFFEA70).withOpacity(0.45)
       ..strokeWidth = 2.5
@@ -310,7 +310,6 @@ class _WeatherPainter extends CustomPainter {
         shortRayPaint);
     }
 
-    // ── Disque solaire avec gradient radial 3D
     final sunPaint = Paint()
       ..shader = RadialGradient(
         center: const Alignment(-0.3, -0.35),
@@ -324,7 +323,6 @@ class _WeatherPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r));
     canvas.drawCircle(Offset(cx, cy), r, sunPaint);
 
-    // ── Lens flare streak
     final streakPaint = Paint()
       ..color = Colors.white.withOpacity(0.14)
       ..strokeWidth = r * 0.5
@@ -358,7 +356,6 @@ class _WeatherPainter extends CustomPainter {
     final cy = size.height * yFrac;
     final r  = size.width  * 0.075;
 
-    // Halo atmosphérique
     final halo = Paint()
       ..shader = RadialGradient(colors: [
         const Color(0xFFCCDFFF).withOpacity(0.22),
@@ -367,7 +364,6 @@ class _WeatherPainter extends CustomPainter {
       ]).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r * 3.0));
     canvas.drawCircle(Offset(cx, cy), r * 3.0, halo);
 
-    // Disque principal
     final moonPaint = Paint()
       ..shader = RadialGradient(
         center: const Alignment(-0.3, -0.4),
@@ -380,15 +376,9 @@ class _WeatherPainter extends CustomPainter {
       ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r));
     canvas.drawCircle(Offset(cx, cy), r, moonPaint);
 
-    // Masque croissant : cercle de masquage légèrement plus petit
-    // pour éviter l'effet "croissant trop apparent" — on réduit l'offset
-    // et on utilise la couleur exacte du ciel (clearNight bg)
-    final bgColor = const Color(0xFF060F26);
-    final bg = Paint()..color = bgColor.withOpacity(0.92);
-    // Décalage plus faible (0.22 au lieu de 0.32) = croissant plus fin et naturel
+    final bg = Paint()..color = const Color(0xFF060F26).withOpacity(0.92);
     canvas.drawCircle(Offset(cx + r * 0.22, cy - r * 0.06), r * 0.88, bg);
 
-    // Cratères subtils
     final craterPaint = Paint()..color = Colors.black.withOpacity(0.06);
     canvas.drawCircle(Offset(cx - r * 0.22, cy + r * 0.15), r * 0.12, craterPaint);
     canvas.drawCircle(Offset(cx - r * 0.08, cy - r * 0.30), r * 0.08, craterPaint);
@@ -432,22 +422,28 @@ class _WeatherPainter extends CustomPainter {
     }
   }
 
-  // ══ NUAGES 3D MULTICOUCHES ════════════════════════════════════════
+  // ══ NUAGES 3D MULTICOUCHES — DÉFILEMENT INFINI ═══════════════════════
   //
-  //  CORRECTIONS :
-  //  1. Défilement droite → gauche fluide sans saut visible
-  //     Chaque nuage a un offset initial pseudo-aléatoire sur [0..1]
-  //     La position X = ((offset - anim * speed) mod 1.4 - 0.25) * width
-  //     Cela donne un flux continu de gauche à droite avec recyclage en boucle.
-  //  2. Vitesses individuelles légèrement différentes par nuage (± 20 %)
-  //     pour éviter le défilement en "peloton".
-  //  3. La forme du nuage (bulles) n'utilise plus le rayon pondéré par
-  //     baseOpacity — on garde le vrai rayon et on applique l'opacité
-  //     uniquement sur la couleur, ce qui supprime l'effet croissant.
+  //  Principe du tiling infini (comme un fond de jeu 2D) :
+  //  -------------------------------------------------------
+  //  On définit un « bandeau » virtuel de largeur BAND = 2.4 * width.
+  //  Chaque nuage i occupe une « case » de largeur BAND/count
+  //  dans ce bandeau, avec un décalage aléatoire à l'intérieur
+  //  de sa case (± 30 % de la largeur de case) pour éviter la
+  //  régularité métronome.
   //
-  //  layer 0 = fond  (plus petits, plus lents, plus transparents)
+  //  Position dans le bandeau = slot_center + jitter - offset_anime
+  //  offset_animé = anim * BAND  (croissant de 0 à BAND sur la durée
+  //                               du controller, puis repart à 0).
+  //
+  //  On projette ensuite la position avec modulo BAND, ce qui crée
+  //  un recyclage parfaitement invisible : quand un nuage sort à
+  //  gauche, son « clone » arrive depuis la droite dans la même case.
+  //  Le saut se produit hors écran (dans la zone > width ou < -marge).
+  //
+  //  layer 0 = fond  (petits, lents, transparents)
   //  layer 1 = milieu
-  //  layer 2 = avant (plus grands, plus opaques)
+  //  layer 2 = avant (grands, rapides, opaques)
   void _drawCloudLayer(Canvas canvas, Size size, double anim, {
     required int layer,
     bool night = false,
@@ -455,44 +451,67 @@ class _WeatherPainter extends CustomPainter {
     bool dense = false,
     bool storm = false,
   }) {
-    final int count = layer == 2 ? 3 : (dense ? 5 : 4);
+    final int count = layer == 2 ? 4 : (dense ? 6 : 5);
+
+    // Largeur du bandeau virtuel (en pixels logiques normalisés sur [0..1])
+    // On travaille en fractions de width pour rester indépendant de la taille.
+    const double band = 2.4; // = 2.4 * size.width
+
+    // Vitesse du layer : fraction du bandeau parcourue par cycle du controller
+    // Le controller boucle indéfiniment, donc anim ∈ [0, 1[ en permanence.
+    // En multipliant par band, on parcourt le bandeau entier en 1 cycle.
+    final double layerSpeed = layer == 0 ? 1.0 : layer == 1 ? 1.0 : 1.0;
+    // (la vitesse réelle est contrôlée par la durée du controller :
+    //  layer 0 : 60s, layer 1 & 2 : 36s — layer 2 défile 60/36 = 1.67x plus vite)
+
+    final double slotWidth = band / count; // largeur d'une case
 
     for (int i = 0; i < count; i++) {
-      // Seed unique par (layer, i) pour des propriétés stables entre frames
-      final rng = Random(layer * 31 + i * 17 + 7);
+      final rng = Random(layer * 41 + i * 19 + 3);
 
-      // Position Y aléatoire selon le layer
-      final yFrac = layer == 0
-          ? 0.04 + rng.nextDouble() * 0.22
+      // Centre de la case i dans le bandeau
+      final double slotCenter = (i + 0.5) * slotWidth;
+
+      // Jitter aléatoire à l'intérieur de la case (± 30 % de slotWidth)
+      // Seed fixe ⇒ position stable entre les frames
+      final double jitter = (rng.nextDouble() - 0.5) * slotWidth * 0.60;
+
+      // Variation de vitesse individuelle (± 15 %) pour éviter le « peloton »
+      final double speedVar = 0.85 + rng.nextDouble() * 0.30;
+
+      // Offset animé : progresse de 0 à band sur un cycle, puis repart
+      // On ajoute i*0.07 pour déphaser les nuages d'une même couche
+      final double offset = (anim * band * layerSpeed * speedVar + i * 0.07 * band) % band;
+
+      // Position brute dans le bandeau (D→G : on soustrait l'offset)
+      double rawPos = slotCenter + jitter - offset;
+
+      // Recyclage : on ramène rawPos dans [-0.35*band .. band]
+      // pour que le nuage soit toujours à portail de l'écran ou juste après
+      rawPos = rawPos % band;
+      if (rawPos < -0.35 * band) rawPos += band;
+
+      // Conversion en pixels : [-0.3*width .. 2.1*width]
+      // Les nuages hors écran (< -large_nuage ou > width+marge) sont
+      // dessinés mais invisibles — coût négligeable.
+      final double x = (rawPos - 0.3) * size.width;
+
+      // Position Y aléatoire fixée par seed
+      final double yFrac = layer == 0
+          ? 0.03 + rng.nextDouble() * 0.20
           : layer == 1
-              ? 0.10 + rng.nextDouble() * 0.35
-              : 0.05 + rng.nextDouble() * 0.45;
+              ? 0.08 + rng.nextDouble() * 0.32
+              : 0.05 + rng.nextDouble() * 0.42;
+      final double y = yFrac * size.height;
 
-      // Taille du nuage
-      final cloudScale = layer == 0
-          ? 0.35 + rng.nextDouble() * 0.35
+      // Taille
+      final double cloudScale = layer == 0
+          ? 0.30 + rng.nextDouble() * 0.38
           : layer == 1
-              ? 0.55 + rng.nextDouble() * 0.55
-              : 0.75 + rng.nextDouble() * 0.65;
+              ? 0.50 + rng.nextDouble() * 0.50
+              : 0.70 + rng.nextDouble() * 0.60;
 
-      // Vitesse de base par layer + variation individuelle (± 20 %)
-      final baseSpeed = layer == 0 ? 0.009 : layer == 1 ? 0.016 : 0.024;
-      final speedVariation = 0.80 + rng.nextDouble() * 0.40; // [0.80 .. 1.20]
-      final speed = baseSpeed * speedVariation;
-
-      // Offset de phase initial aléatoire pour répartir les nuages
-      // sur toute la largeur dès le démarrage (pas tous en même point)
-      final phaseOffset = rng.nextDouble(); // [0.0 .. 1.0]
-
-      // Défilement droite → gauche :
-      // On soustrait anim*speed à l'offset, modulo 1.4 (fenêtre + marge)
-      // puis on recale sur [-0.25 .. 1.15] * width
-      final rawX = (phaseOffset - anim * speed * (1 + i * 0.10)) % 1.4;
-      // rawX est toujours positif grâce au modulo Dart (double % double ≥ 0)
-      final x = (rawX - 0.25) * size.width;
-      final y = yFrac * size.height;
-
-      final opacity = layer == 0 ? 0.55 : layer == 1 ? 0.75 : 0.92;
+      final double opacity = layer == 0 ? 0.52 : layer == 1 ? 0.74 : 0.91;
 
       _drawRealisticCloud(
         canvas, size, x, y, cloudScale,
@@ -528,60 +547,58 @@ class _WeatherPainter extends CustomPainter {
       bottomColor = const Color(0xFFCCDEF0);
     }
 
-    // ── Ombre portée sous le nuage
+    // Ombre portée
     final shadowPaint = Paint()
       ..color = (dark
             ? const Color(0xFF0A1020)
             : night
                 ? const Color(0xFF0A1530)
                 : const Color(0xFF90A8C0))
-          .withOpacity(baseOpacity * 0.30)
+          .withOpacity(baseOpacity * 0.28)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.55);
     canvas.drawOval(
       Rect.fromCenter(
           center: Offset(cx + r * 1.5, cy + r * 1.50),
-          width: r * 4.2, height: r * 0.65),
+          width: r * 4.2, height: r * 0.62),
       shadowPaint);
 
-    // ── Définition des bulles du nuage
-    //    Chaque bulle : (offsetX en unité r, offsetY en unité r, rayon relatif)
-    //    Forme organique : base large + bosse centrale + extensions latérales
-    //    → suppression de l'application de baseOpacity sur le RAYON
-    //      (ça créait l'effet "cercle rétréci = croissant visible")
-    //      On applique l'opacité uniquement sur la couleur.
-    final bubbles = <(double, double, double)>[
-      // base gauche-droite (rangée basse)
-      (-0.40, 0.70, 0.62),   // extension gauche
-      ( 0.30, 0.60, 0.80),   // bas gauche
-      ( 1.50, 0.58, 0.78),   // bas centre
-      ( 2.70, 0.60, 0.76),   // bas droite
-      ( 3.40, 0.70, 0.58),   // extension droite
-      // rangée intermédiaire
-      ( 0.50, 0.22, 0.90),   // milieu gauche
-      ( 1.55, 0.15, 1.00),   // milieu centre-gauche
-      ( 2.55, 0.18, 0.88),   // milieu centre-droite
-      // bosse supérieure (sommet arrondi)
-      ( 0.90,-0.05, 0.95),   // sommet gauche
-      ( 1.85,-0.18, 1.08),   // pic central — le plus haut
-      ( 2.80,-0.08, 0.90),   // sommet droite
+    // Bulles du nuage — forme cumuliforme organique
+    // Rayon COMPLET (non pondéré par baseOpacity) pour éviter l'effet croissant.
+    // L'opacité est appliquée sur les couleurs du gradient.
+    const bubbles = [
+      // rangee basse (base large et stable)
+      (-0.40, 0.70, 0.60),
+      ( 0.30, 0.62, 0.82),
+      ( 1.50, 0.58, 0.80),
+      ( 2.70, 0.62, 0.78),
+      ( 3.40, 0.70, 0.58),
+      // rangee intermediaire
+      ( 0.55, 0.20, 0.92),
+      ( 1.55, 0.13, 1.02),
+      ( 2.50, 0.18, 0.88),
+      // bosses superieures
+      ( 0.95,-0.06, 0.96),
+      ( 1.88,-0.20, 1.10),  // pic central
+      ( 2.82,-0.10, 0.91),
     ];
 
-    for (final (bx, by, br) in bubbles) {
+    final effectiveOpacity = baseOpacity.clamp(0.0, 1.0);
+    for (final b in bubbles) {
+      final bx = b[0] as double;
+      final by = b[1] as double;
+      final br = b[2] as double;
       final bCx = cx + bx * r;
       final bCy = cy + by * r;
-      final bR  = br * r;   // ← rayon COMPLET, pas pondéré par baseOpacity
-
+      final bR  = br * r;
       final highlight = by < 0.0;
 
-      // Gradient radial 3D par bulle — opacité appliquée sur les COULEURS
-      final effectiveOpacity = baseOpacity.clamp(0.0, 1.0);
       final bubblePaint = Paint()
         ..shader = RadialGradient(
           center: Alignment(-0.25, highlight ? -0.55 : -0.30),
           colors: [
             (highlight ? topColor : midColor).withOpacity(effectiveOpacity),
             midColor.withOpacity(effectiveOpacity * 0.95),
-            bottomColor.withOpacity(effectiveOpacity * 0.80),
+            bottomColor.withOpacity(effectiveOpacity * 0.78),
           ],
           stops: const [0.0, 0.45, 1.0],
         ).createShader(Rect.fromCircle(center: Offset(bCx, bCy), radius: bR))
@@ -589,13 +606,12 @@ class _WeatherPainter extends CustomPainter {
       canvas.drawCircle(Offset(bCx, bCy), bR, bubblePaint);
     }
 
-    // ── Reflet lumineux haut-gauche (spéculaire)
+    // Reflet spéculaire haut-gauche
     if (!dark) {
       final specPaint = Paint()
-        ..color = Colors.white.withOpacity(baseOpacity * (night ? 0.10 : 0.28))
+        ..color = Colors.white.withOpacity(baseOpacity * (night ? 0.10 : 0.27))
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.35);
-      canvas.drawCircle(
-          Offset(cx + r * 1.0, cy - r * 0.05), r * 0.50, specPaint);
+      canvas.drawCircle(Offset(cx + r * 1.0, cy - r * 0.05), r * 0.50, specPaint);
     }
   }
 
@@ -673,10 +689,9 @@ class _WeatherPainter extends CustomPainter {
     double cx   = x;
     double cy   = size.height * 0.08;
     path.moveTo(cx, cy);
-    final segments = 6;
-    for (int i = 0; i < segments; i++) {
+    for (int i = 0; i < 6; i++) {
       cx += (rng.nextDouble() - 0.45) * 28;
-      cy += size.height * 0.55 / segments;
+      cy += size.height * 0.55 / 6;
       path.lineTo(cx, cy);
     }
     canvas.drawPath(path, Paint()
