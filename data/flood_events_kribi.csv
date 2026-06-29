@@ -1,0 +1,48 @@
+date_debut,date_fin,source,description,severite
+1984-10-01,1984-10-10,EM-DAT,Inondations côtières région littorale Cameroun,modere
+1988-09-15,1988-09-25,EM-DAT,Crues Wouri et affluents sud Cameroun,modere
+1990-10-05,1990-10-18,ReliefWeb,Inondations Kribi et région Ocean — déplacés côtiers,modere
+1991-09-20,1991-10-02,EM-DAT,Inondations côtières région littorale,modere
+1993-10-10,1993-10-22,ANPC,Crues rivière Kienke Kribi,modere
+1994-09-25,1994-10-05,EM-DAT,Inondations Kribi — dégâts infrastructures portuaires,severe
+1995-05-15,1995-05-25,ReliefWeb,Pluies extrêmes sud Cameroun — région Ocean,modere
+1996-10-01,1996-10-12,ANPC,Inondations Kribi — quartiers bas,modere
+1997-06-01,1997-06-12,EM-DAT,El Niño 1997 — pluies excessives côte camerounaise,severe
+1998-09-20,1998-10-05,EM-DAT,Post El Niño — crues Cameroun littorale,modere
+1999-10-15,1999-10-28,ANPC,Inondations rivière Kienke débordement,modere
+2000-09-05,2000-09-18,ReliefWeb,Inondations côtières sud Cameroun,modere
+2001-10-10,2001-10-20,ANPC,Crues Kribi — route nationale endommagée,modere
+2002-05-20,2002-06-02,EM-DAT,Pluies diluviennes région Ocean Cameroun,modere
+2003-10-01,2003-10-14,ANPC,Inondations Kribi centre-ville,modere
+2004-09-15,2004-09-28,ReliefWeb,Inondations littoral Cameroun — déplacés,modere
+2005-10-05,2005-10-18,ANPC,Crues Kienke — quartiers Kribi-Beach,severe
+2006-06-10,2006-06-22,EM-DAT,Pluies extrêmes mai-juin Cameroun littorale,modere
+2007-09-25,2007-10-08,ReliefWeb,Inondations Kribi — maisons détruites,severe
+2008-09-10,2008-09-23,ANPC,Crues Lobé et Kienke concomitantes,severe
+2009-05-25,2009-06-07,EM-DAT,Inondations précoces saison pluies Kribi,modere
+2009-10-01,2009-10-15,ANPC,Pic saisonnier extrême — débordement cours d'eau Kribi,severe
+2010-10-10,2010-10-25,EM-DAT,La Niña 2010 — inondations majeures Cameroun,severe
+2011-09-20,2011-10-05,ReliefWeb,La Niña 2011 — crues côte camerounaise,severe
+2012-10-01,2012-10-15,ANPC,Inondations Kribi — pont Kienke menacé,modere
+2013-05-10,2013-05-22,ANPC,Pluies diluviennes mai Kribi — rues inondées,modere
+2013-09-28,2013-10-10,ReliefWeb,Inondations saisonnières Kribi — déplacés,modere
+2014-10-05,2014-10-18,ANPC,Crues Kienke — évacuation riverains,severe
+2015-05-20,2015-06-02,EM-DAT,El Niño 2015 — pluies précoces côte Cameroun,modere
+2015-10-10,2015-10-24,ANPC,El Niño 2015 — inondations Kribi port,severe
+2016-09-15,2016-09-28,ReliefWeb,Inondations saison sèche courte — pics pluvieux,modere
+2017-10-01,2017-10-15,ANPC,Crues Kienke et Lobé — accès Kribi coupé,severe
+2018-05-15,2018-05-28,ANPC,Pluies extrêmes — inondations Kribi-ville,modere
+2018-10-05,2018-10-20,ReliefWeb,Inondations côtières — région Ocean,severe
+2019-09-20,2019-10-05,ANPC,Crues Kienke — dégâts infrastructure,modere
+2020-10-01,2020-10-18,EM-DAT,La Niña 2020 — inondations Cameroun littoral,severe
+2021-05-10,2021-05-25,ANPC,Pluies diluviennes début saison — Kribi,modere
+2021-09-25,2021-10-10,ReliefWeb,La Niña 2021 — crues côtières Cameroun,severe
+2022-05-05,2022-05-18,ANPC,Inondations précoces Kribi — quartiers bas,modere
+2022-10-01,2022-10-15,EM-DAT,La Niña 2022 — inondations majeures littoral,severe
+2023-04-25,2023-05-08,ANPC,Pluies extrêmes avril-mai Kribi,modere
+2023-06-01,2023-06-14,ANPC,Crues Kienke — plusieurs quartiers inondés,severe
+2023-09-15,2023-09-28,ReliefWeb,Inondations côtières fin septembre Kribi,modere
+2023-10-10,2023-10-24,ANPC,Pic saisonnier — inondations Kribi-port et centre,severe
+2024-05-01,2024-05-14,ANPC,Inondations début saison pluies Kribi,modere
+2024-09-20,2024-10-05,ANPC,Crues Kienke — route Kribi-Lolodorf coupée,severe
+2024-10-10,2024-10-24,ReliefWeb,Inondations côtières octobre Kribi,severe
