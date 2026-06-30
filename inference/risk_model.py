@@ -1,34 +1,32 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.7.3 — Module d'inférence des risques climatiques
+SAMCAM V4.7.4 — Module d'inférence des risques climatiques
 Multi-horizons améliorés : J+1 / J+3 / J+7
 
+NOUVEAUTÉS V4.7.4 :
+    - CORRECTION CRITIQUE score_brut=1.0 :
+        Le modèle ML model_secheresse.pkl retournait toujours 1.0 car entraîné
+        avant la correction des normales Kribi. Fix : garde-fou de cohérence
+        physique — si le score ML dépasse le score physique de plus de 0.30,
+        on utilise automatiquement le fallback règles physiques.
+    - NDVI contextuel selon saison (seuil variable) :
+        Saison sèche (juil-août, déc-jan) : seuil 0.35 (végétation naturellement
+        plus basse) — Saison des pluies : seuil 0.50 — Transition : 0.43
+    - sm_rootzone comparé à la normale mensuelle SMAP de Kribi au lieu
+        d'un seuil unique 0.28 (qui était trop haut pour la saison sèche)
+    - Logs de diagnostic [RISK-DIAG] traçant la source du score retenu
+
 NOUVEAUTÉS V4.7.3 :
-    - NORMALES_MENSUELLES corrigées avec les vraies données climatologiques
-      de Kribi (régime bimodal équatorial côtier) :
-        Jan=50  Fév=80  Mar=150 Avr=230 Mai=250 Jun=200
-        Jul=30  Aoû=40  Sep=200 Oct=280 Nov=200 Déc=70
-    - SM_SURFACE_NORMALE_KRIBI ajustée en cohérence avec la pluviométrie
-    - PERCENTILES_HEBDO recalibrés pour chaque mois
-    - _risque_secheresse_physique : suppression du bug *(30/7) qui
-      transformait la normale mensuelle (ex. 200mm) en 857mm,
-      forçant un déficit de 97% même avec 22mm de pluie en juin
-    - Rééquilibrage des poids sécheresse pour zone tropicale humide :
-        • Seuil NDVI abaissé 0.55→0.45 (végétation dense normale à Kribi)
-        • Poids NDVI réduit 1.2→0.8
-        • Plafond déficit pluie réduit 0.35→0.25, poids 0.5→0.4
-    - ET0_NORMALES_MENSUELLES ajustées (zone côtière équatoriale)
+    - NORMALES_MENSUELLES corrigées (régime bimodal côtier équatorial Kribi)
+    - Bug *(30/7) supprimé dans _risque_secheresse_physique
+    - Poids NDVI et déficit recalibrés pour zone tropicale humide
 
 NOUVEAUTÉS V4.7.2 :
-    - sauvegarder_rapport_json() : crée reports/rapport_kribi_{today}.json
-      directement depuis risk_model.py (sans dépendance Ollama/Phi-3)
-    - __main__ sauvegarde le rapport après prédiction
-    - Suppression du print debug parasite (sm_surface obtenu)
+    - sauvegarder_rapport_json() sans dépendance Ollama/Phi-3
 
 NOUVEAUTÉS V4.7.1 :
     - Correction critique du mapping des données JSON → features
     - Valeurs par défaut réalistes pour Kribi
-    - _features_horizon() : même correction pour J+1/J+3/J+7
 
 NOUVEAUTÉS V4.7.0 :
     - 3 jeux de features distincts par horizon (J+1, J+3, J+7)
@@ -82,6 +80,29 @@ SM_SURFACE_NORMALE_KRIBI = {
     7: 0.24, 8: 0.26, 9: 0.42, 10: 0.47, 11: 0.43, 12: 0.30,
 }
 
+# Humidité sol rootzone normale (SMAP SPL4SMGP) — légèrement plus stable que surface
+SM_ROOTZONE_NORMALE_KRIBI = {
+    1: 0.30, 2: 0.32, 3: 0.38, 4: 0.45, 5: 0.47, 6: 0.43,
+    7: 0.26, 8: 0.28, 9: 0.43, 10: 0.48, 11: 0.44, 12: 0.32,
+}
+
+# Seuil NDVI contextuel selon la saison — végétation tropicale Kribi
+# Saison sèche : NDVI naturellement plus bas → seuil d'alerte plus bas aussi
+NDVI_SEUIL_ALERTE = {
+    1: 0.38,   # petite saison sèche
+    2: 0.42,   # transition vers pluies
+    3: 0.48,   # début saison pluies — végétation repart
+    4: 0.52,   # pic pluies — NDVI élevé attendu
+    5: 0.52,   # pic pluies
+    6: 0.50,   # fin saison pluies
+    7: 0.35,   # grande saison sèche — NDVI bas = normal
+    8: 0.35,   # grande saison sèche
+    9: 0.48,   # retour pluies
+    10: 0.52,  # pic pluies
+    11: 0.50,  # fin saison pluies
+    12: 0.40,  # petite saison sèche
+}
+
 # Percentiles hebdomadaires recalibrés (pluie sur 7 jours)
 PERCENTILES_HEBDO = {
     1:  {"p25": 0,  "p50": 8,  "p75": 20,  "p90": 40},
@@ -107,6 +128,10 @@ FIABILITE_HORIZON = {
     3: 0.68,
     7: 0.45,
 }
+
+# Écart max toléré entre score ML et score physique avant bascule sur règles physiques
+# Si score_ml > score_physique + GARDE_FOU_SECHERESSE → on ignore le ML
+GARDE_FOU_SECHERESSE = 0.30
 
 SCORE_VERS_NIVEAU = {
     (0.75, 1.01): "ROUGE",
@@ -409,12 +434,11 @@ def modeles_disponibles() -> list:
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# FALLBACK — Règles physiques (V4.7.3 — recalibrées Kribi)
+# FALLBACK — Règles physiques (V4.7.4 — NDVI contextuel + sm_rootzone normale mensuelle)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
     normale = NORMALES_MENSUELLES.get(mois, 120)
-    # Normale sur 7j = normale mensuelle / 4.3
     normale_7j = normale / 4.3
     score = 0.0
     score += min(0.35, max(0, (pluie_7j   / max(1.0, normale_7j) - 1.0) * 0.30))
@@ -426,25 +450,28 @@ def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
 
 def _risque_secheresse_physique(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     """
-    V4.7.3 — CORRECTION CRITIQUE :
+    V4.7.4 — NDVI contextuel + sm_rootzone vs normale mensuelle SMAP :
+    - seuil NDVI varie selon la saison (NDVI_SEUIL_ALERTE[mois])
+    - sm_rootzone comparé à SM_ROOTZONE_NORMALE_KRIBI[mois] - 0.06 (seuil stress)
     - normale_30j = NORMALES_MENSUELLES directement (valeur mensuelle = ~30j)
-      Avant : normale_30j = NORMALES_MENSUELLES * (30/7) → ex. juin 160*4.28=685mm → bug
-    - Seuil NDVI abaissé à 0.45 (végétation dense tropicale normale à Kribi)
-    - Poids réduits pour éviter faux ROUGE en saison de transition
     """
-    normale_30j = NORMALES_MENSUELLES.get(mois, 120)   # ← FIX : plus de *(30/7)
-    et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 19)
+    normale_30j  = NORMALES_MENSUELLES.get(mois, 120)
+    et0_normale  = ET0_NORMALES_MENSUELLES.get(mois, 19)
+    ndvi_seuil   = NDVI_SEUIL_ALERTE.get(mois, 0.45)
+    # Seuil stress rootzone = normale mensuelle - 15% (marge avant alerte)
+    sm_rootzone_seuil = SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - 0.06
 
     score = 0.0
-    # Déficit pluviométrique (poids réduit pour zone humide)
+
+    # Déficit pluviométrique
     deficit = max(0, (normale_30j - pluie_30j) / max(1.0, normale_30j))
-    score += min(0.25, deficit * 0.40)                          # était min(0.35, *0.5)
+    score += min(0.25, deficit * 0.40)
 
-    # NDVI — seuil abaissé car végétation tropicale Kribi naturellement dense
-    score += min(0.20, max(0, (0.45 - ndvi) * 0.80))           # était min(0.30, (0.55-ndvi)*1.2)
+    # NDVI contextuel selon saison
+    score += min(0.20, max(0, (ndvi_seuil - ndvi) * 0.80))
 
-    # Humidité sol rootzone
-    score += min(0.20, max(0, (0.28 - sm_rootzone) * 2.0))
+    # Humidité sol rootzone vs normale mensuelle
+    score += min(0.20, max(0, (sm_rootzone_seuil - sm_rootzone) * 2.5))
 
     # ET0 vs normale (stress évaporatoire)
     score += min(0.15, max(0, (et0_semaine - et0_normale) / max(1.0, et0_normale) * 0.15))
@@ -476,7 +503,7 @@ def _features_j0(data: dict) -> dict:
     ratio        = round(d["pluie_30j"] / max(1.0, d["pluie_7j"] * (30 / 7)), 4) if d["pluie_7j"] > 0 else 1.0
     ratio        = min(ratio, 5.0)
     trend_sm     = _get_trend_sm(d["sm_surface"])
-    sm_def       = round(max(0.0, (0.30 - d["sm_rootzone"]) / 0.30), 4)
+    sm_def       = round(max(0.0, (SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - d["sm_rootzone"]) / max(0.01, SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35))), 4)
     ratio_et0    = round(d["et0_semaine"] / max(1.0, d["pluie_7j"]), 4)
     ratio_et0    = min(ratio_et0, 10.0)
 
@@ -510,7 +537,7 @@ def _features_horizon(data: dict, horizon: int) -> dict:
 
     sin_mois = round(math.sin(2 * math.pi * mois / 12), 4)
     cos_mois = round(math.cos(2 * math.pi * mois / 12), 4)
-    sm_def   = round(max(0.0, (0.30 - d["sm_rootzone"]) / 0.30), 4)
+    sm_def   = round(max(0.0, (SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - d["sm_rootzone"]) / max(0.01, SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35))), 4)
 
     pluie_prev_brute = sum(d["precip_list"][:horizon])
     pluie_prev       = _corriger_pluie_prevision(pluie_prev_brute, horizon)
@@ -525,7 +552,7 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     )
 
     normale         = NORMALES_MENSUELLES.get(mois, 120)
-    normale_horizon = normale * (horizon / 30.0)   # FIX : base mensuelle / 30 * horizon jours
+    normale_horizon = normale * (horizon / 30.0)
     anomalie_prev   = round((pluie_prev - normale_horizon) / max(1.0, normale_horizon), 4)
     percentile      = _percentile_pluie(pluie_prev, mois)
     ratio_30j_prev  = round(d["pluie_30j"] / max(1.0, pluie_prev * (30 / horizon)), 4)
@@ -602,6 +629,48 @@ def _get_features_pour_horizon(horizon: Optional[int]) -> list:
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
+# GARDE-FOU DE COHÉRENCE PHYSIQUE (V4.7.4)
+# Vérifie que le score ML n'est pas aberrant par rapport aux règles physiques
+# ──────────────────────────────────────────────────────────────────────────────────
+
+def _score_physique_secheresse(feats: dict) -> float:
+    """Calcule le score physique de sécheresse à partir des features extraites."""
+    return _risque_secheresse_physique(
+        feats.get("pluie_30j", 0),
+        feats.get("ndvi", 0.50),
+        feats.get("sm_rootzone", 0.30),
+        feats.get("mois", 6),
+        feats.get("et0_semaine", ET0_NORMALES_MENSUELLES.get(feats.get("mois", 6), 19)),
+    )
+
+
+def _appliquer_garde_fou(nom: str, score_ml: float, feats: dict) -> tuple:
+    """
+    Pour la sécheresse uniquement : si score_ml > score_physique + GARDE_FOU,
+    le ML est probablement saturé (entraîné avant correction normales) →
+    on bascule sur les règles physiques.
+    Retourne (score_final, methode_finale, avertissement_garde_fou).
+    """
+    if nom != "secheresse":
+        return score_ml, "modele_ml", ""
+
+    score_physique = _score_physique_secheresse(feats)
+    ecart = score_ml - score_physique
+
+    if ecart > GARDE_FOU_SECHERESSE:
+        print(f"[RISK-DIAG] Sécheresse : ML={score_ml:.3f} >> physique={score_physique:.3f} "
+              f"(écart {ecart:.2f} > {GARDE_FOU_SECHERESSE}) → garde-fou activé, fallback physique")
+        return score_physique, "regles_physiques_garde_fou", (
+            f"Garde-fou activé : ML ({score_ml:.2f}) incohérent vs physique ({score_physique:.2f}). "
+            f"Score physique V4.7.4 utilisé (NDVI contextuel + sm_rootzone normale mensuelle)."
+        )
+
+    print(f"[RISK-DIAG] Sécheresse : ML={score_ml:.3f}, physique={score_physique:.3f} "
+          f"(écart {ecart:.2f} ≤ {GARDE_FOU_SECHERESSE}) → ML accepté")
+    return score_ml, "modele_ml", ""
+
+
+# ──────────────────────────────────────────────────────────────────────────────────
 # INFÉRENCE PRINCIPALE
 # ──────────────────────────────────────────────────────────────────────────────────
 
@@ -622,18 +691,35 @@ def predire_risques(data: dict, use_previsions: bool = False,
         hor_key = horizon_jours if horizon_jours > 0 else None
         clf, seuil, features_modele = _charger_modele(nom, horizon=hor_key)
 
+        score_brut    = None
+        garde_fou_msg = ""
+
         if clf is not None:
             try:
                 feats_array = [float(feats.get(k, 0.0) or 0.0) for k in features_modele]
                 import numpy as np
                 X = np.array([feats_array])
-                score_brut = float(clf.predict_proba(X)[0][1])
-                methode_utilisee[nom] = f"modele_ml_v4.7_j{horizon_jours}" if horizon_jours > 0 else "modele_ml_v4.7_j0"
+                score_ml_brut = float(clf.predict_proba(X)[0][1])
+
+                # Garde-fou : vérification cohérence physique pour sécheresse
+                score_brut_valide, methode_valide, garde_fou_msg = _appliquer_garde_fou(
+                    nom, score_ml_brut, feats
+                )
+
+                if methode_valide == "modele_ml":
+                    score_brut = score_brut_valide
+                    methode_utilisee[nom] = (
+                        f"modele_ml_v4.7_j{horizon_jours}" if horizon_jours > 0
+                        else "modele_ml_v4.7_j0"
+                    )
+                else:
+                    # Garde-fou déclenché : score physique utilisé
+                    score_brut = score_brut_valide
+                    methode_utilisee[nom] = methode_valide
+
             except Exception as e:
                 print(f"[RISK] Erreur modèle {nom} h={horizon_jours} : {e} → fallback règles physiques")
                 score_brut = None
-        else:
-            score_brut = None
 
         if score_brut is None:
             methode_utilisee[nom] = "regles_physiques"
@@ -644,10 +730,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
                     feats.get("pluie_prev_7j", feats.get("pluie_prev_3j", feats.get("pluie_prev_1j", 0))),
                     feats.get("sm_surface", 0.35), feats.get("ndwi", -0.10), feats.get("mois", 6))
             elif nom == "secheresse":
-                score_brut = _risque_secheresse_physique(
-                    feats.get("pluie_30j", 0), feats.get("ndvi", 0.50),
-                    feats.get("sm_rootzone", 0.30), feats.get("mois", 6),
-                    feats.get("et0_semaine", ET0_NORMALES_MENSUELLES.get(feats.get("mois", 6), 19)))
+                score_brut = _score_physique_secheresse(feats)
             else:
                 score_brut = _risque_chaleur_physique(
                     feats.get("temp_max", 29.0), feats.get("temp_max_3j", 28.5))
@@ -661,6 +744,9 @@ def predire_risques(data: dict, use_previsions: bool = False,
         else:
             score_ajuste = round(score_brut, 4)
             avertissement = "Données observées — fiabilité maximale."
+
+        if garde_fou_msg:
+            avertissement = garde_fou_msg + " | " + avertissement
 
         ic = _intervalle_confiance_bootstrap(score_ajuste, fiabilite)
         niveau = _score_vers_niveau(score_ajuste)
@@ -751,10 +837,9 @@ def evaluer_previsions(data: dict) -> dict:
             "fiabilite_j3": FIABILITE_HORIZON[3],
             "fiabilite_j7": FIABILITE_HORIZON[7],
             "note": (
-                "V4.7.3 — Normales Kribi bimodal corrigées. "
-                "Bug *(30/7) supprimé dans _risque_secheresse_physique. "
-                "Poids NDVI et déficit recalibrés pour zone tropicale humide. "
-                "Les scores sont ajustés par la fiabilité de l'horizon."
+                "V4.7.4 — Garde-fou de cohérence physique activé pour sécheresse : "
+                "si score ML > score physique + 0.30, fallback automatique sur règles physiques. "
+                "NDVI seuil contextuel selon saison. sm_rootzone vs normale mensuelle SMAP."
             ),
         },
     }
@@ -779,9 +864,9 @@ def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
     sortie = {
         "date":            today,
         "zone":            "Kribi",
-        "modele":          "risk_model_v4.7.3",
+        "modele":          "risk_model_v4.7.4",
         "rapport_texte":   (
-            f"Rapport automatisé SAMCAM V4.7.3 — {today}\n"
+            f"Rapport automatisé SAMCAM V4.7.4 — {today}\n"
             f"Niveau global : {niveau_global}\n"
             f"Inondation : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('inondation', '?')}\n"
             f"Sécheresse : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('secheresse', '?')}\n"
