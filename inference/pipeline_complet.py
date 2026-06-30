@@ -1,13 +1,22 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.5 — Pipeline complet : collecte + prédiction V4 + dashboard
+SAMCAM V4.5.1 — Pipeline complet : collecte + prédiction V4 + dashboard
+
+FIX V4.5.1 :
+    - Passe un pd.DataFrame avec les vrais noms de features au clf.predict_proba()
+      → supprime le UserWarning sklearn "X does not have valid feature names"
+    - Gère les .pkl corrompus / hérités d'une ancienne version (ex: HeuristiqueChaleur)
+      avec un try/except propre : si le pkl ne peut pas être désérialisé correctement
+      (attribut manquant, classe inconnue), il est ignoré avec un message clair
+      au lieu de crasher avec une AttributeError cryptique.
+    - Ajoute purge_stale_pkl() : supprime automatiquement les .pkl dont le chargement
+      échoue au démarrage du test (évite les erreurs répétées à chaque scénario).
 
 NOUVEAUTÉS V4.5 :
     - verifier_retrain_necessaire() appelle inference/train_model.py --all-horizons
       (remplace models/train_model.py qui n'existe plus)
     - test_prediction_v4() charge et teste tous les horizons disponibles
       (_j1, _j3, _j7) en plus des modèles J0
-    - Supprime l'import HeuristiqueChaleur (plus nécessaire)
     - Version bump V4.5
 
 FIX V4.4.6 :
@@ -133,27 +142,124 @@ def ouvrir_dashboard():
 
 
 # ────────────────────────────────────────────────────────────────
+# UTILITAIRE — chargement sécurisé d'un .pkl
+# ────────────────────────────────────────────────────────────────
+
+def charger_pkl_securise(chemin: str):
+    """
+    Charge un fichier .pkl joblib de façon sécurisée.
+
+    Retourne le dict {'clf', 'seuil', 'features', ...} si valide,
+    ou None si le fichier est corrompu / hérité d'une ancienne version
+    (ex: contient HeuristiqueChaleur ou une autre classe inconnue).
+
+    Cause typique : un ancien model_chaleur.pkl généré avec une classe
+    HeuristiqueChaleur définie dans train_model.py n'est plus désérialisable
+    dans pipeline_complet.py qui ne connaît pas cette classe.
+    Solution propre : ignorer le pkl invalide plutôt que crasher.
+    """
+    import joblib
+
+    try:
+        d = joblib.load(chemin)
+        # Vérification minimale de structure
+        if not isinstance(d, dict) or "clf" not in d or "seuil" not in d:
+            print(f"  ⚠️  {os.path.basename(chemin)} : structure invalide (pas de clf/seuil) — ignoré")
+            return None
+        # Test rapide que le clf est bien appelable
+        if not hasattr(d["clf"], "predict_proba"):
+            print(f"  ⚠️  {os.path.basename(chemin)} : clf sans predict_proba — ignoré")
+            return None
+        return d
+    except Exception as e:
+        print(f"  ⚠️  {os.path.basename(chemin)} : impossible de charger ({e}) — ignoré")
+        print(f"      → Supprimez ce fichier et relancez : python3 inference/train_model.py --force")
+        return None
+
+
+def purge_stale_pkl(models_dir: str, noms: list):
+    """
+    Détecte et supprime les .pkl qui ne peuvent pas être chargés
+    (hérités d'une ancienne version avec classes custom).
+    Appelé une seule fois au début du test pour éviter les erreurs répétées.
+    """
+    suffixes = ["", "_j1", "_j3", "_j7"]
+    purges = []
+    for nom in noms:
+        for suf in suffixes:
+            pkl = os.path.join(models_dir, f"model_{nom}{suf}.pkl")
+            if not os.path.exists(pkl):
+                continue
+            d = charger_pkl_securise(pkl)
+            if d is None:
+                try:
+                    os.remove(pkl)
+                    purges.append(os.path.basename(pkl))
+                except OSError:
+                    pass
+    if purges:
+        print(f"\n  🧹 PKL obsolètes supprimés : {purges}")
+        print(f"     Relancez train_model.py --force pour les régénérer.\n")
+
+
+# ────────────────────────────────────────────────────────────────
 # MODE TEST — prédiction directe sans collecte réseau
 # ────────────────────────────────────────────────────────────────
 
+# Noms de features par dimension — alignés sur train_model.py V4.4
+FEATURES_16 = [
+    "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
+    "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
+    "ndvi", "ndwi",
+    "sin_mois", "cos_mois",
+    "anomalie_pluie", "ratio_30j_7j", "trend_sm", "sm_deficit",
+]
+FEATURES_13 = [
+    "mois", "sin_mois", "cos_mois",
+    "pluie_prev_7j", "anomalie_pluie", "pluie_30j",
+    "sm_surface", "sm_rootzone", "ndvi", "ndwi",
+    "temp_max_3j", "ratio_30j_7j", "sm_deficit",
+]
+FEATURES_10 = [
+    "mois", "sin_mois", "cos_mois",
+    "pluie_prev_7j", "anomalie_pluie", "pluie_30j",
+    "ndvi", "sm_rootzone", "sm_deficit", "temp_max",
+]
+FEATURES_PAR_DIM = {16: FEATURES_16, 13: FEATURES_13, 10: FEATURES_10}
+
+
+def make_dataframe(valeurs: list, features: list):
+    """
+    Construit un pd.DataFrame d'une ligne avec les bons noms de colonnes.
+    Évite le UserWarning sklearn "X does not have valid feature names".
+    Si la liste de features attendue ne correspond pas à la dimension du vecteur,
+    tronque ou complète avec des zéros.
+    """
+    import pandas as pd
+    n = len(features)
+    v = list(valeurs[:n]) + [0.0] * max(0, n - len(valeurs))
+    return pd.DataFrame([v], columns=features)
+
+
 def test_prediction_v4():
     """
-    V4.5 — Test rapide des modèles V4 avec des données simulées.
-    Teste les modèles J0 et, si présents, les horizons _j1/_j3/_j7.
-    Vérifie que les .pkl se chargent et retournent des prédictions cohérentes.
+    V4.5.1 — Test rapide des modèles V4 avec des données simulées.
+    - Passe des DataFrames nommés à predict_proba (plus de warning sklearn).
+    - Charge les pkl via charger_pkl_securise() (plus d'AttributeError HeuristiqueChaleur).
+    - Purge automatiquement les pkl obsolètes avant les tests.
     """
-    import numpy as np
-    import joblib
+    import joblib  # noqa: F401 (utilisé dans charger_pkl_securise)
 
     MODELS_DIR = os.path.join(ROOT, "models")
 
-    # Scénarios de test (16 features — J0/J1/J3 partagent ce vecteur)
+    # Scénarios de test
+    # valeurs_16 : ordre = FEATURES_16
+    # valeurs_10 : ordre = FEATURES_10
     scenarios = [
         {
             "nom": "Saïson sèche normale (janvier)",
             "valeurs_16": [1, 5.0, 30.0, 8.0, 29.0, 28.5, 0.20, 0.25, 0.55, 0.05,
                            -0.519, 0.866, -0.30, 0.17, -0.02, 0.10],
-            # J7 = 10 features : mois sin cos pluie_prev_7j anomalie pluie_30j ndvi sm_rootzone sm_deficit temp_max
             "valeurs_10": [1, -0.519, 0.866, 8.0, -0.30, 30.0, 0.55, 0.25, 0.10, 29.0],
         },
         {
@@ -170,7 +276,7 @@ def test_prediction_v4():
         },
     ]
 
-    # Définition des horizons à tester avec leur dimension de features attendue
+    # Horizons : (label_affichage, suffix_fichier, n_features_attendu)
     horizons_config = [
         ("J0",  None, 16),
         ("J+1", "j1", 16),
@@ -180,22 +286,28 @@ def test_prediction_v4():
     modeles_risque = ["inondation", "secheresse", "chaleur"]
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.5 — Test de prédiction multi-horizon")
+    print("  SAMCAM V4.5.1 — Test de prédiction multi-horizon")
     print("═" * 64)
 
-    # Vérification des modèles J0 (obligatoires)
+    # ── Purge des pkl obsolètes (hérités d'une version antérieure) ──
+    purge_stale_pkl(MODELS_DIR, modeles_risque)
+
+    # ── Vérification des modèles J0 obligatoires ──
     manquants = []
     for nom in modeles_risque:
         pkl = os.path.join(MODELS_DIR, f"model_{nom}.pkl")
-        if not os.path.exists(pkl):
+        if os.path.exists(pkl) and charger_pkl_securise(pkl) is None:
+            pass  # déjà purgé ou inutilisable → ignoré
+        elif not os.path.exists(pkl) and nom != "chaleur":
             manquants.append(pkl)
+
     if manquants:
         for m in manquants:
             print(f"  ❌ {m} introuvable → lance : python3 inference/train_model.py")
         return False
     print(f"  ✅ Modèles J0 présents\n")
 
-    # Rapport de disponibilité des horizons
+    # ── Rapport de disponibilité ──
     print("  Modèles disponibles par horizon :")
     for label, suffix, _ in horizons_config:
         for nom in modeles_risque:
@@ -212,34 +324,44 @@ def test_prediction_v4():
 
         for label, suffix, n_feats in horizons_config:
             suf = f"_{suffix}" if suffix else ""
-            # Choisir le bon vecteur selon la dimension attendue
+
+            # Vecteur de valeurs brutes selon la dimension de l'horizon
             if n_feats == 10:
-                X = np.array([scenario["valeurs_10"]])
+                valeurs_brutes = scenario["valeurs_10"]
             else:
-                X = np.array([scenario["valeurs_16"][:n_feats]])
+                valeurs_brutes = scenario["valeurs_16"][:n_feats]
 
             scores_hor  = {}
             alertes_hor = {}
+
             for nom in modeles_risque:
                 pkl = os.path.join(MODELS_DIR, f"model_{nom}{suf}.pkl")
                 if not os.path.exists(pkl):
                     continue
+
+                d = charger_pkl_securise(pkl)
+                if d is None:
+                    # pkl invalide déjà signalé dans charger_pkl_securise
+                    continue
+
                 try:
-                    d     = joblib.load(pkl)
-                    clf   = d["clf"]
-                    seuil = d["seuil"]
-                    # Adapter la dimension si le modèle a été entraîné avec moins de features
-                    n_model = len(d.get("features", []))
-                    X_in = X[:, :n_model] if X.shape[1] >= n_model else X
-                    proba = float(clf.predict_proba(X_in)[0, 1])
+                    clf      = d["clf"]
+                    seuil    = d["seuil"]
+                    features = d.get("features", FEATURES_PAR_DIM.get(n_feats, FEATURES_16))
+
+                    # ── FIX V4.5.1 : DataFrame nommé → supprime le warning sklearn ──
+                    X_df = make_dataframe(valeurs_brutes, features)
+
+                    proba  = float(clf.predict_proba(X_df)[0, 1])
                     alerte = proba >= seuil
                     scores_hor[nom]  = round(proba, 3)
                     alertes_hor[nom] = alerte
                     statut = "🔴 ALERTE" if alerte else "🟢 ok"
                     print(f"    [{label}] {nom:12s} : proba={proba:.3f}  "
                           f"seuil={seuil:.2f}  {statut}")
+
                 except Exception as e:
-                    print(f"    [{label}] {nom:12s} : ⚠️  erreur — {e}")
+                    print(f"    [{label}] {nom:12s} : ⚠️  erreur inattendue — {e}")
 
             if scores_hor:
                 n_alertes = sum(alertes_hor.values())
@@ -264,7 +386,7 @@ def test_prediction_v4():
     outpath = os.path.join(reports_dir, f"test_prediction_{ts}.json")
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": "V4.5", "date": datetime.datetime.now().isoformat(),
+            {"version": "V4.5.1", "date": datetime.datetime.now().isoformat(),
              "resultats": resultats},
             f, ensure_ascii=False, indent=2
         )
@@ -280,7 +402,7 @@ def test_prediction_v4():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.5 — Pipeline complet")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.5.1 — Pipeline complet")
     parser.add_argument("--days",    type=int, default=7)
     parser.add_argument("--browser", action="store_true",
                         help="Ouvre le dashboard dans le navigateur après l'exécution")
@@ -290,7 +412,7 @@ if __name__ == "__main__":
                         help="Test rapide : prédit sur 3 scénarios simulés (sans collecte réseau)")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V4.5 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.5.1 — {datetime.date.today().isoformat()}")
 
     if args.test:
         ok = test_prediction_v4()
@@ -305,7 +427,6 @@ if __name__ == "__main__":
     )
 
     if verifier_retrain_necessaire(force=args.retrain):
-        # V4.5 : inference/train_model.py --all-horizons (pas models/train_model.py)
         run(
             [sys.executable, "inference/train_model.py", "--all-horizons"],
             "[2/3] Ré-entraînement modèles V4.4 (tous horizons)"
@@ -321,7 +442,7 @@ if __name__ == "__main__":
 
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline V4.5 terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.5.1 terminé. Rapports disponibles dans reports/")
     dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
     print(f"[PIPELINE] 🌐 Dashboard : file://{os.path.abspath(dashboard_path)}")
 
