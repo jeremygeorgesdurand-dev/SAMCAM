@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.4.5 — Pipeline complet : collecte + prédiction V4 + dashboard
+SAMCAM V4.4.6 — Pipeline complet : collecte + prédiction V4 + dashboard
+
+FIX V4.4.6 :
+    - Supprime l'ouverture automatique du dashboard dans le navigateur
+    - Le dashboard n'est plus ouvert par défaut après l'exécution
+    - Ajouter --browser pour forcer l'ouverture si souhaité
 
 FIX V4.4.5 :
     - copier_rapport_json() trie par date de modification réelle (getmtime)
@@ -15,7 +20,7 @@ FIX V4.4.4 :
 Ce pipeline orchestre les 3 étapes dans l'ordre :
   1. Collecte des données météo/satellite (data_collection/collect_kribi.py)
   2. Prédiction de risque via les modèles V4 (inference/risk_model.py)
-  3. Ouverture du dashboard HTML
+  3. Copie du rapport dans dashboard/latest_report.json
 
 Mode test rapide (sans collecte réseau) :
   python3 inference/pipeline_complet.py --test
@@ -24,7 +29,7 @@ Usage complet :
   python3 inference/pipeline_complet.py
   python3 inference/pipeline_complet.py --days 14
   python3 inference/pipeline_complet.py --retrain
-  python3 inference/pipeline_complet.py --no-browser
+  python3 inference/pipeline_complet.py --browser   ← ouvre le dashboard après
   python3 inference/pipeline_complet.py --test
 """
 
@@ -132,7 +137,7 @@ def ouvrir_dashboard():
         path = os.path.join(ROOT, "dashboard", name)
         if os.path.exists(path):
             url = "file://" + os.path.abspath(path)
-            print(f"\n[PIPELINE] 🌐 Dashboard : {url}")
+            print(f"\n[PIPELINE] 🌐 Ouverture du dashboard : {url}")
             time.sleep(0.5)
             webbrowser.open(url)
             return
@@ -145,7 +150,7 @@ def ouvrir_dashboard():
 
 def test_prediction_v4():
     """
-    Test rapide des 3 modèles V4.4.5 avec des données simulées.
+    Test rapide des 3 modèles V4.4.6 avec des données simulées.
     Vérifie que les .pkl se chargent et retournent des prédictions cohérentes.
     """
     import math
@@ -187,7 +192,7 @@ def test_prediction_v4():
     modeles = ["inondation", "secheresse", "chaleur"]
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.4.5 — Test de prédiction des 3 modèles")
+    print("  SAMCAM V4.4.6 — Test de prédiction des 3 modèles")
     print("═" * 64)
 
     for nom in modeles:
@@ -248,7 +253,7 @@ def test_prediction_v4():
     outpath = os.path.join(reports_dir, f"test_prediction_{ts}.json")
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": "V4.4.5", "date": datetime.datetime.now().isoformat(),
+            {"version": "V4.4.6", "date": datetime.datetime.now().isoformat(),
              "resultats": resultats},
             f, ensure_ascii=False, indent=2
         )
@@ -264,16 +269,17 @@ def test_prediction_v4():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.4.5 — Pipeline complet")
-    parser.add_argument("--days",       type=int, default=7)
-    parser.add_argument("--no-browser", action="store_true")
-    parser.add_argument("--retrain",    action="store_true",
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.6 — Pipeline complet")
+    parser.add_argument("--days",    type=int, default=7)
+    parser.add_argument("--browser", action="store_true",
+                        help="Ouvre le dashboard dans le navigateur après l'exécution")
+    parser.add_argument("--retrain", action="store_true",
                         help="Force le ré-entraînement des modèles ML")
-    parser.add_argument("--test",       action="store_true",
+    parser.add_argument("--test",    action="store_true",
                         help="Test rapide : prédit sur 3 scénarios simulés (sans collecte réseau)")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V4.4.5 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.4.6 — {datetime.date.today().isoformat()}")
 
     if args.test:
         ok = test_prediction_v4()
@@ -303,7 +309,9 @@ if __name__ == "__main__":
 
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline V4.4.5 terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.4.6 terminé. Rapports disponibles dans reports/")
+    dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
+    print(f"[PIPELINE] 🌐 Dashboard : file://{os.path.abspath(dashboard_path)}")
 
-    if not args.no_browser:
+    if args.browser:
         ouvrir_dashboard()
