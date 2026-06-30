@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.4.4 — Pipeline complet : collecte + prédiction V4 + dashboard
+SAMCAM V4.4.5 — Pipeline complet : collecte + prédiction V4 + dashboard
+
+FIX V4.4.5 :
+    - copier_rapport_json() trie par date de modification réelle (getmtime)
+      au lieu du tri alphabétique qui sélectionnait l'ancien rapport
+    - Priorité explicite au rapport du jour (rapport_kribi_{today}.json)
+    - Affichage de la date du rapport copié dans les logs
 
 FIX V4.4.4 :
     - Importe HeuristiqueChaleur depuis models.train_model avant joblib.load
@@ -57,21 +63,49 @@ def run(cmd: list, label: str):
 
 
 def copier_rapport_json():
+    """
+    Copie le rapport JSON le plus récent dans dashboard/latest_report.json.
+
+    Priorité 1 : rapport du jour (rapport_kribi_{today}.json)
+    Priorité 2 : rapport le plus récent par date de modification (getmtime)
+
+    FIX V4.4.5 : remplace le tri alphabétique (fichiers[-1]) qui
+    sélectionnait un ancien rapport quand le rapport du jour n'avait
+    pas encore été créé au moment de l'appel.
+    """
     reports_dir   = os.path.join(ROOT, "reports")
     dashboard_dir = os.path.join(ROOT, "dashboard")
     os.makedirs(dashboard_dir, exist_ok=True)
 
-    fichiers = sorted(glob.glob(os.path.join(reports_dir, "rapport_kribi_*.json")))
+    fichiers = glob.glob(os.path.join(reports_dir, "rapport_kribi_*.json"))
     if not fichiers:
         print("⚠️  Aucun rapport JSON trouvé dans reports/ — dashboard non mis à jour.")
         return None
 
-    source = fichiers[-1]
-    dest   = os.path.join(dashboard_dir, "latest_report.json")
+    # Priorité 1 : rapport du jour
+    today   = datetime.date.today().isoformat()  # ex. "2026-06-30"
+    rapport_du_jour = os.path.join(reports_dir, f"rapport_kribi_{today}.json")
+    if os.path.exists(rapport_du_jour):
+        source = rapport_du_jour
+    else:
+        # Priorité 2 : fichier le plus récent par date de modification
+        source = max(fichiers, key=os.path.getmtime)
+
+    dest = os.path.join(dashboard_dir, "latest_report.json")
     shutil.copy2(source, dest)
+
+    # Lire la date depuis le contenu du rapport pour l'afficher
+    try:
+        with open(source, encoding="utf-8") as f:
+            contenu = json.load(f)
+        date_rapport = contenu.get("date") or contenu.get("metadata", {}).get("date") or "?"
+    except Exception:
+        date_rapport = os.path.basename(source)
+
     print(f"\n[PIPELINE] 📋 Rapport JSON copié :")
-    print(f"           Source : {source}")
-    print(f"           Dest   : {dest}")
+    print(f"           Source  : {os.path.basename(source)}")
+    print(f"           Date    : {date_rapport}")
+    print(f"           Dest    : {dest}")
     return dest
 
 
@@ -111,7 +145,7 @@ def ouvrir_dashboard():
 
 def test_prediction_v4():
     """
-    Test rapide des 3 modèles V4.4.4 avec des données simulées.
+    Test rapide des 3 modèles V4.4.5 avec des données simulées.
     Vérifie que les .pkl se chargent et retournent des prédictions cohérentes.
     """
     import math
@@ -153,7 +187,7 @@ def test_prediction_v4():
     modeles = ["inondation", "secheresse", "chaleur"]
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.4.4 — Test de prédiction des 3 modèles")
+    print("  SAMCAM V4.4.5 — Test de prédiction des 3 modèles")
     print("═" * 64)
 
     for nom in modeles:
@@ -214,7 +248,7 @@ def test_prediction_v4():
     outpath = os.path.join(reports_dir, f"test_prediction_{ts}.json")
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": "V4.4.4", "date": datetime.datetime.now().isoformat(),
+            {"version": "V4.4.5", "date": datetime.datetime.now().isoformat(),
              "resultats": resultats},
             f, ensure_ascii=False, indent=2
         )
@@ -230,7 +264,7 @@ def test_prediction_v4():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.4.4 — Pipeline complet")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.4.5 — Pipeline complet")
     parser.add_argument("--days",       type=int, default=7)
     parser.add_argument("--no-browser", action="store_true")
     parser.add_argument("--retrain",    action="store_true",
@@ -239,7 +273,7 @@ if __name__ == "__main__":
                         help="Test rapide : prédit sur 3 scénarios simulés (sans collecte réseau)")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V4.4.4 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.4.5 — {datetime.date.today().isoformat()}")
 
     if args.test:
         ok = test_prediction_v4()
@@ -269,7 +303,7 @@ if __name__ == "__main__":
 
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline V4.4.4 terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.4.5 terminé. Rapports disponibles dans reports/")
 
     if not args.no_browser:
         ouvrir_dashboard()
