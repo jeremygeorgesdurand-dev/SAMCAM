@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.7.1 — Module d'inférence des risques climatiques
+SAMCAM V4.7.2 — Module d'inférence des risques climatiques
 Multi-horizons améliorés : J+1 / J+3 / J+7
+
+NOUVEAUTÉS V4.7.2 :
+    - sauvegarder_rapport_json() : crée reports/rapport_kribi_{today}.json
+      directement depuis risk_model.py (sans dépendance Ollama/Phi-3)
+      → résout le bug "rapport 2026-06-26 toujours affiché" dans le dashboard
+    - __main__ sauvegarde le rapport après prédiction
+    - Suppression du print debug parasite (sm_surface obtenu)
 
 NOUVEAUTÉS V4.7.1 :
     - Correction critique du mapping des données JSON → features
@@ -15,15 +22,9 @@ NOUVEAUTÉS V4.7.1 :
 
 NOUVEAUTÉS V4.7.0 :
     - 3 jeux de features distincts par horizon (J+1, J+3, J+7)
-      → J+1 : données quasi-observées + état du sol actuel
-      → J+3 : cumuls + anomalie climatologique + tendance SM
-      → J+7 : saisonnalité forte + percentile historique + bilan hydrique
     - Dégradation explicite de la fiabilité par horizon
-      → J+1 : 0.90 | J+3 : 0.68 | J+7 : 0.45
-    - Intervalles de confiance bootstrap (±1 écart-type sur score)
+    - Intervalles de confiance bootstrap
     - Correction de biais sur précipitations prévisionnelles Kribi
-      (côte équatoriale : Open-Meteo sous-estime convection ~15% à J+7)
-    - Rétrocompatibilité totale avec evaluer_previsions()
 """
 
 import os
@@ -33,11 +34,13 @@ import math
 import random
 from typing import Optional, Dict, Any
 
-MODELS_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
+MODELS_DIR   = os.path.join(os.path.dirname(__file__), "..", "models")
+REPORTS_DIR  = os.path.join(os.path.dirname(__file__), "..", "reports")
+DATA_DIR     = os.path.join(os.path.dirname(__file__), "..", "data")
 
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 # CLIMATOLOGIE KRIBI
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 
 NORMALES_MENSUELLES = {
     1: 30,  2: 50,  3: 120, 4: 180, 5: 200, 6: 160,
@@ -49,14 +52,11 @@ ET0_NORMALES_MENSUELLES = {
     7: 18, 8: 18, 9: 19, 10: 20, 11: 21, 12: 23,
 }
 
-# Humidité sol normale Kribi par mois (m³/m³) — sol tropical côtier
-# Source : SMAP SPL4SMGP climatologie 2015-2024 Kribi
 SM_SURFACE_NORMALE_KRIBI = {
     1: 0.30, 2: 0.32, 3: 0.38, 4: 0.42, 5: 0.45, 6: 0.43,
     7: 0.38, 8: 0.40, 9: 0.44, 10: 0.46, 11: 0.42, 12: 0.34,
 }
 
-# Percentiles historiques pluie hebdomadaire Kribi (ERA5-Land 1984-2024)
 PERCENTILES_HEBDO = {
     1:  {"p25": 0,  "p50": 5,  "p75": 18,  "p90": 40},
     2:  {"p25": 2,  "p50": 12, "p75": 35,  "p90": 70},
@@ -72,12 +72,10 @@ PERCENTILES_HEBDO = {
     12: {"p25": 2,  "p50": 10, "p75": 28,  "p90": 60},
 }
 
-# Facteur de correction biais Open-Meteo Kribi côte équatoriale
 BIAIS_CORRECTION_PLUIE = {
     1: 1.00, 3: 1.08, 7: 1.15,
 }
 
-# Fiabilité des prévisions par horizon
 FIABILITE_HORIZON = {
     1: 0.90,
     3: 0.68,
@@ -112,7 +110,6 @@ DESCRIPTIONS = {
     },
 }
 
-# Features V4.3 (compatibilité rétro — utilisées comme base J0)
 FEATURES_BASE = [
     "mois", "pluie_7j", "pluie_30j", "pluie_prev_7j",
     "temp_max", "temp_max_3j", "sm_surface", "sm_rootzone",
@@ -126,7 +123,6 @@ FEATURES_DERIVEES = [
 ]
 FEATURES_ORDER = FEATURES_BASE + FEATURES_DERIVEES
 
-# Features spécifiques par horizon (V4.7.0)
 FEATURES_J1 = [
     "mois", "sin_mois", "cos_mois",
     "pluie_7j", "pluie_prev_1j", "pluie_30j",
@@ -153,9 +149,9 @@ FEATURES_J7 = [
     "temp_max", "saison_seche", "pluie_30j",
 ]
 
-# ───────────────────────────────────────────────────────────────────────────────
-# HISTORIQUE GLISSANT — trend_sm (V4.2)
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
+# HISTORIQUE GLISSANT
+# ──────────────────────────────────────────────────────────────────────────────────
 
 _sm_surface_historique: Optional[float] = None
 
@@ -175,9 +171,9 @@ def _get_trend_sm(sm_surface_actuel: float) -> float:
     return trend
 
 
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 # HELPERS
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 
 def _score_vers_niveau(score: float) -> str:
     for (lo, hi), niveau in SCORE_VERS_NIVEAU.items():
@@ -192,7 +188,6 @@ def _confidence(score: float, seuil: float) -> float:
 
 
 def _percentile_pluie(pluie_mm: float, mois: int) -> float:
-    """Retourne le rang percentile (0-1) de la pluie dans la distribution historique Kribi."""
     p = PERCENTILES_HEBDO.get(mois, {"p25": 10, "p50": 30, "p75": 70, "p90": 130})
     if pluie_mm <= p["p25"]:
         return 0.15
@@ -207,23 +202,16 @@ def _percentile_pluie(pluie_mm: float, mois: int) -> float:
 
 
 def _saison_seche(mois: int) -> int:
-    """1 si en saison sèche principale Kribi (déc-fév, juil-août), 0 sinon."""
     return 1 if mois in (12, 1, 2, 7, 8) else 0
 
 
 def _corriger_pluie_prevision(pluie_mm: float, horizon: int) -> float:
-    """Correction de biais sur précipitations prévisionnelles Open-Meteo à Kribi."""
     facteur = BIAIS_CORRECTION_PLUIE.get(horizon, 1.0)
     return round(pluie_mm * facteur, 2)
 
 
 def _intervalle_confiance_bootstrap(score: float, fiabilite: float,
                                      n_iter: int = 50) -> Dict[str, float]:
-    """
-    Estime un intervalle de confiance ±1σ via bootstrap simplifié.
-    L'écart-type augmente avec la distance à la frontière de décision
-    et diminue avec la fiabilité de l'horizon.
-    """
     sigma_base = (1.0 - fiabilite) * 0.20
     dist_seuil = min(abs(score - 0.25), abs(score - 0.50), abs(score - 0.75))
     sigma_seuil = max(0.0, 0.12 - dist_seuil * 0.8)
@@ -243,30 +231,25 @@ def _intervalle_confiance_bootstrap(score: float, fiabilite: float,
     }
 
 
-# ───────────────────────────────────────────────────────────────────────────────
-# LECTURE ROBUSTE DES DONNÉES JSON (V4.7.1 — fix mapping)
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
+# LECTURE ROBUSTE DES DONNÉES JSON (V4.7.1)
+# ──────────────────────────────────────────────────────────────────────────────────
 
 def _lire_donnees(data: dict) -> dict:
     """
     Extrait toutes les variables utiles depuis le JSON collecté.
     Priorité : indicateurs_risque → satellitaire.smap → meteorologie → défauts Kribi.
-
-    Résout le bug V4.7.0 : sm_surface, ndvi, ndwi, temp_max étaient lus
-    depuis des clés inexistantes → valeurs de test (0.54, 0.48) utilisées
-    au lieu des vraies données (0.33, -0.11).
     """
     mois = datetime.date.today().month
 
-    ind  = data.get("indicateurs_risque", {}) or {}
-    sat  = data.get("satellitaire", {}) or {}
-    smap = sat.get("smap", {}).get("humidite_sol", {}) or {}
-    sent = sat.get("sentinel2", {}) or {}
+    ind   = data.get("indicateurs_risque", {}) or {}
+    sat   = data.get("satellitaire", {}) or {}
+    smap  = sat.get("smap", {}).get("humidite_sol", {}) or {}
+    sent  = sat.get("sentinel2", {}) or {}
     meteo = data.get("meteorologie", {}) or {}
     meteo_act = meteo.get("actuel", {}) or {}
-    prev = meteo.get("previsions_daily", {}) or {}
+    prev  = meteo.get("previsions_daily", {}) or {}
 
-    # ── Précipitations ──────────────────────────────────────────────────────
     pluie_7j = float(
         ind.get("pluie_cumulee_7j_mm") or
         meteo.get("pluie_cumulee_7j_mm") or 0
@@ -281,8 +264,6 @@ def _lire_donnees(data: dict) -> dict:
         meteo.get("pluie_prevue_7j_mm") or 0
     )
 
-    # ── Humidité sol (SMAP) ─────────────────────────────────────────────────
-    # Ordre de priorité : indicateurs_risque > satellitaire.smap > défaut climatologique
     sm_surface_defaut = SM_SURFACE_NORMALE_KRIBI.get(mois, 0.35)
     sm_surface = float(
         ind.get("humidite_sol_sm_surface") or
@@ -294,39 +275,35 @@ def _lire_donnees(data: dict) -> dict:
         ind.get("humidite_sol_sm_rootzone") or
         smap.get("sm_rootzone") or
         smap.get("humidite_rootzone") or
-        sm_surface * 0.85  # rootzone ~ légèrement plus sec que surface
+        sm_surface * 0.85
     )
 
-    # ── Indices végétation (Sentinel-2) ─────────────────────────────────────
     ndvi = float(
         ind.get("ndvi_moyen") or
         sent.get("ndvi") or
         sent.get("ndvi_moyen") or
-        0.50  # valeur neutre Kribi (forêt tropicale dégradée côtière)
+        0.50
     )
     ndwi = float(
         ind.get("ndwi_moyen") or
         sent.get("ndwi") or
         sent.get("ndwi_moyen") or
-        -0.10  # valeur neutre Kribi (légèrement sec hors inondation)
+        -0.10
     )
 
-    # ── Températures ────────────────────────────────────────────────────────
     temp_max = float(
         ind.get("temperature_max_c") or
         ind.get("temp_max_c") or
         meteo_act.get("temperature_2m_max") or
-        29.0  # normale Kribi
+        29.0
     )
     temp_max_3j_raw = ind.get("temperature_max_3j_c") or ind.get("temp_max_3j_c")
     if temp_max_3j_raw:
         temp_max_3j = float(temp_max_3j_raw)
     else:
-        # Calculer depuis les prévisions ou approxer
         t3 = [float(t or temp_max) for t in (prev.get("temperature_2m_max", []) or [])[:3]]
         temp_max_3j = sum(t3) / len(t3) if t3 else temp_max - 0.5
 
-    # ── ET0 ─────────────────────────────────────────────────────────────────
     et0_raw = (
         ind.get("et0_semaine_mm") or
         meteo.get("et0_semaine_mm") or
@@ -337,7 +314,6 @@ def _lire_donnees(data: dict) -> dict:
         ET0_NORMALES_MENSUELLES.get(mois, 21)
     )
 
-    # ── Prévisions journalières ──────────────────────────────────────────────
     precip_list = prev.get("precipitation_sum", []) or []
     temp_list   = prev.get("temperature_2m_max", []) or []
     et0_list    = prev.get("et0_fao_evapotranspiration", []) or []
@@ -360,18 +336,14 @@ def _lire_donnees(data: dict) -> dict:
     }
 
 
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 # CHARGEMENT DES MODÈLES
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 
 _cache_modeles: dict = {}
 
 
 def _charger_modele(nom: str, horizon: Optional[int] = None):
-    """
-    Cherche d'abord un modèle horizon-spécifique (model_inondation_j1.pkl),
-    puis fallback sur le modèle générique (model_inondation.pkl).
-    """
     cles_a_tester = []
     if horizon is not None:
         cles_a_tester.append(f"{nom}_j{horizon}")
@@ -409,9 +381,9 @@ def modeles_disponibles() -> list:
     return modeles
 
 
-# ───────────────────────────────────────────────────────────────────────────────
-# FALLBACK — Règles physiques (inchangées V4.3)
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
+# FALLBACK — Règles physiques
+# ──────────────────────────────────────────────────────────────────────────────────
 
 def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
     normale = NORMALES_MENSUELLES.get(mois, 120)
@@ -442,12 +414,11 @@ def _risque_chaleur_physique(temp_max, temp_max_3j):
     return min(1.0, score)
 
 
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 # CONSTRUCTION DES FEATURES PAR HORIZON (V4.7.1)
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
 
 def _features_j0(data: dict) -> dict:
-    """Features J0 (observées) — lecture robuste depuis indicateurs_risque en priorité."""
     d    = _lire_donnees(data)
     mois = d["mois"]
 
@@ -481,17 +452,12 @@ def _features_j0(data: dict) -> dict:
         "trend_sm":        trend_sm,
         "sm_deficit":      sm_def,
         "ratio_et0_pluie": ratio_et0,
-        # alias pour compatibilité features J1
         "pluie_prev_1j":   round(_corriger_pluie_prevision(
             sum(d["precip_list"][:1]), 1), 2),
     }
 
 
 def _features_horizon(data: dict, horizon: int) -> dict:
-    """
-    Construit un jeu de features adapté à l'horizon de prévision.
-    V4.7.1 : utilise _lire_donnees() pour une lecture cohérente des clés JSON.
-    """
     d    = _lire_donnees(data)
     mois = d["mois"]
 
@@ -499,7 +465,6 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     cos_mois = round(math.cos(2 * math.pi * mois / 12), 4)
     sm_def   = round(max(0.0, (0.30 - d["sm_rootzone"]) / 0.30), 4)
 
-    # Calculs prévisionnels
     pluie_prev_brute = sum(d["precip_list"][:horizon])
     pluie_prev       = _corriger_pluie_prevision(pluie_prev_brute, horizon)
 
@@ -522,26 +487,21 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     ratio_et0_prev  = min(ratio_et0_prev, 10.0)
     trend_sm        = _get_trend_sm(d["sm_surface"]) if horizon == 1 else 0.0
 
-    # Précipitations par horizon spécifique
     p1 = _corriger_pluie_prevision(sum(d["precip_list"][:1]), 1)
     p3 = _corriger_pluie_prevision(sum(d["precip_list"][:3]), 3)
     p7 = _corriger_pluie_prevision(sum(d["precip_list"][:7]), 7)
 
-    # Anomalies par horizon
     anom_1j = round((p1 - normale * (1 / 7)) / max(1.0, normale * (1 / 7)), 4)
     anom_3j = round((p3 - normale * (3 / 7)) / max(1.0, normale * (3 / 7)), 4)
 
-    # ET0 par horizon
     et0_3j = sum(d["et0_list"][:3]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 21) * (3 / 7)
     et0_7j = sum(d["et0_list"][:7]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 21)
 
-    # Ratio ET0/pluie par horizon
     ratio_et0_3j = round(et0_3j / max(1.0, p3), 4)
     ratio_et0_3j = min(ratio_et0_3j, 10.0)
     ratio_et0_7j = round(et0_7j / max(1.0, p7), 4)
     ratio_et0_7j = min(ratio_et0_7j, 10.0)
 
-    # Ratio 30j/prev3j
     ratio_30j_3j = round(d["pluie_30j"] / max(1.0, p3 * (30 / 3)), 4)
     ratio_30j_3j = min(ratio_30j_3j, 5.0)
 
@@ -576,13 +536,8 @@ def _features_horizon(data: dict, horizon: int) -> dict:
         "ratio_et0_pluie_3j": ratio_et0_3j,
         "ratio_et0_pluie_7j": ratio_et0_7j,
         "pluie_7j":           d["pluie_7j"],
-        "ratio_30j_7j":       ratio_30j_prev,
     }
 
-
-# ───────────────────────────────────────────────────────────────────────────────
-# SÉLECTION DES FEATURES PAR HORIZON
-# ───────────────────────────────────────────────────────────────────────────────
 
 _FEATURES_PAR_HORIZON = {
     1: FEATURES_J1,
@@ -597,16 +552,12 @@ def _get_features_pour_horizon(horizon: Optional[int]) -> list:
     return _FEATURES_PAR_HORIZON.get(horizon, FEATURES_ORDER)
 
 
-# ───────────────────────────────────────────────────────────────────────────────
-# INFÉRENCE PRINCIPALE (V4.7.1)
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
+# INFÉRENCE PRINCIPALE
+# ──────────────────────────────────────────────────────────────────────────────────
 
 def predire_risques(data: dict, use_previsions: bool = False,
                     horizon_jours: int = 7) -> dict:
-    """
-    Prédit les risques climatiques pour un horizon donné.
-    V4.7.1 : lecture robuste des données + suppression warning sklearn.
-    """
     if use_previsions:
         feats = _features_horizon(data, horizon_jours)
         fiabilite = FIABILITE_HORIZON.get(horizon_jours, 0.50)
@@ -625,8 +576,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
         if clf is not None:
             try:
                 feats_array = [float(feats.get(k, 0.0) or 0.0) for k in features_modele]
-                # Passage en numpy array pour éviter le warning sklearn
-                # (modèles entraînés sans feature names)
                 import numpy as np
                 X = np.array([feats_array])
                 score_brut = float(clf.predict_proba(X)[0][1])
@@ -704,10 +653,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
 
 
 def evaluer_previsions(data: dict) -> dict:
-    """
-    Retourne les prédictions pour J0, J+1, J+3 et J+7.
-    V4.7.1 : données lues correctement depuis le JSON collecté.
-    """
     risque_j0 = predire_risques(data, use_previsions=False)
     risque_j1 = predire_risques(data, use_previsions=True, horizon_jours=1)
     risque_j3 = predire_risques(data, use_previsions=True, horizon_jours=3)
@@ -757,7 +702,7 @@ def evaluer_previsions(data: dict) -> dict:
             "fiabilite_j3": FIABILITE_HORIZON[3],
             "fiabilite_j7": FIABILITE_HORIZON[7],
             "note": (
-                "V4.7.1 — Lecture robuste depuis indicateurs_risque en priorité. "
+                "V4.7.2 — Lecture robuste depuis indicateurs_risque en priorité. "
                 "Les scores sont ajustés par la fiabilité de l'horizon. "
                 "Correction de biais appliquée sur les précipitations prévisionnelles "
                 "Open-Meteo (côte équatoriale Kribi)."
@@ -766,48 +711,109 @@ def evaluer_previsions(data: dict) -> dict:
     }
 
 
-# ───────────────────────────────────────────────────────────────────────────────
-# TEST AUTONOME
-# ───────────────────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────────────────
+# SAUVEGARDE DU RAPPORT JSON (V4.7.2)
+# Crée reports/rapport_kribi_{today}.json sans dépendance Ollama/Phi-3
+# ──────────────────────────────────────────────────────────────────────────────────
 
-if __name__ == "__main__":
-    # Données réalistes reflétant la situation réelle Kribi 2026-06-30
-    data_test = {
-        "indicateurs_risque": {
-            "pluie_cumulee_7j_mm":        21.8,
-            "pluie_prevue_7j_mm":         10.1,
-            "pluie_cumulee_30j_mm":       88.0,
-            "ndvi_moyen":                 0.1971,
-            "ndwi_moyen":                -0.111,
-            "humidite_sol_sm_surface":    0.33093,
-            "humidite_sol_sm_rootzone":   0.28,
-            "temperature_max_c":          29.5,
-            "temperature_max_3j_c":       29.2,
-            "risque_inondation_observe":  "faible",
-            "risque_inondation_prevu":    "faible",
-        },
-        "meteorologie": {
-            "et0_semaine_mm": 19.5,
-            "previsions_daily": {
-                "precipitation_sum":          [2.1, 0.5, 1.8, 3.2, 0.0, 1.5, 0.9],
-                "temperature_2m_max":         [29, 30, 29, 28, 30, 30, 31],
-                "et0_fao_evapotranspiration": [2.7, 2.8, 2.6, 2.9, 3.0, 2.8, 2.9],
-            },
-        },
+def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
+    """
+    Sauvegarde reports/rapport_kribi_{today}.json avec la même
+    structure que analyser_kribi.py — compatible dashboard et Flutter.
+
+    Appelé directement par pipeline_complet.py via risk_model.py,
+    sans dépendance Ollama/Phi-3.
+    """
+    os.makedirs(REPORTS_DIR, exist_ok=True)
+    today    = datetime.date.today().isoformat()
+    chemin   = os.path.join(REPORTS_DIR, f"rapport_kribi_{today}.json")
+
+    ind = data_source.get("indicateurs_risque", {})
+    niveau_global = previsions_risque.get("actuel", {}).get("niveau_global", "VERT")
+
+    sortie = {
+        "date":            today,
+        "zone":            "Kribi",
+        "modele":          "risk_model_v4.7.2",
+        "rapport_texte":   (
+            f"Rapport automatisé SAMCAM V4.7.2 — {today}\n"
+            f"Niveau global : {niveau_global}\n"
+            f"Inondation : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('inondation', '?')}\n"
+            f"Sécheresse : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('secheresse', '?')}\n"
+            f"Chaleur    : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('chaleur', '?')}"
+        ),
+        "niveau_alerte":   niveau_global,
+        "risque_actuel":   previsions_risque.get("actuel",   {}),
+        "risque_prevu_1j": previsions_risque.get("prevu_1j", {}),
+        "risque_prevu_3j": previsions_risque.get("prevu_3j", {}),
+        "risque_prevu_7j": previsions_risque.get("prevu_7j", {}),
+        "tendance":        previsions_risque.get("tendance", {}),
+        "resume":          previsions_risque.get("resume",   {}),
+        "methode_risque":  previsions_risque.get("actuel", {}).get("methode", "?"),
+        "indicateurs":     ind,
+        "meteorologie":    data_source.get("meteorologie", {}),
+        "satellitaire":    data_source.get("satellitaire", {}),
+        "meta":            data_source.get("meta", {}),
     }
 
-    resultats = evaluer_previsions(data_test)
-    print(json.dumps(resultats, ensure_ascii=False, indent=2))
+    with open(chemin, "w", encoding="utf-8") as f:
+        json.dump(sortie, f, ensure_ascii=False, indent=2)
+
+    print(f"[RISK] 💾 Rapport sauvegardé : {chemin}")
+    print(f"[RISK]    Niveau global : {niveau_global}")
+    return chemin
+
+
+# ──────────────────────────────────────────────────────────────────────────────────
+# POINT D'ENTRÉE (standalone)
+# ──────────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import glob
+
+    # Charger le dernier fichier data/kribi_*.json
+    fichiers = sorted(glob.glob(os.path.join(DATA_DIR, "kribi_*.json")))
+    if not fichiers:
+        # Fallback : données de test
+        data_source = {
+            "indicateurs_risque": {
+                "pluie_cumulee_7j_mm":       21.8,
+                "pluie_prevue_7j_mm":        10.1,
+                "pluie_cumulee_30j_mm":      88.0,
+                "ndvi_moyen":                0.1971,
+                "ndwi_moyen":               -0.111,
+                "humidite_sol_sm_surface":   0.33093,
+                "humidite_sol_sm_rootzone":  0.28,
+                "temperature_max_c":         29.5,
+                "temperature_max_3j_c":      29.2,
+            },
+            "meteorologie": {
+                "et0_semaine_mm": 19.5,
+                "previsions_daily": {
+                    "precipitation_sum":          [2.1, 0.5, 1.8, 3.2, 0.0, 1.5, 0.9],
+                    "temperature_2m_max":         [29, 30, 29, 28, 30, 30, 31],
+                    "et0_fao_evapotranspiration": [2.7, 2.8, 2.6, 2.9, 3.0, 2.8, 2.9],
+                },
+            },
+        }
+        print("[RISK] ⚠️  Aucun fichier data/kribi_*.json — utilisation des données de test")
+    else:
+        # Chargement du fichier le plus récent par date de modification
+        fichier = max(fichiers, key=os.path.getmtime)
+        print(f"[RISK] 📄 Chargement : {os.path.basename(fichier)}")
+        with open(fichier, "r", encoding="utf-8") as f:
+            data_source = json.load(f)
+
+    previsions_risque = evaluer_previsions(data_source)
+    print(json.dumps(previsions_risque, ensure_ascii=False, indent=2))
 
     print("\n=== RÉSUMÉ TENDANCE ===")
-    for k, v in resultats["tendance"].items():
+    for k, v in previsions_risque["tendance"].items():
         print(f"  {k}: {v}")
-    print(f"\n  Niveau max sur tous horizons : {resultats['resume']['niveau_max_horizon']}")
-    print(f"  Fiabilités : J+1={resultats['resume']['fiabilite_j1']} | "
-          f"J+3={resultats['resume']['fiabilite_j3']} | "
-          f"J+7={resultats['resume']['fiabilite_j7']}")
+    print(f"\n  Niveau max sur tous horizons : {previsions_risque['resume']['niveau_max_horizon']}")
+    print(f"  Fiabilités : J+1={previsions_risque['resume']['fiabilite_j1']} | "
+          f"J+3={previsions_risque['resume']['fiabilite_j3']} | "
+          f"J+7={previsions_risque['resume']['fiabilite_j7']}")
 
-    # Vérification des valeurs lues depuis indicateurs_risque
-    feats_j0 = resultats["actuel"]
-    print(f"\n=== DONNÉES LUES (vérification mapping) ===")
-    print(f"  → sm_surface attendu : 0.331 | obtenu : {resultats['actuel']['scores']}")
+    # Sauvegarde du rapport JSON — FIX V4.7.2
+    sauvegarder_rapport_json(data_source, previsions_risque)
