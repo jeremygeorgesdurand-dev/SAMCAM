@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.7.4 — Module d'inférence des risques climatiques
+SAMCAM V4.7.5 — Module d'inférence des risques climatiques
 Multi-horizons améliorés : J+1 / J+3 / J+7
+
+NOUVEAUTÉS V4.7.5 :
+    - FIX CRITIQUE bug trend_sm double-appel :
+        evaluer_previsions() appelle predire_risques() 4 fois de suite (J0/J1/J3/J7).
+        L'ancienne _get_trend_sm() mutait un état global à chaque appel, corrompant
+        l'historique glissant. Nouveau design : _get_trend_sm_pur() est une fonction
+        PURE sans effet de bord. trend_sm est calculé une fois dans _lire_donnees()
+        via sm_reference passé explicitement depuis _sm_surface_precedente.
+        Résultat : trend_sm cohérent et identique pour tous les horizons d'un cycle.
 
 NOUVEAUTÉS V4.7.4 :
     - CORRECTION CRITIQUE score_brut=1.0 :
@@ -87,20 +96,19 @@ SM_ROOTZONE_NORMALE_KRIBI = {
 }
 
 # Seuil NDVI contextuel selon la saison — végétation tropicale Kribi
-# Saison sèche : NDVI naturellement plus bas → seuil d'alerte plus bas aussi
 NDVI_SEUIL_ALERTE = {
-    1: 0.38,   # petite saison sèche
-    2: 0.42,   # transition vers pluies
-    3: 0.48,   # début saison pluies — végétation repart
-    4: 0.52,   # pic pluies — NDVI élevé attendu
-    5: 0.52,   # pic pluies
-    6: 0.50,   # fin saison pluies
-    7: 0.35,   # grande saison sèche — NDVI bas = normal
-    8: 0.35,   # grande saison sèche
-    9: 0.48,   # retour pluies
-    10: 0.52,  # pic pluies
-    11: 0.50,  # fin saison pluies
-    12: 0.40,  # petite saison sèche
+    1: 0.38,
+    2: 0.42,
+    3: 0.48,
+    4: 0.52,
+    5: 0.52,
+    6: 0.50,
+    7: 0.35,
+    8: 0.35,
+    9: 0.48,
+    10: 0.52,
+    11: 0.50,
+    12: 0.40,
 }
 
 # Percentiles hebdomadaires recalibrés (pluie sur 7 jours)
@@ -129,8 +137,6 @@ FIABILITE_HORIZON = {
     7: 0.45,
 }
 
-# Écart max toléré entre score ML et score physique avant bascule sur règles physiques
-# Si score_ml > score_physique + GARDE_FOU_SECHERESSE → on ignore le ML
 GARDE_FOU_SECHERESSE = 0.30
 
 SCORE_VERS_NIVEAU = {
@@ -201,25 +207,43 @@ FEATURES_J7 = [
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# HISTORIQUE GLISSANT
+# TREND SM — FONCTION PURE (V4.7.5 — fix bug double-appel)
+# ──────────────────────────────────────────────────────────────────────────────────
+# L'ancienne implémentation utilisait un état global mutable (_sm_surface_historique)
+# que evaluer_previsions() corrompait en appelant predire_risques() 4 fois de suite
+# (J0, J+1, J+3, J+7). Chaque appel écrasait l'historique, rendant trend_sm
+# différent d'un horizon à l'autre pour le même cycle de prédiction.
+#
+# Solution : fonction PURE — aucun état global, la valeur de référence est
+# passée explicitement depuis _lire_donnees(). trend_sm est désormais calculé
+# une seule fois dans _lire_donnees() et réutilisé par tous les horizons.
 # ──────────────────────────────────────────────────────────────────────────────────
 
-_sm_surface_historique: Optional[float] = None
+_sm_surface_precedente: Optional[float] = None
 
 
+def mettre_a_jour_sm_reference(sm_surface: float) -> None:
+    """Appeler UNE SEULE FOIS par cycle de collecte (pipeline_complet.py)."""
+    global _sm_surface_precedente
+    _sm_surface_precedente = sm_surface
+
+
+def _get_trend_sm_pur(sm_surface_actuel: float,
+                      sm_reference: Optional[float]) -> float:
+    """
+    Calcule la tendance de l'humidité de surface de façon PURE.
+    Aucun effet de bord — sm_reference est passé explicitement.
+    Retourne 0.0 si aucune valeur de référence disponible.
+    """
+    if sm_reference is None:
+        return 0.0
+    return round(sm_surface_actuel - sm_reference, 4)
+
+
+# Compatibilité ascendante — ne PAS appeler depuis evaluer_previsions()
 def reset_historique():
-    global _sm_surface_historique
-    _sm_surface_historique = None
-
-
-def _get_trend_sm(sm_surface_actuel: float) -> float:
-    global _sm_surface_historique
-    if _sm_surface_historique is None:
-        trend = 0.0
-    else:
-        trend = round(sm_surface_actuel - _sm_surface_historique, 4)
-    _sm_surface_historique = sm_surface_actuel
-    return trend
+    global _sm_surface_precedente
+    _sm_surface_precedente = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
@@ -253,7 +277,6 @@ def _percentile_pluie(pluie_mm: float, mois: int) -> float:
 
 
 def _saison_seche(mois: int) -> int:
-    # Kribi bimodal : grande saison sèche juil-août, petite saison sèche déc-jan
     return 1 if mois in (12, 1, 7, 8) else 0
 
 
@@ -291,6 +314,8 @@ def _lire_donnees(data: dict) -> dict:
     """
     Extrait toutes les variables utiles depuis le JSON collecté.
     Priorité : indicateurs_risque → satellitaire.smap → meteorologie → défauts Kribi.
+    V4.7.5 : trend_sm calculé UNE SEULE FOIS ici via _get_trend_sm_pur(),
+             stocké dans le dict retourné — partagé par tous les horizons du cycle.
     """
     mois = datetime.date.today().month
 
@@ -370,6 +395,10 @@ def _lire_donnees(data: dict) -> dict:
     temp_list   = prev.get("temperature_2m_max", []) or []
     et0_list    = prev.get("et0_fao_evapotranspiration", []) or []
 
+    # trend_sm calculé UNE SEULE FOIS ici, partagé par tous les horizons du cycle
+    # Fix V4.7.5 : _get_trend_sm_pur() est pure, pas d'état global muté
+    trend_sm_value = _get_trend_sm_pur(round(sm_surface, 4), _sm_surface_precedente)
+
     return {
         "mois":          mois,
         "pluie_7j":      round(pluie_7j, 2),
@@ -385,6 +414,8 @@ def _lire_donnees(data: dict) -> dict:
         "precip_list":   [float(p or 0) for p in precip_list],
         "temp_list":     [float(t or temp_max) for t in temp_list],
         "et0_list":      [float(e or 0) for e in et0_list],
+        # trend_sm PRÉ-CALCULÉ (pure, pas d'état global) — fix bug V4.7.5
+        "trend_sm":      trend_sm_value,
     }
 
 
@@ -450,37 +481,23 @@ def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
 
 def _risque_secheresse_physique(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     """
-    V4.7.4 — NDVI contextuel + sm_rootzone vs normale mensuelle SMAP :
-    - seuil NDVI varie selon la saison (NDVI_SEUIL_ALERTE[mois])
-    - sm_rootzone comparé à SM_ROOTZONE_NORMALE_KRIBI[mois] - 0.06 (seuil stress)
-    - normale_30j = NORMALES_MENSUELLES directement (valeur mensuelle = ~30j)
+    V4.7.4 — NDVI contextuel + sm_rootzone vs normale mensuelle SMAP.
     """
-    normale_30j  = NORMALES_MENSUELLES.get(mois, 120)
-    et0_normale  = ET0_NORMALES_MENSUELLES.get(mois, 19)
-    ndvi_seuil   = NDVI_SEUIL_ALERTE.get(mois, 0.45)
-    # Seuil stress rootzone = normale mensuelle - 15% (marge avant alerte)
+    normale_30j       = NORMALES_MENSUELLES.get(mois, 120)
+    et0_normale       = ET0_NORMALES_MENSUELLES.get(mois, 19)
+    ndvi_seuil        = NDVI_SEUIL_ALERTE.get(mois, 0.45)
     sm_rootzone_seuil = SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - 0.06
 
     score = 0.0
-
-    # Déficit pluviométrique
     deficit = max(0, (normale_30j - pluie_30j) / max(1.0, normale_30j))
     score += min(0.25, deficit * 0.40)
-
-    # NDVI contextuel selon saison
     score += min(0.20, max(0, (ndvi_seuil - ndvi) * 0.80))
-
-    # Humidité sol rootzone vs normale mensuelle
     score += min(0.20, max(0, (sm_rootzone_seuil - sm_rootzone) * 2.5))
-
-    # ET0 vs normale (stress évaporatoire)
     score += min(0.15, max(0, (et0_semaine - et0_normale) / max(1.0, et0_normale) * 0.15))
-
     return min(1.0, score)
 
 
 def _risque_chaleur_physique(temp_max, temp_max_3j):
-    # Kribi : temp normale ~29°C, seuil chaleur à 33°C (côtier humide)
     score = 0.0
     score += min(0.60, max(0, (temp_max    - 33.0) / 5.0 * 0.50))
     score += min(0.40, max(0, (temp_max_3j - 33.0) / 5.0 * 0.40))
@@ -488,7 +505,7 @@ def _risque_chaleur_physique(temp_max, temp_max_3j):
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# CONSTRUCTION DES FEATURES PAR HORIZON (V4.7.1)
+# CONSTRUCTION DES FEATURES PAR HORIZON (V4.7.5)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def _features_j0(data: dict) -> dict:
@@ -502,7 +519,7 @@ def _features_j0(data: dict) -> dict:
     anomalie     = round((d["pluie_7j"] - normale_7j) / max(1.0, normale_7j), 4)
     ratio        = round(d["pluie_30j"] / max(1.0, d["pluie_7j"] * (30 / 7)), 4) if d["pluie_7j"] > 0 else 1.0
     ratio        = min(ratio, 5.0)
-    trend_sm     = _get_trend_sm(d["sm_surface"])
+    trend_sm     = d["trend_sm"]  # pré-calculé dans _lire_donnees() — fix bug V4.7.5
     sm_def       = round(max(0.0, (SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - d["sm_rootzone"]) / max(0.01, SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35))), 4)
     ratio_et0    = round(d["et0_semaine"] / max(1.0, d["pluie_7j"]), 4)
     ratio_et0    = min(ratio_et0, 10.0)
@@ -559,7 +576,8 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     ratio_30j_prev  = min(ratio_30j_prev, 5.0)
     ratio_et0_prev  = round(et0_hor / max(1.0, pluie_prev), 4)
     ratio_et0_prev  = min(ratio_et0_prev, 10.0)
-    trend_sm        = _get_trend_sm(d["sm_surface"]) if horizon == 1 else 0.0
+    # trend_sm pré-calculé dans _lire_donnees() — fix bug V4.7.5
+    trend_sm        = d["trend_sm"] if horizon == 1 else 0.0
 
     p1 = _corriger_pluie_prevision(sum(d["precip_list"][:1]), 1)
     p3 = _corriger_pluie_prevision(sum(d["precip_list"][:3]), 3)
@@ -630,11 +648,9 @@ def _get_features_pour_horizon(horizon: Optional[int]) -> list:
 
 # ──────────────────────────────────────────────────────────────────────────────────
 # GARDE-FOU DE COHÉRENCE PHYSIQUE (V4.7.4)
-# Vérifie que le score ML n'est pas aberrant par rapport aux règles physiques
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def _score_physique_secheresse(feats: dict) -> float:
-    """Calcule le score physique de sécheresse à partir des features extraites."""
     return _risque_secheresse_physique(
         feats.get("pluie_30j", 0),
         feats.get("ndvi", 0.50),
@@ -645,12 +661,6 @@ def _score_physique_secheresse(feats: dict) -> float:
 
 
 def _appliquer_garde_fou(nom: str, score_ml: float, feats: dict) -> tuple:
-    """
-    Pour la sécheresse uniquement : si score_ml > score_physique + GARDE_FOU,
-    le ML est probablement saturé (entraîné avant correction normales) →
-    on bascule sur les règles physiques.
-    Retourne (score_final, methode_finale, avertissement_garde_fou).
-    """
     if nom != "secheresse":
         return score_ml, "modele_ml", ""
 
@@ -662,7 +672,7 @@ def _appliquer_garde_fou(nom: str, score_ml: float, feats: dict) -> tuple:
               f"(écart {ecart:.2f} > {GARDE_FOU_SECHERESSE}) → garde-fou activé, fallback physique")
         return score_physique, "regles_physiques_garde_fou", (
             f"Garde-fou activé : ML ({score_ml:.2f}) incohérent vs physique ({score_physique:.2f}). "
-            f"Score physique V4.7.4 utilisé (NDVI contextuel + sm_rootzone normale mensuelle)."
+            f"Score physique V4.7.4 utilisé."
         )
 
     print(f"[RISK-DIAG] Sécheresse : ML={score_ml:.3f}, physique={score_physique:.3f} "
@@ -701,7 +711,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
                 X = np.array([feats_array])
                 score_ml_brut = float(clf.predict_proba(X)[0][1])
 
-                # Garde-fou : vérification cohérence physique pour sécheresse
                 score_brut_valide, methode_valide, garde_fou_msg = _appliquer_garde_fou(
                     nom, score_ml_brut, feats
                 )
@@ -713,7 +722,6 @@ def predire_risques(data: dict, use_previsions: bool = False,
                         else "modele_ml_v4.7_j0"
                     )
                 else:
-                    # Garde-fou déclenché : score physique utilisé
                     score_brut = score_brut_valide
                     methode_utilisee[nom] = methode_valide
 
@@ -776,7 +784,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
         "confiances":         {k: v["confiance"]   for k, v in resultats.items()},
         "fiabilite":          fiabilite,
         "intervalles":        {k: v["intervalle"]  for k, v in resultats.items()},
-        "descriptions":       {k: v["descriptions"] if "descriptions" in v else v["description"] for k, v in resultats.items()},
+        "descriptions":       {k: v["description"] for k, v in resultats.items()},
         "avertissements":     {k: v["avertissement"] for k, v in resultats.items()},
         "niveau_global":      niveau_global,
         "methode_globale":    "modele_ml_v4.7" if any(
@@ -837,8 +845,8 @@ def evaluer_previsions(data: dict) -> dict:
             "fiabilite_j3": FIABILITE_HORIZON[3],
             "fiabilite_j7": FIABILITE_HORIZON[7],
             "note": (
-                "V4.7.4 — Garde-fou de cohérence physique activé pour sécheresse : "
-                "si score ML > score physique + 0.30, fallback automatique sur règles physiques. "
+                "V4.7.5 — trend_sm pur (fix bug double-appel evaluer_previsions). "
+                "Garde-fou de cohérence physique activé pour sécheresse. "
                 "NDVI seuil contextuel selon saison. sm_rootzone vs normale mensuelle SMAP."
             ),
         },
@@ -846,14 +854,10 @@ def evaluer_previsions(data: dict) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# SAUVEGARDE DU RAPPORT JSON (V4.7.2)
+# SAUVEGARDE DU RAPPORT JSON (V4.7.5)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
-    """
-    Sauvegarde reports/rapport_kribi_{today}.json avec la même
-    structure que analyser_kribi.py — compatible dashboard et Flutter.
-    """
     os.makedirs(REPORTS_DIR, exist_ok=True)
     today    = datetime.date.today().isoformat()
     chemin   = os.path.join(REPORTS_DIR, f"rapport_kribi_{today}.json")
@@ -864,9 +868,9 @@ def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
     sortie = {
         "date":            today,
         "zone":            "Kribi",
-        "modele":          "risk_model_v4.7.4",
+        "modele":          "risk_model_v4.7.5",
         "rapport_texte":   (
-            f"Rapport automatisé SAMCAM V4.7.4 — {today}\n"
+            f"Rapport automatisé SAMCAM V4.7.5 — {today}\n"
             f"Niveau global : {niveau_global}\n"
             f"Inondation : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('inondation', '?')}\n"
             f"Sécheresse : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('secheresse', '?')}\n"
