@@ -1,24 +1,34 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.7.2 — Module d'inférence des risques climatiques
+SAMCAM V4.7.3 — Module d'inférence des risques climatiques
 Multi-horizons améliorés : J+1 / J+3 / J+7
+
+NOUVEAUTÉS V4.7.3 :
+    - NORMALES_MENSUELLES corrigées avec les vraies données climatologiques
+      de Kribi (régime bimodal équatorial côtier) :
+        Jan=50  Fév=80  Mar=150 Avr=230 Mai=250 Jun=200
+        Jul=30  Aoû=40  Sep=200 Oct=280 Nov=200 Déc=70
+    - SM_SURFACE_NORMALE_KRIBI ajustée en cohérence avec la pluviométrie
+    - PERCENTILES_HEBDO recalibrés pour chaque mois
+    - _risque_secheresse_physique : suppression du bug *(30/7) qui
+      transformait la normale mensuelle (ex. 200mm) en 857mm,
+      forçant un déficit de 97% même avec 22mm de pluie en juin
+    - Rééquilibrage des poids sécheresse pour zone tropicale humide :
+        • Seuil NDVI abaissé 0.55→0.45 (végétation dense normale à Kribi)
+        • Poids NDVI réduit 1.2→0.8
+        • Plafond déficit pluie réduit 0.35→0.25, poids 0.5→0.4
+    - ET0_NORMALES_MENSUELLES ajustées (zone côtière équatoriale)
 
 NOUVEAUTÉS V4.7.2 :
     - sauvegarder_rapport_json() : crée reports/rapport_kribi_{today}.json
       directement depuis risk_model.py (sans dépendance Ollama/Phi-3)
-      → résout le bug "rapport 2026-06-26 toujours affiché" dans le dashboard
     - __main__ sauvegarde le rapport après prédiction
     - Suppression du print debug parasite (sm_surface obtenu)
 
 NOUVEAUTÉS V4.7.1 :
     - Correction critique du mapping des données JSON → features
-      → Priorité à indicateurs_risque pour toutes les variables observées
-      → Fallback sur satellitaire.smap, meteorologie, puis valeurs par défaut
-      → Résout le bug "ROUGE 0.99 avec 21.8mm pluie" (mauvaise clé JSON)
-    - Valeurs par défaut réalistes pour Kribi (sm=0.33, ndvi=0.5, ndwi=-0.1)
+    - Valeurs par défaut réalistes pour Kribi
     - _features_horizon() : même correction pour J+1/J+3/J+7
-    - Suppression du warning sklearn : passage à numpy array pour modèles
-      entraînés sans feature names
 
 NOUVEAUTÉS V4.7.0 :
     - 3 jeux de features distincts par horizon (J+1, J+3, J+7)
@@ -39,37 +49,53 @@ REPORTS_DIR  = os.path.join(os.path.dirname(__file__), "..", "reports")
 DATA_DIR     = os.path.join(os.path.dirname(__file__), "..", "data")
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# CLIMATOLOGIE KRIBI
+# CLIMATOLOGIE KRIBI — V4.7.3 (données réelles régime bimodal côtier équatorial)
+# Source : données climatologiques Kribi (3°54'N, 9°54'E)
+# Deux saisons des pluies : mars-juin et sept-nov
+# Deux saisons sèches : juil-août (principale) et déc-fév (petite)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 NORMALES_MENSUELLES = {
-    1: 30,  2: 50,  3: 120, 4: 180, 5: 200, 6: 160,
-    7: 80,  8: 100, 9: 180, 10: 200, 11: 150, 12: 50,
+    1:  50,   # Janvier  — petite saison sèche
+    2:  80,   # Février  — transition
+    3: 150,   # Mars     — début grande saison pluies
+    4: 230,   # Avril    — grande saison pluies
+    5: 250,   # Mai      — pic grande saison pluies
+    6: 200,   # Juin     — fin grande saison pluies
+    7:  30,   # Juillet  — grande saison sèche (pic)
+    8:  40,   # Août     — grande saison sèche
+    9: 200,   # Septembre— début petite saison pluies
+    10: 280,  # Octobre  — pic petite saison pluies
+    11: 200,  # Novembre — fin petite saison pluies
+    12:  70,  # Décembre — petite saison sèche
 }
 
+# ET0 (évapotranspiration de référence) — zone côtière équatoriale, faible variabilité
 ET0_NORMALES_MENSUELLES = {
-    1: 25, 2: 27, 3: 24, 4: 21, 5: 20, 6: 19,
-    7: 18, 8: 18, 9: 19, 10: 20, 11: 21, 12: 23,
+    1: 22, 2: 23, 3: 22, 4: 19, 5: 18, 6: 17,
+    7: 20, 8: 21, 9: 19, 10: 18, 11: 18, 12: 21,
 }
 
+# Humidité sol normale — corrélée à la pluviométrie bimodale
 SM_SURFACE_NORMALE_KRIBI = {
-    1: 0.30, 2: 0.32, 3: 0.38, 4: 0.42, 5: 0.45, 6: 0.43,
-    7: 0.38, 8: 0.40, 9: 0.44, 10: 0.46, 11: 0.42, 12: 0.34,
+    1: 0.28, 2: 0.30, 3: 0.36, 4: 0.44, 5: 0.46, 6: 0.42,
+    7: 0.24, 8: 0.26, 9: 0.42, 10: 0.47, 11: 0.43, 12: 0.30,
 }
 
+# Percentiles hebdomadaires recalibrés (pluie sur 7 jours)
 PERCENTILES_HEBDO = {
-    1:  {"p25": 0,  "p50": 5,  "p75": 18,  "p90": 40},
-    2:  {"p25": 2,  "p50": 12, "p75": 35,  "p90": 70},
-    3:  {"p25": 8,  "p50": 28, "p75": 65,  "p90": 120},
-    4:  {"p25": 15, "p50": 42, "p75": 90,  "p90": 160},
-    5:  {"p25": 20, "p50": 50, "p75": 105, "p90": 180},
-    6:  {"p25": 12, "p50": 38, "p75": 82,  "p90": 140},
-    7:  {"p25": 5,  "p50": 18, "p75": 45,  "p90": 90},
-    8:  {"p25": 8,  "p50": 25, "p75": 58,  "p90": 105},
-    9:  {"p25": 18, "p50": 45, "p75": 95,  "p90": 165},
-    10: {"p25": 20, "p50": 52, "p75": 108, "p90": 185},
-    11: {"p25": 14, "p50": 38, "p75": 80,  "p90": 140},
-    12: {"p25": 2,  "p50": 10, "p75": 28,  "p90": 60},
+    1:  {"p25": 0,  "p50": 8,  "p75": 20,  "p90": 40},
+    2:  {"p25": 2,  "p50": 15, "p75": 38,  "p90": 72},
+    3:  {"p25": 8,  "p50": 30, "p75": 65,  "p90": 120},
+    4:  {"p25": 18, "p50": 52, "p75": 100, "p90": 175},
+    5:  {"p25": 22, "p50": 58, "p75": 112, "p90": 190},
+    6:  {"p25": 15, "p50": 44, "p75": 88,  "p90": 150},
+    7:  {"p25": 0,  "p50": 4,  "p75": 12,  "p90": 28},
+    8:  {"p25": 0,  "p50": 6,  "p75": 18,  "p90": 38},
+    9:  {"p25": 18, "p50": 46, "p75": 95,  "p90": 165},
+    10: {"p25": 22, "p50": 62, "p75": 118, "p90": 210},
+    11: {"p25": 16, "p50": 44, "p75": 90,  "p90": 155},
+    12: {"p25": 2,  "p50": 12, "p75": 30,  "p90": 62},
 }
 
 BIAIS_CORRECTION_PLUIE = {
@@ -202,7 +228,8 @@ def _percentile_pluie(pluie_mm: float, mois: int) -> float:
 
 
 def _saison_seche(mois: int) -> int:
-    return 1 if mois in (12, 1, 2, 7, 8) else 0
+    # Kribi bimodal : grande saison sèche juil-août, petite saison sèche déc-jan
+    return 1 if mois in (12, 1, 7, 8) else 0
 
 
 def _corriger_pluie_prevision(pluie_mm: float, horizon: int) -> float:
@@ -311,7 +338,7 @@ def _lire_donnees(data: dict) -> dict:
         None
     )
     et0_semaine = float(et0_raw) if et0_raw is not None else float(
-        ET0_NORMALES_MENSUELLES.get(mois, 21)
+        ET0_NORMALES_MENSUELLES.get(mois, 19)
     )
 
     precip_list = prev.get("precipitation_sum", []) or []
@@ -382,35 +409,54 @@ def modeles_disponibles() -> list:
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# FALLBACK — Règles physiques
+# FALLBACK — Règles physiques (V4.7.3 — recalibrées Kribi)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def _risque_inondation_physique(pluie_7j, pluie_prev, sm_surface, ndwi, mois):
     normale = NORMALES_MENSUELLES.get(mois, 120)
+    # Normale sur 7j = normale mensuelle / 4.3
+    normale_7j = normale / 4.3
     score = 0.0
-    score += min(0.35, max(0, (pluie_7j   / normale - 1.0) * 0.30))
-    score += min(0.25, max(0, (pluie_prev / normale - 1.0) * 0.20))
-    score += min(0.25, max(0, (sm_surface - 0.40) * 1.5))
+    score += min(0.35, max(0, (pluie_7j   / max(1.0, normale_7j) - 1.0) * 0.30))
+    score += min(0.25, max(0, (pluie_prev / max(1.0, normale_7j) - 1.0) * 0.20))
+    score += min(0.25, max(0, (sm_surface - 0.42) * 1.5))
     score += min(0.15, max(0, (ndwi - 0.30) * 0.5))
     return min(1.0, score)
 
 
 def _risque_secheresse_physique(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
-    normale_30j = NORMALES_MENSUELLES.get(mois, 120) * (30 / 7)
-    et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 21)
+    """
+    V4.7.3 — CORRECTION CRITIQUE :
+    - normale_30j = NORMALES_MENSUELLES directement (valeur mensuelle = ~30j)
+      Avant : normale_30j = NORMALES_MENSUELLES * (30/7) → ex. juin 160*4.28=685mm → bug
+    - Seuil NDVI abaissé à 0.45 (végétation dense tropicale normale à Kribi)
+    - Poids réduits pour éviter faux ROUGE en saison de transition
+    """
+    normale_30j = NORMALES_MENSUELLES.get(mois, 120)   # ← FIX : plus de *(30/7)
+    et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 19)
+
     score = 0.0
-    deficit = max(0, (normale_30j - pluie_30j) / normale_30j)
-    score += min(0.35, deficit * 0.5)
-    score += min(0.30, max(0, (0.55 - ndvi) * 1.2))
+    # Déficit pluviométrique (poids réduit pour zone humide)
+    deficit = max(0, (normale_30j - pluie_30j) / max(1.0, normale_30j))
+    score += min(0.25, deficit * 0.40)                          # était min(0.35, *0.5)
+
+    # NDVI — seuil abaissé car végétation tropicale Kribi naturellement dense
+    score += min(0.20, max(0, (0.45 - ndvi) * 0.80))           # était min(0.30, (0.55-ndvi)*1.2)
+
+    # Humidité sol rootzone
     score += min(0.20, max(0, (0.28 - sm_rootzone) * 2.0))
-    score += min(0.15, max(0, (et0_semaine - et0_normale) / et0_normale * 0.15))
+
+    # ET0 vs normale (stress évaporatoire)
+    score += min(0.15, max(0, (et0_semaine - et0_normale) / max(1.0, et0_normale) * 0.15))
+
     return min(1.0, score)
 
 
 def _risque_chaleur_physique(temp_max, temp_max_3j):
+    # Kribi : temp normale ~29°C, seuil chaleur à 33°C (côtier humide)
     score = 0.0
-    score += min(0.60, max(0, (temp_max    - 32.0) / 5.0 * 0.50))
-    score += min(0.40, max(0, (temp_max_3j - 32.0) / 5.0 * 0.40))
+    score += min(0.60, max(0, (temp_max    - 33.0) / 5.0 * 0.50))
+    score += min(0.40, max(0, (temp_max_3j - 33.0) / 5.0 * 0.40))
     return min(1.0, score)
 
 
@@ -423,9 +469,10 @@ def _features_j0(data: dict) -> dict:
     mois = d["mois"]
 
     normale      = NORMALES_MENSUELLES.get(mois, 120)
+    normale_7j   = normale / 4.3
     sin_mois     = round(math.sin(2 * math.pi * mois / 12), 4)
     cos_mois     = round(math.cos(2 * math.pi * mois / 12), 4)
-    anomalie     = round((d["pluie_7j"] - normale) / max(1.0, normale), 4)
+    anomalie     = round((d["pluie_7j"] - normale_7j) / max(1.0, normale_7j), 4)
     ratio        = round(d["pluie_30j"] / max(1.0, d["pluie_7j"] * (30 / 7)), 4) if d["pluie_7j"] > 0 else 1.0
     ratio        = min(ratio, 5.0)
     trend_sm     = _get_trend_sm(d["sm_surface"])
@@ -474,11 +521,11 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     temp_max_3j  = sum(t3) / len(t3) if t3 else d["temp_max"]
 
     et0_hor = sum(d["et0_list"][:horizon]) if d["et0_list"] else (
-        ET0_NORMALES_MENSUELLES.get(mois, 21) * (horizon / 7)
+        ET0_NORMALES_MENSUELLES.get(mois, 19) * (horizon / 7)
     )
 
     normale         = NORMALES_MENSUELLES.get(mois, 120)
-    normale_horizon = normale * (horizon / 7)
+    normale_horizon = normale * (horizon / 30.0)   # FIX : base mensuelle / 30 * horizon jours
     anomalie_prev   = round((pluie_prev - normale_horizon) / max(1.0, normale_horizon), 4)
     percentile      = _percentile_pluie(pluie_prev, mois)
     ratio_30j_prev  = round(d["pluie_30j"] / max(1.0, pluie_prev * (30 / horizon)), 4)
@@ -491,11 +538,13 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     p3 = _corriger_pluie_prevision(sum(d["precip_list"][:3]), 3)
     p7 = _corriger_pluie_prevision(sum(d["precip_list"][:7]), 7)
 
-    anom_1j = round((p1 - normale * (1 / 7)) / max(1.0, normale * (1 / 7)), 4)
-    anom_3j = round((p3 - normale * (3 / 7)) / max(1.0, normale * (3 / 7)), 4)
+    normale_1j = normale / 30.0
+    normale_3j = normale * 3 / 30.0
+    anom_1j = round((p1 - normale_1j) / max(1.0, normale_1j), 4)
+    anom_3j = round((p3 - normale_3j) / max(1.0, normale_3j), 4)
 
-    et0_3j = sum(d["et0_list"][:3]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 21) * (3 / 7)
-    et0_7j = sum(d["et0_list"][:7]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 21)
+    et0_3j = sum(d["et0_list"][:3]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 19) * (3 / 7)
+    et0_7j = sum(d["et0_list"][:7]) if d["et0_list"] else ET0_NORMALES_MENSUELLES.get(mois, 19)
 
     ratio_et0_3j = round(et0_3j / max(1.0, p3), 4)
     ratio_et0_3j = min(ratio_et0_3j, 10.0)
@@ -598,7 +647,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
                 score_brut = _risque_secheresse_physique(
                     feats.get("pluie_30j", 0), feats.get("ndvi", 0.50),
                     feats.get("sm_rootzone", 0.30), feats.get("mois", 6),
-                    feats.get("et0_semaine", ET0_NORMALES_MENSUELLES.get(feats.get("mois", 6), 21)))
+                    feats.get("et0_semaine", ET0_NORMALES_MENSUELLES.get(feats.get("mois", 6), 19)))
             else:
                 score_brut = _risque_chaleur_physique(
                     feats.get("temp_max", 29.0), feats.get("temp_max_3j", 28.5))
@@ -641,7 +690,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
         "confiances":         {k: v["confiance"]   for k, v in resultats.items()},
         "fiabilite":          fiabilite,
         "intervalles":        {k: v["intervalle"]  for k, v in resultats.items()},
-        "descriptions":       {k: v["description"] for k, v in resultats.items()},
+        "descriptions":       {k: v["descriptions"] if "descriptions" in v else v["description"] for k, v in resultats.items()},
         "avertissements":     {k: v["avertissement"] for k, v in resultats.items()},
         "niveau_global":      niveau_global,
         "methode_globale":    "modele_ml_v4.7" if any(
@@ -702,10 +751,10 @@ def evaluer_previsions(data: dict) -> dict:
             "fiabilite_j3": FIABILITE_HORIZON[3],
             "fiabilite_j7": FIABILITE_HORIZON[7],
             "note": (
-                "V4.7.2 — Lecture robuste depuis indicateurs_risque en priorité. "
-                "Les scores sont ajustés par la fiabilité de l'horizon. "
-                "Correction de biais appliquée sur les précipitations prévisionnelles "
-                "Open-Meteo (côte équatoriale Kribi)."
+                "V4.7.3 — Normales Kribi bimodal corrigées. "
+                "Bug *(30/7) supprimé dans _risque_secheresse_physique. "
+                "Poids NDVI et déficit recalibrés pour zone tropicale humide. "
+                "Les scores sont ajustés par la fiabilité de l'horizon."
             ),
         },
     }
@@ -713,16 +762,12 @@ def evaluer_previsions(data: dict) -> dict:
 
 # ──────────────────────────────────────────────────────────────────────────────────
 # SAUVEGARDE DU RAPPORT JSON (V4.7.2)
-# Crée reports/rapport_kribi_{today}.json sans dépendance Ollama/Phi-3
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
     """
     Sauvegarde reports/rapport_kribi_{today}.json avec la même
     structure que analyser_kribi.py — compatible dashboard et Flutter.
-
-    Appelé directement par pipeline_complet.py via risk_model.py,
-    sans dépendance Ollama/Phi-3.
     """
     os.makedirs(REPORTS_DIR, exist_ok=True)
     today    = datetime.date.today().isoformat()
@@ -734,9 +779,9 @@ def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
     sortie = {
         "date":            today,
         "zone":            "Kribi",
-        "modele":          "risk_model_v4.7.2",
+        "modele":          "risk_model_v4.7.3",
         "rapport_texte":   (
-            f"Rapport automatisé SAMCAM V4.7.2 — {today}\n"
+            f"Rapport automatisé SAMCAM V4.7.3 — {today}\n"
             f"Niveau global : {niveau_global}\n"
             f"Inondation : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('inondation', '?')}\n"
             f"Sécheresse : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('secheresse', '?')}\n"
@@ -771,10 +816,8 @@ def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
 if __name__ == "__main__":
     import glob
 
-    # Charger le dernier fichier data/kribi_*.json
     fichiers = sorted(glob.glob(os.path.join(DATA_DIR, "kribi_*.json")))
     if not fichiers:
-        # Fallback : données de test
         data_source = {
             "indicateurs_risque": {
                 "pluie_cumulee_7j_mm":       21.8,
@@ -798,7 +841,6 @@ if __name__ == "__main__":
         }
         print("[RISK] ⚠️  Aucun fichier data/kribi_*.json — utilisation des données de test")
     else:
-        # Chargement du fichier le plus récent par date de modification
         fichier = max(fichiers, key=os.path.getmtime)
         print(f"[RISK] 📄 Chargement : {os.path.basename(fichier)}")
         with open(fichier, "r", encoding="utf-8") as f:
@@ -815,5 +857,4 @@ if __name__ == "__main__":
           f"J+3={previsions_risque['resume']['fiabilite_j3']} | "
           f"J+7={previsions_risque['resume']['fiabilite_j7']}")
 
-    # Sauvegarde du rapport JSON — FIX V4.7.2
     sauvegarder_rapport_json(data_source, previsions_risque)
