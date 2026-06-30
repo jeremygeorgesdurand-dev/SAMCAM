@@ -1,6 +1,22 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.5.1 — Pipeline complet : collecte + prédiction V4 + dashboard
+SAMCAM V4.5.2 — Pipeline complet : collecte + prédiction V4 + dashboard
+
+FIX V4.5.2 :
+    - CORRECTION BUG scénarios J+3 (faux positif inondation en saison sèche / sécheresse) :
+        Le code prenait valeurs_16[:13] pour alimenter FEATURES_13, mais l'ordre des
+        colonnes de FEATURES_13 est différent de FEATURES_16 — les valeurs étaient donc
+        mappées sur les mauvaises features, ce qui produisait un proba=0.75 d'inondation
+        en pleine saison sèche. Fix : chaque scénario déclare maintenant un vecteur
+        valeurs_13 dédié dont l'ordre respecte exactement FEATURES_13 :
+            [mois, sin_mois, cos_mois,
+             pluie_prev_7j, anomalie_pluie, pluie_30j,
+             sm_surface, sm_rootzone, ndvi, ndwi,
+             temp_max_3j, ratio_30j_7j, sm_deficit]
+        Résultat : J+3 inondation saison sèche = 🟢 ok, J+3 sécheresse sévère = 🟢 ok.
+    - make_dataframe() utilise maintenant le vecteur valeurs_13 pour n_feats==13
+      (au lieu de valeurs_16[:13]).
+    - Version bump V4.5.2.
 
 FIX V4.5.1 :
     - Passe un pd.DataFrame avec les vrais noms de features au clf.predict_proba()
@@ -214,6 +230,11 @@ FEATURES_16 = [
     "sin_mois", "cos_mois",
     "anomalie_pluie", "ratio_30j_7j", "trend_sm", "sm_deficit",
 ]
+# FEATURES_13 : ordre exact issu de train_model.py FEATURES_J3
+# [mois, sin_mois, cos_mois,
+#  pluie_prev_7j, anomalie_pluie, pluie_30j,
+#  sm_surface, sm_rootzone, ndvi, ndwi,
+#  temp_max_3j, ratio_30j_7j, sm_deficit]
 FEATURES_13 = [
     "mois", "sin_mois", "cos_mois",
     "pluie_prev_7j", "anomalie_pluie", "pluie_30j",
@@ -243,36 +264,182 @@ def make_dataframe(valeurs: list, features: list):
 
 def test_prediction_v4():
     """
-    V4.5.1 — Test rapide des modèles V4 avec des données simulées.
-    - Passe des DataFrames nommés à predict_proba (plus de warning sklearn).
-    - Charge les pkl via charger_pkl_securise() (plus d'AttributeError HeuristiqueChaleur).
-    - Purge automatiquement les pkl obsolètes avant les tests.
+    V4.5.2 — Test rapide des modèles V4 avec des données simulées.
+
+    Chaque scénario déclare trois vecteurs indépendants dont l'ordre
+    correspond EXACTEMENT à FEATURES_16, FEATURES_13 et FEATURES_10.
+    Ceci corrige le faux positif inondation J+3 introduit en V4.5.1
+    où valeurs_16[:13] était passé à FEATURES_13 dont l'ordre diffère.
+
+    FEATURES_13 : mois | sin_mois | cos_mois |
+                  pluie_prev_7j | anomalie_pluie | pluie_30j |
+                  sm_surface | sm_rootzone | ndvi | ndwi |
+                  temp_max_3j | ratio_30j_7j | sm_deficit
     """
     import joblib  # noqa: F401 (utilisé dans charger_pkl_securise)
 
     MODELS_DIR = os.path.join(ROOT, "models")
 
-    # Scénarios de test
-    # valeurs_16 : ordre = FEATURES_16
-    # valeurs_10 : ordre = FEATURES_10
+    # ── Scénarios de test ──────────────────────────────────────────
+    # Chaque vecteur suit EXACTEMENT l'ordre de sa liste de features :
+    #   valeurs_16 → FEATURES_16  (J0 et J+1)
+    #   valeurs_13 → FEATURES_13  (J+3)   ← FIX V4.5.2 : vecteur dédié
+    #   valeurs_10 → FEATURES_10  (J+7)
     scenarios = [
         {
             "nom": "Saïson sèche normale (janvier)",
-            "valeurs_16": [1, 5.0, 30.0, 8.0, 29.0, 28.5, 0.20, 0.25, 0.55, 0.05,
-                           -0.519, 0.866, -0.30, 0.17, -0.02, 0.10],
-            "valeurs_10": [1, -0.519, 0.866, 8.0, -0.30, 30.0, 0.55, 0.25, 0.10, 29.0],
+            # FEATURES_16 : mois | pluie_7j | pluie_30j | pluie_prev_7j |
+            #   temp_max | temp_max_3j | sm_surface | sm_rootzone |
+            #   ndvi | ndwi | sin_mois | cos_mois |
+            #   anomalie_pluie | ratio_30j_7j | trend_sm | sm_deficit
+            "valeurs_16": [
+                1,      # mois
+                5.0,    # pluie_7j
+                30.0,   # pluie_30j
+                8.0,    # pluie_prev_7j
+                29.0,   # temp_max
+                28.5,   # temp_max_3j
+                0.20,   # sm_surface
+                0.25,   # sm_rootzone
+                0.55,   # ndvi
+                0.05,   # ndwi
+                -0.519, # sin_mois
+                0.866,  # cos_mois
+                -0.30,  # anomalie_pluie  (pluie 30 % sous la normale)
+                0.17,   # ratio_30j_7j
+                -0.02,  # trend_sm        (légère baisse humidité)
+                0.10,   # sm_deficit
+            ],
+            # FEATURES_13 : mois | sin_mois | cos_mois |
+            #   pluie_prev_7j | anomalie_pluie | pluie_30j |
+            #   sm_surface | sm_rootzone | ndvi | ndwi |
+            #   temp_max_3j | ratio_30j_7j | sm_deficit
+            "valeurs_13": [
+                1,      # mois
+                -0.519, # sin_mois
+                0.866,  # cos_mois
+                8.0,    # pluie_prev_7j
+                -0.30,  # anomalie_pluie
+                30.0,   # pluie_30j
+                0.20,   # sm_surface
+                0.25,   # sm_rootzone
+                0.55,   # ndvi
+                0.05,   # ndwi
+                28.5,   # temp_max_3j
+                0.17,   # ratio_30j_7j
+                0.10,   # sm_deficit
+            ],
+            # FEATURES_10 : mois | sin_mois | cos_mois |
+            #   pluie_prev_7j | anomalie_pluie | pluie_30j |
+            #   ndvi | sm_rootzone | sm_deficit | temp_max
+            "valeurs_10": [
+                1,      # mois
+                -0.519, # sin_mois
+                0.866,  # cos_mois
+                8.0,    # pluie_prev_7j
+                -0.30,  # anomalie_pluie
+                30.0,   # pluie_30j
+                0.55,   # ndvi
+                0.25,   # sm_rootzone
+                0.10,   # sm_deficit
+                29.0,   # temp_max
+            ],
         },
         {
             "nom": "Forte pluie octobre (risque inondation)",
-            "valeurs_16": [10, 120.0, 280.0, 90.0, 28.0, 27.5, 0.45, 0.50, 0.72, 0.35,
-                           0.866, -0.5, 1.80, 2.33, 0.05, 0.00],
-            "valeurs_10": [10, 0.866, -0.5, 90.0, 1.80, 280.0, 0.72, 0.50, 0.00, 28.0],
+            "valeurs_16": [
+                10,     # mois
+                120.0,  # pluie_7j
+                280.0,  # pluie_30j
+                90.0,   # pluie_prev_7j
+                28.0,   # temp_max
+                27.5,   # temp_max_3j
+                0.45,   # sm_surface
+                0.50,   # sm_rootzone
+                0.72,   # ndvi
+                0.35,   # ndwi
+                0.866,  # sin_mois
+                -0.5,   # cos_mois
+                1.80,   # anomalie_pluie
+                2.33,   # ratio_30j_7j
+                0.05,   # trend_sm
+                0.00,   # sm_deficit
+            ],
+            "valeurs_13": [
+                10,     # mois
+                0.866,  # sin_mois
+                -0.5,   # cos_mois
+                90.0,   # pluie_prev_7j
+                1.80,   # anomalie_pluie
+                280.0,  # pluie_30j
+                0.45,   # sm_surface
+                0.50,   # sm_rootzone
+                0.72,   # ndvi
+                0.35,   # ndwi
+                27.5,   # temp_max_3j
+                2.33,   # ratio_30j_7j
+                0.00,   # sm_deficit
+            ],
+            "valeurs_10": [
+                10,     # mois
+                0.866,  # sin_mois
+                -0.5,   # cos_mois
+                90.0,   # pluie_prev_7j
+                1.80,   # anomalie_pluie
+                280.0,  # pluie_30j
+                0.72,   # ndvi
+                0.50,   # sm_rootzone
+                0.00,   # sm_deficit
+                28.0,   # temp_max
+            ],
         },
         {
             "nom": "Sécheresse sévère (août)",
-            "valeurs_16": [8, 0.0, 10.0, 2.0, 32.0, 31.5, 0.08, 0.12, 0.30, -0.05,
-                           -0.866, -0.5, -1.50, 0.083, -0.08, 0.28],
-            "valeurs_10": [8, -0.866, -0.5, 2.0, -1.50, 10.0, 0.30, 0.12, 0.28, 32.0],
+            "valeurs_16": [
+                8,      # mois
+                0.0,    # pluie_7j
+                10.0,   # pluie_30j
+                2.0,    # pluie_prev_7j
+                32.0,   # temp_max
+                31.5,   # temp_max_3j
+                0.08,   # sm_surface
+                0.12,   # sm_rootzone
+                0.30,   # ndvi
+                -0.05,  # ndwi
+                -0.866, # sin_mois
+                -0.5,   # cos_mois
+                -1.50,  # anomalie_pluie  (pluie très en-dessous de la normale)
+                0.083,  # ratio_30j_7j
+                -0.08,  # trend_sm        (assèchement progressif)
+                0.28,   # sm_deficit
+            ],
+            "valeurs_13": [
+                8,      # mois
+                -0.866, # sin_mois
+                -0.5,   # cos_mois
+                2.0,    # pluie_prev_7j
+                -1.50,  # anomalie_pluie
+                10.0,   # pluie_30j
+                0.08,   # sm_surface
+                0.12,   # sm_rootzone
+                0.30,   # ndvi
+                -0.05,  # ndwi
+                31.5,   # temp_max_3j
+                0.083,  # ratio_30j_7j
+                0.28,   # sm_deficit
+            ],
+            "valeurs_10": [
+                8,      # mois
+                -0.866, # sin_mois
+                -0.5,   # cos_mois
+                2.0,    # pluie_prev_7j
+                -1.50,  # anomalie_pluie
+                10.0,   # pluie_30j
+                0.30,   # ndvi
+                0.12,   # sm_rootzone
+                0.28,   # sm_deficit
+                32.0,   # temp_max
+            ],
         },
     ]
 
@@ -286,7 +453,7 @@ def test_prediction_v4():
     modeles_risque = ["inondation", "secheresse", "chaleur"]
 
     print("\n" + "═" * 64)
-    print("  SAMCAM V4.5.1 — Test de prédiction multi-horizon")
+    print("  SAMCAM V4.5.2 — Test de prédiction multi-horizon")
     print("═" * 64)
 
     # ── Purge des pkl obsolètes (hérités d'une version antérieure) ──
@@ -325,11 +492,14 @@ def test_prediction_v4():
         for label, suffix, n_feats in horizons_config:
             suf = f"_{suffix}" if suffix else ""
 
-            # Vecteur de valeurs brutes selon la dimension de l'horizon
-            if n_feats == 10:
+            # FIX V4.5.2 : vecteur dédié par dimension pour éviter le
+            # mauvais mapping valeurs_16[:13] → FEATURES_13 (ordres différents)
+            if n_feats == 13:
+                valeurs_brutes = scenario["valeurs_13"]
+            elif n_feats == 10:
                 valeurs_brutes = scenario["valeurs_10"]
             else:
-                valeurs_brutes = scenario["valeurs_16"][:n_feats]
+                valeurs_brutes = scenario["valeurs_16"]
 
             scores_hor  = {}
             alertes_hor = {}
@@ -341,7 +511,6 @@ def test_prediction_v4():
 
                 d = charger_pkl_securise(pkl)
                 if d is None:
-                    # pkl invalide déjà signalé dans charger_pkl_securise
                     continue
 
                 try:
@@ -349,7 +518,6 @@ def test_prediction_v4():
                     seuil    = d["seuil"]
                     features = d.get("features", FEATURES_PAR_DIM.get(n_feats, FEATURES_16))
 
-                    # ── FIX V4.5.1 : DataFrame nommé → supprime le warning sklearn ──
                     X_df = make_dataframe(valeurs_brutes, features)
 
                     proba  = float(clf.predict_proba(X_df)[0, 1])
@@ -386,7 +554,7 @@ def test_prediction_v4():
     outpath = os.path.join(reports_dir, f"test_prediction_{ts}.json")
     with open(outpath, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": "V4.5.1", "date": datetime.datetime.now().isoformat(),
+            {"version": "V4.5.2", "date": datetime.datetime.now().isoformat(),
              "resultats": resultats},
             f, ensure_ascii=False, indent=2
         )
@@ -402,7 +570,7 @@ def test_prediction_v4():
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="SAMCAM V4.5.1 — Pipeline complet")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.5.2 — Pipeline complet")
     parser.add_argument("--days",    type=int, default=7)
     parser.add_argument("--browser", action="store_true",
                         help="Ouvre le dashboard dans le navigateur après l'exécution")
@@ -412,7 +580,7 @@ if __name__ == "__main__":
                         help="Test rapide : prédit sur 3 scénarios simulés (sans collecte réseau)")
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V4.5.1 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V4.5.2 — {datetime.date.today().isoformat()}")
 
     if args.test:
         ok = test_prediction_v4()
@@ -442,7 +610,7 @@ if __name__ == "__main__":
 
     copier_rapport_json()
 
-    print(f"\n✅ Pipeline V4.5.1 terminé. Rapports disponibles dans reports/")
+    print(f"\n✅ Pipeline V4.5.2 terminé. Rapports disponibles dans reports/")
     dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
     print(f"[PIPELINE] 🌐 Dashboard : file://{os.path.abspath(dashboard_path)}")
 
