@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 """
-SAMCAM V3 — Serveur FastAPI REST
+SAMCAM V4 — Serveur FastAPI REST
 
 Expose les données de risque climatique via une API JSON légère.
 Permet à l'application mobile (V5) et au dashboard HTML de consommer
 les rapports sans lire directement les fichiers locaux.
 
+V4 : L'endpoint /api/risk utilise en priorité le modèle scikit-learn
+     (risk_model.py) pour calculer les scores de risque J0/J+3/J+7.
+     Si les modèles .pkl sont absents, fallback sur le latest_report.json
+     généré par Phi-3 mini (comportement V3).
+
 Endpoints :
-    GET /api/risk      — Dernier niveau d'alerte + indicateurs + risques prévisionnels J+3/J+7
+    GET /api/risk      — Dernier niveau d'alerte + scores ML J0/J+3/J+7
     GET /api/meteo     — Météo actuelle + prévisions 7j
     GET /api/report    — Rapport complet (texte Phi-3 + données brutes)
     GET /api/history   — Historique des 30 derniers rapports
@@ -32,17 +37,18 @@ from fastapi.responses import JSONResponse
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+ROOT          = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DASHBOARD_DIR = os.path.join(ROOT, "dashboard")
 REPORTS_DIR   = os.path.join(ROOT, "reports")
 LATEST_JSON   = os.path.join(DASHBOARD_DIR, "latest_report.json")
+MODELS_DIR    = os.path.join(ROOT, "models")
 
 # ─── APP ──────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="SAMCAM API",
-    description="Système d'Alerte Météorologique du Cameroun — API REST V3/V4",
-    version="4.0.0",
+    description="Système d'Alerte Météorologique du Cameroun — API REST V4",
+    version="4.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -54,6 +60,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ─── CHARGEMENT DU MODÈLE ML (V4) ─────────────────────────────────────────────
+
+def _charger_risk_model():
+    """
+    Tente d'importer et d'instancier RiskModel depuis inference/risk_model.py.
+    Retourne l'instance ou None si non disponible (fallback V3).
+    """
+    try:
+        import sys
+        if ROOT not in sys.path:
+            sys.path.insert(0, ROOT)
+        from inference.risk_model import RiskModel
+        modele = RiskModel(models_dir=MODELS_DIR)
+        modele.charger_modeles()
+        return modele
+    except Exception as e:
+        print(f"[API] ⚠️  Modèle ML non disponible ({e}) — fallback sur latest_report.json")
+        return None
+
+
+# Chargement au démarrage du serveur
+_risk_model = _charger_risk_model()
+
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
@@ -67,6 +97,24 @@ def _load_latest() -> dict:
         return json.load(f)
 
 
+def _niveau_alerte(score_inondation: float, score_secheresse: float, score_chaleur: float) -> str:
+    """
+    Calcule le niveau d'alerte global à partir des scores de probabilité.
+    ROUGE  : au moins un risque >= 0.70
+    ORANGE : au moins un risque >= 0.45
+    JAUNE  : au moins un risque >= 0.25
+    VERT   : tous les risques < 0.25
+    """
+    max_score = max(score_inondation, score_secheresse, score_chaleur)
+    if max_score >= 0.70:
+        return "ROUGE"
+    elif max_score >= 0.45:
+        return "ORANGE"
+    elif max_score >= 0.25:
+        return "JAUNE"
+    return "VERT"
+
+
 # ─── ENDPOINTS ────────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Statut"])
@@ -77,29 +125,99 @@ def health_check():
         ts = os.path.getmtime(LATEST_JSON)
         derniere_maj = datetime.fromtimestamp(ts).isoformat()
     return {
-        "status": "ok",
-        "version": "4.0.0",
+        "status":             "ok",
+        "version":            "4.1.0",
         "rapport_disponible": rapport_dispo,
-        "derniere_maj": derniere_maj,
-        "serveur_time": datetime.now().isoformat(),
+        "modele_ml_charge":   _risk_model is not None,
+        "derniere_maj":       derniere_maj,
+        "serveur_time":       datetime.now().isoformat(),
     }
 
 
 @app.get("/api/risk", tags=["Risque climatique"])
 def get_latest_risk():
     """
-    Retourne le dernier niveau d'alerte, les indicateurs de risque,
-    et les risques prévisionnels J+3 et J+7 (V4).
+    Retourne le dernier niveau d'alerte et les scores de risque.
 
-    Champ 'methode_risque' indique si le score provient
-    d'un modèle ML (RandomForest) ou des règles physiques (fallback).
+    - Si le modèle ML est chargé (V4) : scores calculés par GradientBoosting
+      pour J0, J+3 et J+7 à partir des dernières données collectées.
+    - Sinon (fallback V3) : données issues de latest_report.json (Phi-3 mini).
+
+    Le champ 'methode_risque' indique la source utilisée :
+      'ml_gradient_boosting' | 'regles_physiques' | 'phi3_llm'
     """
+    # ── Chemin V4 : modèle ML disponible ────────────────────────────────────
+    if _risk_model is not None:
+        try:
+            # Récupère les dernières données collectées depuis latest_report.json
+            data = _load_latest()
+            indicateurs = data.get("indicateurs", {})
+
+            # Construction du vecteur de features depuis les indicateurs disponibles
+            features = {
+                "mois":           datetime.now().month,
+                "pluie_7j":       indicateurs.get("pluie_cumulee_7j_mm", 0),
+                "pluie_30j":      indicateurs.get("pluie_cumulee_30j_mm",
+                                    indicateurs.get("pluie_cumulee_7j_mm", 0) * 4),
+                "pluie_prev_7j":  indicateurs.get("pluie_prevue_7j_mm", 0),
+                "temp_max":       indicateurs.get("temp_max", 29.0),
+                "temp_max_3j":    indicateurs.get("temp_max_3j", 29.0),
+                "sm_surface":     indicateurs.get("sm_surface", 0.35),
+                "sm_rootzone":    indicateurs.get("sm_rootzone", 0.30),
+                "ndvi":           indicateurs.get("ndvi_moyen", 0.60),
+                "ndwi":           indicateurs.get("ndwi_moyen", 0.15),
+            }
+
+            # Prédictions multi-horizon
+            pred_j0 = _risk_model.predire(features, horizon=None)
+            pred_j3 = _risk_model.predire(features, horizon=3)
+            pred_j7 = _risk_model.predire(features, horizon=7)
+
+            niveau = _niveau_alerte(
+                pred_j0.get("inondation", 0),
+                pred_j0.get("secheresse", 0),
+                pred_j0.get("chaleur", 0),
+            )
+
+            return {
+                "date":           data.get("date"),
+                "zone":           data.get("zone", "Kribi"),
+                "niveau_alerte":  niveau,
+                "methode_risque": "ml_gradient_boosting",
+                "risque_actuel": {
+                    "scores":          pred_j0,
+                    "niveau_alerte":   niveau,
+                },
+                "risque_prevu_3j": {
+                    "scores":        pred_j3,
+                    "niveau_alerte": _niveau_alerte(
+                        pred_j3.get("inondation", 0),
+                        pred_j3.get("secheresse", 0),
+                        pred_j3.get("chaleur", 0),
+                    ),
+                },
+                "risque_prevu_7j": {
+                    "scores":        pred_j7,
+                    "niveau_alerte": _niveau_alerte(
+                        pred_j7.get("inondation", 0),
+                        pred_j7.get("secheresse", 0),
+                        pred_j7.get("chaleur", 0),
+                    ),
+                },
+                "indicateurs": indicateurs,
+                "capteur":     data.get("capteur", "Open-Meteo"),
+            }
+
+        except Exception as e:
+            print(f"[API] Erreur prédiction ML : {e} — fallback latest_report.json")
+
+    # ── Fallback V3 : latest_report.json (Phi-3 mini) ───────────────────────
     data = _load_latest()
     return {
         "date":            data.get("date"),
         "zone":            data.get("zone", "Kribi"),
         "niveau_alerte":   data.get("niveau_alerte", "INCONNU"),
-        "methode_risque":  data.get("methode_risque", "regles_physiques"),
+        "methode_risque":  data.get("methode_risque", "phi3_llm"),
         "risque_actuel":   data.get("risque_actuel",   {}),
         "risque_prevu_3j": data.get("risque_prevu_3j", {}),
         "risque_prevu_7j": data.get("risque_prevu_7j", {}),
@@ -140,15 +258,13 @@ def get_history(limit: int = 30):
                 "date":            d.get("date"),
                 "niveau_alerte":   d.get("niveau_alerte", "INCONNU"),
                 "methode_risque":  d.get("methode_risque", "?"),
-                # Scores V4
                 "risque_actuel":   d.get("risque_actuel",   {}).get("scores", {}),
                 "risque_prevu_3j": d.get("risque_prevu_3j", {}).get("scores", {}),
                 "risque_prevu_7j": d.get("risque_prevu_7j", {}).get("scores", {}),
-                # Indicateurs résumés
                 "indicateurs": {
                     "pluie_cumulee_7j_mm": d.get("indicateurs", {}).get("pluie_cumulee_7j_mm"),
                     "pluie_prevue_7j_mm":  d.get("indicateurs", {}).get("pluie_prevue_7j_mm"),
-                    "ndvi_moyen":           d.get("indicateurs", {}).get("ndvi_moyen"),
+                    "ndvi_moyen":          d.get("indicateurs", {}).get("ndvi_moyen"),
                 },
             })
         except Exception:
@@ -157,7 +273,7 @@ def get_history(limit: int = 30):
     return {"count": len(history), "history": history}
 
 
-# ─── STATIC FILES ─────────────────────────────────────────────────────────
+# ─── STATIC FILES ─────────────────────────────────────────────────────────────
 
 if os.path.isdir(DASHBOARD_DIR):
     app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR), name="dashboard")

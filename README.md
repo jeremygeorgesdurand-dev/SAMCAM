@@ -31,7 +31,7 @@ La solution repose sur une **architecture hybride** : le traitement principal n'
                              ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                      SERVEUR LOCAL                          │
-│  Collecte  →  Prétraitement  →  Phi-3 mini  →  API REST    │
+│  Collecte  →  Prétraitement  →  GradientBoosting  →  API   │
 │  (sécheresse · inondation · vague de chaleur)               │
 │  FastAPI · uvicorn · port 8000                              │
 └────────────────────────────┬────────────────────────────────┘
@@ -60,11 +60,13 @@ La solution repose sur une **architecture hybride** : le traitement principal n'
 
 1. Le serveur local récupère à intervalles réguliers des données météorologiques et satellitaires open source
 2. Ces données sont nettoyées et transformées en indicateurs exploitables
-3. Le modèle Phi-3 mini (via Ollama) calcule un niveau de risque et génère un rapport en langage naturel
-4. Les résultats sont stockés puis exposés à l'application mobile via une API REST légère
+3. Le modèle **GradientBoosting** (scikit-learn, V4) calcule un niveau de risque J0/J+3/J+7 pour inondation, sécheresse et vague de chaleur
+4. Les résultats sont exposés à l'application mobile via une API REST légère
 5. L'application affiche les alertes simplement et notifie l'utilisateur lorsqu'un seuil critique est dépassé
 
 En cas de connexion limitée, l'application continue d'afficher les dernières informations synchronisées localement (**offline-first**), puis se met à jour dès que le réseau redevient disponible.
+
+> **Fallback** : si les modèles `.pkl` sont absents, le serveur revient automatiquement sur Phi-3 mini via Ollama (comportement V3).
 
 ---
 
@@ -82,12 +84,27 @@ SAMCAM/
 │   └── requirements.txt
 │
 ├── inference/
-│   ├── analyser_kribi.py                   ← Analyse Phi-3 mini via Ollama
+│   ├── build_dataset.py                    ← Construction dataset historique (V4.6.1)
+│   ├── train_model.py                      ← Entraînement GradientBoosting multi-horizon (V4.4)
+│   ├── risk_model.py                       ← Inférence ML (chargement .pkl + prédiction)
+│   ├── analyser_kribi.py                   ← Analyse Phi-3 mini via Ollama (fallback)
 │   ├── pipeline_complet.py                 ← Orchestration collecte → analyse → JSON
-│   └── README.md
+│   └── requirements_v4.txt
 │
-├── server/                                 ← [V3] Serveur API REST
-│   ├── api.py                              ← FastAPI : endpoints /risk /meteo /report /history
+├── models/                                 ← [V4] Modèles entraînés
+│   ├── model_inondation.pkl                ← J0  (AUC=0.942, F1=0.804)
+│   ├── model_inondation_j1.pkl             ← J+1 (AUC=0.884)
+│   ├── model_inondation_j3.pkl             ← J+3 (AUC=0.887)
+│   ├── model_inondation_j7.pkl             ← J+7 (AUC=0.862)
+│   ├── model_secheresse.pkl                ← J0  (AUC=0.940, F1=0.732)
+│   ├── model_secheresse_j1.pkl             ← J+1 (AUC=0.897)
+│   ├── model_secheresse_j3.pkl             ← J+3 (AUC=0.898)
+│   ├── model_secheresse_j7.pkl             ← J+7 (AUC=0.891)
+│   ├── model_metadata.json                 ← Métadonnées entraînement (V4.4)
+│   └── evaluate_model.py                   ← Script d'évaluation
+│
+├── server/                                 ← [V4] Serveur API REST
+│   ├── api.py                              ← FastAPI V4 : ML branché sur /api/risk
 │   ├── start.sh                            ← Script de lancement
 │   ├── requirements.txt                    ← fastapi, uvicorn
 │   └── README.md
@@ -104,7 +121,7 @@ SAMCAM/
 
 ---
 
-## 🚀 Démarrage rapide — V3
+## 🚀 Démarrage rapide — V4
 
 ### 1. Prérequis
 
@@ -112,27 +129,41 @@ SAMCAM/
 # Dépendances collecte + analyse
 pip install -r data_collection/requirements.txt
 
+# Dépendances ML V4
+pip install -r inference/requirements_v4.txt
+
 # Dépendances serveur
 pip install -r server/requirements.txt
 
-# Ollama + Phi-3 mini (pour la génération des rapports)
+# (Optionnel) Ollama + Phi-3 mini — fallback si modèles ML absents
 ollama pull phi3:mini
 ```
 
-### 2. Lancer le pipeline une première fois
+### 2. Construire le dataset et entraîner les modèles
 
 ```bash
-python3 inference/pipeline_complet.py
-# → Collecte, analyse, génère dashboard/latest_report.json
+# Dataset historique 1984→2024 (vraies données Open-Meteo)
+python3 inference/build_dataset.py --openmeteo
+
+# Entraînement tous horizons (J0, J+1, J+3, J+7)
+python3 inference/train_model.py --all-horizons
+
+# Évaluation
+python3 models/evaluate_model.py
 ```
 
-### 3. Démarrer le serveur API
+### 3. Lancer le pipeline et le serveur
 
 ```bash
+# Collecte + génération latest_report.json
+python3 inference/pipeline_complet.py
+
+# Démarrer le serveur
 bash server/start.sh
-# Serveur disponible sur http://localhost:8000
-# Dashboard : http://localhost:8000/dashboard/samcam-v4-dashboard.html
-# API docs  : http://localhost:8000/docs
+# Serveur  : http://localhost:8000
+# API risk : http://localhost:8000/api/risk   ← scores ML J0/J+3/J+7
+# Dashboard: http://localhost:8000/dashboard/samcam-v4-dashboard.html
+# API docs : http://localhost:8000/docs
 ```
 
 ### 4. Activer la collecte automatique (cron toutes les 6h)
@@ -148,29 +179,40 @@ bash data_collection/scheduler_cron.sh
 
 | Méthode | Route | Description |
 |---|---|---|
-| `GET` | `/health` | Statut + date du dernier rapport |
-| `GET` | `/api/risk` | Niveau d'alerte + indicateurs (léger) |
+| `GET` | `/health` | Statut + modèle ML chargé + date du dernier rapport |
+| `GET` | `/api/risk` | Scores ML J0/J+3/J+7 + niveau d'alerte global |
 | `GET` | `/api/meteo` | Météo actuelle + prévisions 7j |
-| `GET` | `/api/report` | Rapport complet avec texte Phi-3 |
+| `GET` | `/api/report` | Rapport complet |
 | `GET` | `/api/history?limit=30` | Historique des N derniers rapports |
 | `GET` | `/dashboard/*` | Dashboard HTML (fichiers statiques) |
 | `GET` | `/docs` | Documentation Swagger interactive |
 
-### Exemple de réponse `/api/risk`
+### Exemple de réponse `/api/risk` (V4)
 
 ```json
 {
-  "date": "2026-06-16",
+  "date": "2026-07-02",
   "zone": "Kribi",
   "niveau_alerte": "JAUNE",
+  "methode_risque": "ml_gradient_boosting",
+  "risque_actuel": {
+    "scores": { "inondation": 0.38, "secheresse": 0.12, "chaleur": 0.05 },
+    "niveau_alerte": "JAUNE"
+  },
+  "risque_prevu_3j": {
+    "scores": { "inondation": 0.45, "secheresse": 0.10, "chaleur": 0.04 },
+    "niveau_alerte": "ORANGE"
+  },
+  "risque_prevu_7j": {
+    "scores": { "inondation": 0.52, "secheresse": 0.09, "chaleur": 0.04 },
+    "niveau_alerte": "ORANGE"
+  },
   "indicateurs": {
     "pluie_cumulee_7j_mm": 142.5,
     "pluie_prevue_7j_mm": 98.2,
-    "ndvi_moyen": 0.712,
-    "risque_inondation_observe": "modéré",
-    "risque_secheresse": "faible"
+    "ndvi_moyen": 0.712
   },
-  "capteur": "Sentinel-2"
+  "capteur": "Open-Meteo"
 }
 ```
 
@@ -202,7 +244,12 @@ Interface web autonome (HTML/CSS/JS) pour la surveillance météo en temps réel
 - [x] **V1** — Dashboard météo multi-zones (Open-Meteo)
 - [x] **V2** — Intégration images satellites (Sentinel-2, MODIS, SMAP) + indicateurs de risque
 - [x] **V3** — Serveur local FastAPI : collecte automatisée (cron), API REST, dashboard servi
-- [ ] **V4** — Modèle de classification de risque formalisé (scikit-learn, données historiques)
+- [x] **V4** — Modèle de classification de risque (GradientBoosting, scikit-learn, 40 ans de données)
+  - Dataset historique 1984→2024 (2139 semaines, vraies données Open-Meteo + 47 événements catalogués)
+  - 8 modèles entraînés : inondation + sécheresse × J0/J+1/J+3/J+7
+  - AUC > 0.86 sur tous les horizons, split temporel strict (train<2020, test≥2020)
+  - Branchement ML dans `server/api.py` avec fallback Phi-3 mini
+  - Fix `label_chaleur` : anomalie thermique relative (V4.6.1)
 - [ ] **V5** — Application mobile Flutter (offline-first, notifications, historique)
 - [ ] **V6** — Diffusion multi-canaux (push notifications, SMS / WhatsApp)
 
@@ -214,7 +261,8 @@ Interface web autonome (HTML/CSS/JS) pour la surveillance météo en temps réel
 |---|---|
 | Collecte météo | Open-Meteo API, NASA POWER |
 | Satellite | Google Earth Engine (Sentinel-2, MODIS, SMAP) |
-| Analyse IA | Phi-3 mini via Ollama |
+| Modèle ML | GradientBoostingClassifier (scikit-learn), multi-horizon J0/J+1/J+3/J+7 |
+| Analyse LLM (fallback) | Phi-3 mini via Ollama |
 | Serveur API | FastAPI + uvicorn |
 | Dashboard | HTML/CSS/JS, Leaflet.js, Chart.js |
 | Automatisation | cron, bash |

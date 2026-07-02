@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.6.0 — Construction du dataset historique
+SAMCAM V4.6.1 — Construction du dataset historique
+
+NOUVEAUTÉS V4.6.1 :
+    - label_chaleur : seuil absolu (temp_max > 33°C) remplacé par
+      anomalie relative (temp_max > moyenne_mensuelle + 1.5 * std).
+      Kribi est une zone équatoriale côtière (~28°C), le seuil absolu
+      33°C n'est jamais atteint → 0 positifs sur 40 ans.
+      La nouvelle logique détecte les semaines anormalement chaudes
+      par rapport à la normale mensuelle locale.
 
 NOUVEAUTÉS V4.6.0 :
     - Catalogue d'événements réels : data/flood_events_kribi.csv
@@ -61,6 +69,18 @@ ET0_NORMALES_MENSUELLES = {
     7: 18, 8: 18, 9: 19, 10: 20, 11: 21, 12: 23,
 }
 
+# Normales de température mensuelle (°C) pour Kribi — source : climatologie ERA5-Land
+# Utilisées pour le calcul de l'anomalie thermique (label_chaleur V4.6.1)
+TEMP_NORMALES_MENSUELLES = {
+    1: 29.5, 2: 30.2, 3: 30.5, 4: 30.0, 5: 29.2, 6: 28.0,
+    7: 27.0, 8: 27.2, 9: 27.8, 10: 28.5, 11: 29.0, 12: 29.2,
+}
+# Écart-type approximatif de temp_max par mois (°C) — estimé sur 40 ans ERA5-Land Kribi
+TEMP_STD_MENSUELLES = {
+    1: 1.8, 2: 1.7, 3: 1.6, 4: 1.5, 5: 1.4, 6: 1.3,
+    7: 1.2, 8: 1.2, 9: 1.3, 10: 1.4, 11: 1.5, 12: 1.6,
+}
+
 
 # ───────────────────────────────────────────────────────────────────────────────
 # CATALOGUE ÉVÉNEMENTS RÉELS
@@ -98,7 +118,6 @@ def semaine_couvre_evenement(date_semaine, evenements, delta=7):
     """
     fin_semaine = date_semaine + datetime.timedelta(days=delta)
     for (d1, d2) in evenements:
-        # Chevauchement : début_semaine < fin_événement ET fin_semaine > début_événement
         if date_semaine < d2 and fin_semaine > d1:
             return True
     return False
@@ -135,7 +154,7 @@ def features_derivees(mois, pluie_7j, pluie_30j,
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# LABELS — V4.6.0 HYBRIDE
+# LABELS — V4.6.1
 # ───────────────────────────────────────────────────────────────────────────────
 
 def label_inondation_hybride(date_semaine, pluie_7j, pluie_prev_7j,
@@ -145,17 +164,15 @@ def label_inondation_hybride(date_semaine, pluie_7j, pluie_prev_7j,
     1. Événement réel documenté → label=1 (priorité absolue)
     2. Heuristique recalibrée pour Kribi (seuils abaissés) → label=1 si score>=2
     """
-    # Priorité 1 : événement documenté
     if semaine_couvre_evenement(date_semaine, evenements):
         return 1
 
-    # Priorité 2 : heuristique recalibrée Kribi (seuils abaissés)
     normale = NORMALES_MENSUELLES.get(mois, 120)
     score = 0
-    if pluie_7j      > normale * 1.2:  score += 1  # V4.6: 1.5 → 1.2
-    if pluie_prev_7j > normale * 1.1:  score += 1  # V4.6: 1.3 → 1.1
-    if sm_surface    > 0.38:           score += 1  # V4.6: 0.45 → 0.38
-    if ndwi          > 0.22:           score += 1  # V4.6: 0.30 → 0.22
+    if pluie_7j      > normale * 1.2:  score += 1
+    if pluie_prev_7j > normale * 1.1:  score += 1
+    if sm_surface    > 0.38:           score += 1
+    if ndwi          > 0.22:           score += 1
     return 1 if score >= 2 else 0
 
 
@@ -182,12 +199,22 @@ def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     return 1 if score >= 2 else 0
 
 
-def label_chaleur(temp_max, temp_max_3j_moy):
-    return 1 if (temp_max > 33.0 and temp_max_3j_moy > 32.0) else 0
+def label_chaleur(temp_max, temp_max_3j_moy, mois):
+    """
+    V4.6.1 — Anomalie thermique relative.
+    Remplace le seuil absolu (33°C) jamais atteint à Kribi (~28°C moy).
+    Retourne 1 si :
+      - temp_max     > normale_mensuelle + 1.5 * std  (pic hebdomadaire anormal)
+      - temp_max_3j  > normale_mensuelle + 1.0 * std  (persistance sur 3 semaines)
+    Objectif : ~5-10% de positifs, cohérent avec les vagues de chaleur tropicales.
+    """
+    normale = TEMP_NORMALES_MENSUELLES.get(mois, 28.5)
+    std     = TEMP_STD_MENSUELLES.get(mois, 1.5)
+    return 1 if (temp_max > normale + 1.5 * std and temp_max_3j_moy > normale + 1.0 * std) else 0
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# MODE OPEN-METEO HISTORIQUE — V4.6.0
+# MODE OPEN-METEO HISTORIQUE — V4.6.1
 # ───────────────────────────────────────────────────────────────────────────────
 
 def collecter_via_openmeteo(annee_debut, annee_fin):
@@ -202,7 +229,6 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
             "  pip install openmeteo-requests requests-cache retry-requests pandas"
         )
 
-    # Chargement événements réels
     evenements = charger_evenements_reels()
 
     cache_session = requests_cache.CachedSession(
@@ -312,7 +338,6 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
                                    sm_surface_prev=sm_surface_prev)
         sm_surface_prev = sm_surface
 
-        # V4.6.0 — label hybride réel + heuristique
         lbl_inond = label_inondation_hybride(
             current, pluie_7j, pluie_prev, sm_surface, ndwi, mois, evenements
         )
@@ -333,7 +358,7 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
-            "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
+            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
             "source":           "open-meteo-real",
         })
 
@@ -343,8 +368,10 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
         current += delta_7j
 
     n_inond_reel  = sum(1 for l in lignes if l["label_inondation"] == 1)
-    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.6.0 — 1984→{annee_fin})")
+    n_chaleur     = sum(1 for l in lignes if l["label_chaleur"]    == 1)
+    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.6.1 — 1984→{annee_fin})")
     print(f"[OPEN-METEO]    label_inondation=1 : {n_inond_reel} semaines")
+    print(f"[OPEN-METEO]    label_chaleur=1    : {n_chaleur} semaines")
     print(f"[OPEN-METEO]    dont événements réels : {len(evenements)} catalogués")
     return lignes
 
@@ -411,7 +438,7 @@ def collecter_via_gee(annee_debut, annee_fin):
                 .mean().reduceRegion(ee.Reducer.mean(), point, 5000).getInfo()
             )
             era5_3j = (
-                ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
+                ee.ImageCollection("ECMWF/ERA5_LAND/AGGR")
                 .filterDate(d_str, (current + datetime.timedelta(days=21)).isoformat())
                 .select(["temperature_2m_max"])
                 .mean().reduceRegion(ee.Reducer.mean(), point, 5000).getInfo()
@@ -456,7 +483,7 @@ def collecter_via_gee(annee_debut, annee_fin):
                 **{k: round(v, 4) for k, v in deriv.items()},
                 "label_inondation": lbl_inond,
                 "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois, et0_semaine),
-                "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
+                "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
                 "source":           "gee",
             }
             lignes.append(row)
@@ -491,7 +518,7 @@ def _facteur_enso(annee):
 
 
 def generer_simulation(annee_debut, annee_fin):
-    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.6.0)...")
+    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.6.1)...")
     print(f"[SIM] ⚠️  Mode simulation : données synthétiques uniquement.")
     print(f"[SIM]    Utilisez --openmeteo pour de vraies données historiques.")
 
@@ -529,7 +556,7 @@ def generer_simulation(annee_debut, annee_fin):
         pluie_30j  = max(0.0, rng.gauss(normale_30j * facteur_pluie, normale_30j * 0.35))
         pluie_prev = max(0.0, rng.gauss(normale_7j  * facteur_pluie, normale_7j  * 0.50))
 
-        temp_base = 28.0 + 4.0 * math.sin((mois - 4) * math.pi / 6)
+        temp_base = TEMP_NORMALES_MENSUELLES.get(mois, 28.5)
         temp_max  = temp_base + rng.gauss(0, 2.2)
 
         sm_surface  = max(0.10, min(0.70,
@@ -596,7 +623,7 @@ def generer_simulation(annee_debut, annee_fin):
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
-            "label_chaleur":    label_chaleur(temp_max, temp_max_3j),
+            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
             "source":           "simulation",
         })
         current += delta
@@ -627,7 +654,7 @@ def exporter_csv(lignes, chemin):
     source = lignes[0].get("source", "?") if lignes else "?"
 
     print(f"\n[BUILD] Dataset exporté : {chemin}")
-    print(f"        Version         : V4.6.0 (1984→{lignes[-1]['date'][:4]})")
+    print(f"        Version         : V4.6.1 (1984→{lignes[-1]['date'][:4]})")
     print(f"        Source          : {source}")
     print(f"        Lignes totales  : {n}")
     print(f"        Features        : {len(entetes) - 5} (+ date, mois, labels, source)")
@@ -643,7 +670,7 @@ def exporter_csv(lignes, chemin):
 # ───────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.6.0 — Build dataset historique")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.6.1 — Build dataset historique")
     parser.add_argument(
         "--start", type=int, default=1984,
         help="Année de début (défaut: 1984 — limite basse ERA5-Land fiable)"
