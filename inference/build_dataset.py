@@ -1,28 +1,32 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.6.1 — Construction du dataset historique
+SAMCAM V4.6.2 — Construction du dataset historique
+
+NOUVEAUTÉS V4.6.2 :
+    - label_chaleur : INDICE DE STRESS THERMIQUE multi-critères.
+      Kribi est côtière : la température 2m_max varie très peu (~27-31°C)
+      et ne dépasse jamais +1.5σ dans les données ERA5/Open-Meteo → 1 positif
+      sur 40 ans avec V4.6.1.
+      V4.6.2 adopte une logique par SCORE combinant 4 indicateurs :
+        1. temp_max > normale + 1.0σ          (pic thermique modéré)
+        2. temp_max_3j > normale + 0.5σ       (persistance sur 3 semaines)
+        3. et0_semaine > et0_normale * 1.3    (stress évaporatif élevé)
+        4. pluie_7j < 10.0 mm                 (semaine sèche, amplifie la chaleur)
+      → label=1 si score >= 2
+      Objectif : ~8-12% de positifs, cohérent avec la réalité climatique côtière.
+      Signature étendue : label_chaleur(temp_max, temp_max_3j_moy, mois,
+                                        et0_semaine=0.0, pluie_7j=0.0)
 
 NOUVEAUTÉS V4.6.1 :
     - label_chaleur : seuil absolu (temp_max > 33°C) remplacé par
-      anomalie relative (temp_max > moyenne_mensuelle + 1.5 * std).
-      Kribi est une zone équatoriale côtière (~28°C), le seuil absolu
-      33°C n'est jamais atteint → 0 positifs sur 40 ans.
-      La nouvelle logique détecte les semaines anormalement chaudes
-      par rapport à la normale mensuelle locale.
+      anomalie relative (temp_max > normale + 1.5σ).
+      → 1 seul positif sur 40 ans : seuil encore trop haut pour Kribi.
 
 NOUVEAUTÉS V4.6.0 :
     - Catalogue d'événements réels : data/flood_events_kribi.csv
       Sources : EM-DAT, ReliefWeb OCHA, ANPC Cameroun (47 événements 1984-2024)
-    - label_inondation HYBRIDE :
-        1. label_reel=1 si la semaine couvre un événement documenté (priorité absolue)
-        2. label_heuristique=1 si les seuils physiques sont atteints (calibrés Kribi)
-        → objectif : passer de 18 → ~65 positifs (+250%)
-    - Seuils heuristique abaissés pour le climat équatorial côtier de Kribi :
-        score >= 2  →  unchanged
-        normale*1.5 → normale*1.2  (pluie 7j)
-        normale*1.3 → normale*1.1  (pluie prev)
-        sm_surface  > 0.45 → > 0.38
-        ndwi        > 0.30 → > 0.22
+    - label_inondation HYBRIDE (priorité catalogue réel > heuristique)
+    - Seuils heuristique abaissés pour le climat équatorial côtier de Kribi
 
 FIX V4.4.4 :
     - Année de début par défaut : 1990 → 1984
@@ -70,7 +74,6 @@ ET0_NORMALES_MENSUELLES = {
 }
 
 # Normales de température mensuelle (°C) pour Kribi — source : climatologie ERA5-Land
-# Utilisées pour le calcul de l'anomalie thermique (label_chaleur V4.6.1)
 TEMP_NORMALES_MENSUELLES = {
     1: 29.5, 2: 30.2, 3: 30.5, 4: 30.0, 5: 29.2, 6: 28.0,
     7: 27.0, 8: 27.2, 9: 27.8, 10: 28.5, 11: 29.0, 12: 29.2,
@@ -154,7 +157,7 @@ def features_derivees(mois, pluie_7j, pluie_30j,
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# LABELS — V4.6.1
+# LABELS — V4.6.2
 # ───────────────────────────────────────────────────────────────────────────────
 
 def label_inondation_hybride(date_semaine, pluie_7j, pluie_prev_7j,
@@ -199,22 +202,36 @@ def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
     return 1 if score >= 2 else 0
 
 
-def label_chaleur(temp_max, temp_max_3j_moy, mois):
+def label_chaleur(temp_max, temp_max_3j_moy, mois, et0_semaine=0.0, pluie_7j=0.0):
     """
-    V4.6.1 — Anomalie thermique relative.
-    Remplace le seuil absolu (33°C) jamais atteint à Kribi (~28°C moy).
-    Retourne 1 si :
-      - temp_max     > normale_mensuelle + 1.5 * std  (pic hebdomadaire anormal)
-      - temp_max_3j  > normale_mensuelle + 1.0 * std  (persistance sur 3 semaines)
-    Objectif : ~5-10% de positifs, cohérent avec les vagues de chaleur tropicales.
+    V4.6.2 — Indice de stress thermique multi-critères.
+
+    À Kribi (zone équatoriale côtière), temp_max varie dans une plage étroite
+    (~27-31°C) : les anomalies pures ne dépassent presque jamais +1.5σ.
+    Le danger vient de la COMBINAISON chaleur + humidité + sécheresse courte.
+
+    Score (label=1 si score >= 2) :
+      +1  temp_max     > normale_mensuelle + 1.0 * std  (pic thermique modéré)
+      +1  temp_max_3j  > normale_mensuelle + 0.5 * std  (persistance thermique)
+      +1  et0_semaine  > et0_normale * 1.3              (fort stress évaporatif)
+      +1  pluie_7j     < 10.0 mm                        (semaine sèche = chaleur amplifiée)
+
+    Objectif : ~8-12% de positifs sur 40 ans (cohérent avec vagues de chaleur tropicales).
     """
-    normale = TEMP_NORMALES_MENSUELLES.get(mois, 28.5)
-    std     = TEMP_STD_MENSUELLES.get(mois, 1.5)
-    return 1 if (temp_max > normale + 1.5 * std and temp_max_3j_moy > normale + 1.0 * std) else 0
+    normale    = TEMP_NORMALES_MENSUELLES.get(mois, 28.5)
+    std        = TEMP_STD_MENSUELLES.get(mois, 1.5)
+    et0_norm   = ET0_NORMALES_MENSUELLES.get(mois, 21)
+
+    score = 0
+    if temp_max      > normale + 1.0 * std:   score += 1
+    if temp_max_3j_moy > normale + 0.5 * std: score += 1
+    if et0_semaine   > et0_norm * 1.3:        score += 1
+    if pluie_7j      < 10.0:                  score += 1
+    return 1 if score >= 2 else 0
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# MODE OPEN-METEO HISTORIQUE — V4.6.1
+# MODE OPEN-METEO HISTORIQUE — V4.6.2
 # ───────────────────────────────────────────────────────────────────────────────
 
 def collecter_via_openmeteo(annee_debut, annee_fin):
@@ -358,7 +375,9 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
-            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
+            # V4.6.2 : et0_semaine + pluie_7j transmis à label_chaleur
+            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
+                                              et0_semaine=et0_semaine, pluie_7j=pluie_7j),
             "source":           "open-meteo-real",
         })
 
@@ -369,7 +388,7 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
 
     n_inond_reel  = sum(1 for l in lignes if l["label_inondation"] == 1)
     n_chaleur     = sum(1 for l in lignes if l["label_chaleur"]    == 1)
-    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.6.1 — 1984→{annee_fin})")
+    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.6.2 — 1984→{annee_fin})")
     print(f"[OPEN-METEO]    label_inondation=1 : {n_inond_reel} semaines")
     print(f"[OPEN-METEO]    label_chaleur=1    : {n_chaleur} semaines")
     print(f"[OPEN-METEO]    dont événements réels : {len(evenements)} catalogués")
@@ -483,7 +502,8 @@ def collecter_via_gee(annee_debut, annee_fin):
                 **{k: round(v, 4) for k, v in deriv.items()},
                 "label_inondation": lbl_inond,
                 "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois, et0_semaine),
-                "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
+                "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
+                                                  et0_semaine=et0_semaine, pluie_7j=chirps_7j),
                 "source":           "gee",
             }
             lignes.append(row)
@@ -518,7 +538,7 @@ def _facteur_enso(annee):
 
 
 def generer_simulation(annee_debut, annee_fin):
-    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.6.1)...")
+    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.6.2)...")
     print(f"[SIM] ⚠️  Mode simulation : données synthétiques uniquement.")
     print(f"[SIM]    Utilisez --openmeteo pour de vraies données historiques.")
 
@@ -623,7 +643,8 @@ def generer_simulation(annee_debut, annee_fin):
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
             "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
-            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois),
+            "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
+                                              et0_semaine=et0_semaine, pluie_7j=pluie_7j),
             "source":           "simulation",
         })
         current += delta
@@ -654,7 +675,7 @@ def exporter_csv(lignes, chemin):
     source = lignes[0].get("source", "?") if lignes else "?"
 
     print(f"\n[BUILD] Dataset exporté : {chemin}")
-    print(f"        Version         : V4.6.1 (1984→{lignes[-1]['date'][:4]})")
+    print(f"        Version         : V4.6.2 (1984→{lignes[-1]['date'][:4]})")
     print(f"        Source          : {source}")
     print(f"        Lignes totales  : {n}")
     print(f"        Features        : {len(entetes) - 5} (+ date, mois, labels, source)")
@@ -670,7 +691,7 @@ def exporter_csv(lignes, chemin):
 # ───────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.6.1 — Build dataset historique")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.6.2 — Build dataset historique")
     parser.add_argument(
         "--start", type=int, default=1984,
         help="Année de début (défaut: 1984 — limite basse ERA5-Land fiable)"
