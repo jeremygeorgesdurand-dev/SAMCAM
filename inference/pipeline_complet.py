@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-SAMCAM V5.0 — Pipeline complet multi-zones : collecte + analyse + dashboard
+SAMCAM V5.0.1 — Pipeline complet multi-zones : collecte + analyse + dashboard
+
+FIX V5.0.1 :
+    - Correction appel collect_zone.py : suppression de --all (argument inexistant).
+      collect_zone.py collecte toutes les zones quand --zone est absent.
 
 NOUVEAUTÉS V5.0 :
-    - Étape 1 : collect_zone.py --all  (collecte toutes les zones en parallèle)
+    - Étape 1 : collect_zone.py  (collecte toutes les zones, sans --zone)
       remplace collect_kribi.py (zone unique Kribi seulement)
     - Étape 3 : analyse_zone.py --all  (analyse toutes les zones)
       remplace risk_model.py (zone unique Kribi seulement)
@@ -81,7 +85,6 @@ def copier_rapport_multi():
     copies = []
 
     for slug in ZONES_SLUGS:
-        # Cherche le rapport du jour, sinon le plus récent
         exact = os.path.join(reports_dir, f"rapport_{slug}_{today}.json")
         candidats = sorted(glob.glob(os.path.join(reports_dir, f"rapport_{slug}_*.json")))
         if os.path.exists(exact):
@@ -140,10 +143,6 @@ def ouvrir_dashboard():
 # ────────────────────────────────────────────────────────────────
 
 def charger_pkl_securise(chemin: str):
-    """
-    Charge un fichier .pkl joblib de façon sécurisée.
-    Retourne le dict {'clf', 'seuil', 'features', ...} si valide, None sinon.
-    """
     import joblib
     try:
         d = joblib.load(chemin)
@@ -226,19 +225,16 @@ def test_prediction_v4():
 
     purge_stale_pkl(models_dir, noms)
 
-    # ── Scénario 1 : Saison des pluies (juillet, côte)
     val16_pluies = [7, 185, 420, 210, 29.5, 31.2, 0.42, 0.51, 0.68, 0.12,
                     0.866, -0.5, 1.8, 2.27, 0.02, 0.05]
     val13_pluies = [7, 0.866, -0.5, 210, 1.8, 420, 0.42, 0.51, 0.68, 0.12, 31.2, 2.27, 0.05]
     val10_pluies = [7, 0.866, -0.5, 210, 1.8, 420, 0.68, 0.51, 0.05, 29.5]
 
-    # ── Scénario 2 : Saison sèche (février, Nord)
     val16_seche  = [2, 5, 12, 3, 36.8, 38.1, 0.08, 0.12, 0.22, -0.15,
                     0.309, 0.951, -0.9, 0.42, -0.01, 0.72]
     val13_seche  = [2, 0.309, 0.951, 3, -0.9, 12, 0.08, 0.12, 0.22, -0.15, 38.1, 0.42, 0.72]
     val10_seche  = [2, 0.309, 0.951, 3, -0.9, 12, 0.22, 0.12, 0.72, 36.8]
 
-    # ── Scénario 3 : Sécheresse sévère (avril, transition)
     val16_sev    = [4, 2, 8, 1, 38.5, 39.2, 0.05, 0.08, 0.15, -0.20,
                     0.0, 1.0, -1.2, 0.25, -0.02, 0.88]
     val13_sev    = [4, 0.0, 1.0, 1, -1.2, 8, 0.05, 0.08, 0.15, -0.20, 39.2, 0.25, 0.88]
@@ -314,7 +310,7 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V5.0 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V5.0.1 — {datetime.date.today().isoformat()}")
     print(f"   Zones : {len(ZONES_SLUGS)} zones ({', '.join(ZONES_SLUGS)})")
 
     if args.test:
@@ -324,9 +320,9 @@ def main():
     n_data = compter_donnees_reelles()
     print(f"   Données collectées disponibles : {n_data} fichiers")
 
-    # ── Étape 1 : Collecte toutes les zones
+    # ── Étape 1 : Collecte toutes les zones (sans --zone = toutes)
     run(
-        [sys.executable, "data_collection/collect_zone.py", "--all", "--days", str(args.days)],
+        [sys.executable, "data_collection/collect_zone.py", "--days", str(args.days)],
         "[1/4] Collecte météo + satellite — toutes les zones"
     )
 
@@ -349,7 +345,7 @@ def main():
     # ── Étape 4 : Copie des rapports dans dashboard/
     copier_rapport_multi()
 
-    print(f"\n✅ Pipeline V5.0 terminé — {len(ZONES_SLUGS)} zones analysées.")
+    print(f"\n✅ Pipeline V5.0.1 terminé — {len(ZONES_SLUGS)} zones analysées.")
     print(f"   Rapports : reports/rapport_<zone>_{datetime.date.today().isoformat()}.json")
     dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
     print(f"[PIPELINE] 🌐 Dashboard : file://{os.path.abspath(dashboard_path)}")
