@@ -1,21 +1,20 @@
 // SAMCAM — Service météo via Open-Meteo (gratuit, sans clé)
-// V2 : coordonnées GPS dynamiques — plus de lat/lon fixe
+// V2 : coordonnées GPS dynamiques via ApiService.getPosition()
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather_forecast.dart';
 import 'api_service.dart';
 
 class WeatherService {
-  /// Récupère les prévisions météo Open-Meteo pour la position GPS de l'utilisateur.
+  /// Récupère les prévisions Open-Meteo pour la position GPS de l'utilisateur.
   /// Fallback automatique sur le mock Kribi si hors réseau ou GPS refusé.
   static Future<WeatherData> getForecast() async {
     try {
-      // Récupère la position réelle (ou debug URL params)
-      final (lat, lon) = await ApiService.getPosition();
+      final pos = await ApiService.getPosition();
 
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=$lat&longitude=$lon'
+        '?latitude=${pos.lat}&longitude=${pos.lon}'
         '&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m'
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
@@ -33,7 +32,7 @@ class WeatherService {
     }
   }
 
-  // ── Mock Kribi (fallback si pas de réseau ou GPS refusé) ────────────────
+  // ── Mock Kribi (fallback hors réseau) ─────────────────────────────────
   static WeatherData _mockKribi() {
     final now = DateTime.now();
     final hourly = List.generate(24, (i) {
@@ -70,15 +69,14 @@ class WeatherService {
       daily: daily,
       current: CurrentConditions(
         temperature: 28, feelsLike: 31, pressure: 1012,
-        visibility: 17,
-        uvIndex: 3, humidity: 76,
+        visibility: 17, uvIndex: 3, humidity: 76,
         windSpeed: 11, windGusts: 19,
         weatherCode: 61,
       ),
     );
   }
 
-  // ── Parsing réponse Open-Meteo ──────────────────────────────────────────
+  // ── Parsing réponse Open-Meteo ───────────────────────────────────────
   static WeatherData _parse(Map<String, dynamic> json) {
     CurrentConditions? current;
     if (json['current'] != null) {
