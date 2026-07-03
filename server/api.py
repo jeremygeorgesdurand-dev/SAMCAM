@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAMCAM V5.2 — Serveur FastAPI REST multi-zones agricoles
+SAMCAM V5.3 — Serveur FastAPI REST multi-zones agricoles
 
 Expose les données de risque climatique via une API JSON légère.
 Toutes les routes acceptent désormais un paramètre optionnel `?zone=`
@@ -81,8 +81,8 @@ OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
 app = FastAPI(
     title="SAMCAM API",
-    description="Système d'Alerte Météorologique du Cameroun — API REST V5.2 multi-zones",
-    version="5.2.0",
+    description="Système d'Alerte Météorologique du Cameroun — API REST V5.3 multi-zones",
+    version="5.3.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -122,10 +122,6 @@ def _zone_slug(name: str) -> str:
 
 
 def _resolve_zone(zone: str) -> dict:
-    """
-    Valide le nom de zone et retourne ses méta-données.
-    Lève HTTPException 404 si zone inconnue.
-    """
     meta = ZONES_NAMES.get(zone.lower())
     if meta is None:
         noms = ", ".join(z["name"] for z in ZONES_META)
@@ -137,11 +133,6 @@ def _resolve_zone(zone: str) -> dict:
 
 
 def _load_zone_data(zone: str) -> dict:
-    """
-    Charge le dernier fichier de collecte pour une zone.
-    Cherche data/<slug>_YYYY-MM-DD.json (le plus récent).
-    Fallback sur latest_report.json si zone == Kribi et aucun fichier trouvé.
-    """
     slug = _zone_slug(zone)
     pattern = os.path.join(DATA_DIR, f"{slug}_*.json")
     fichiers = sorted(glob.glob(pattern))
@@ -150,7 +141,6 @@ def _load_zone_data(zone: str) -> dict:
         with open(fichiers[-1], encoding="utf-8") as f:
             return json.load(f)
 
-    # Fallback Kribi sur latest_report.json (compatibilité V3/V4)
     if zone.lower() == "kribi" and os.path.exists(LATEST_JSON):
         with open(LATEST_JSON, encoding="utf-8") as f:
             return json.load(f)
@@ -159,7 +149,7 @@ def _load_zone_data(zone: str) -> dict:
         status_code=503,
         detail=(
             f"Aucune donnée disponible pour la zone '{zone}'. "
-            f"Lancez : python3 data_collection/collect_zone.py --zone {zone}"
+            f"Lancez : python3 data_collection/collect_all_zones.py --zones {zone}"
         )
     )
 
@@ -173,7 +163,6 @@ def _niveau_alerte(score_inondation: float = 0, score_secheresse: float = 0, sco
 
 
 def _last_collect_date(zone: str) -> Optional[str]:
-    """Retourne la date ISO du dernier fichier collecté pour une zone."""
     slug = _zone_slug(zone)
     fichiers = sorted(glob.glob(os.path.join(DATA_DIR, f"{slug}_*.json")))
     if not fichiers:
@@ -187,13 +176,48 @@ def _last_collect_date(zone: str) -> Optional[str]:
 
 
 def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Calcule la distance en km entre deux points GPS (formule de Haversine)."""
     R = 6371.0
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlam = math.radians(lon2 - lon1)
     a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _compute_risk_for_zone(zone_name: str, indicateurs: dict) -> dict:
+    """
+    Calcule les scores ML J0/J+3/J+7 pour une zone.
+    Retourne un dict avec risque_actuel, risque_prevu_3j, risque_prevu_7j
+    et les stocke dans le JSON de collecte pour éviter de recalculer.
+    """
+    if _risk_model is None:
+        return {}
+
+    features = {
+        "mois":          datetime.now().month,
+        "pluie_7j":      indicateurs.get("pluie_cumulee_7j_mm", 0),
+        "pluie_30j":     indicateurs.get("pluie_cumulee_30j_mm",
+                             indicateurs.get("pluie_cumulee_7j_mm", 0) * 4),
+        "pluie_prev_7j": indicateurs.get("pluie_prevue_7j_mm", 0),
+        "temp_max":      indicateurs.get("temp_max", 29.0),
+        "temp_max_3j":   indicateurs.get("temp_max_3j", 29.0),
+        "sm_surface":    indicateurs.get("humidite_sol_sm_surface",
+                             indicateurs.get("sm_surface", 0.35)),
+        "sm_rootzone":   indicateurs.get("sm_rootzone", 0.30),
+        "ndvi":          indicateurs.get("ndvi_moyen", 0.60),
+        "ndwi":          indicateurs.get("ndwi_moyen", 0.15),
+    }
+
+    pred_j0 = _risk_model.predire(features, horizon=None)
+    pred_j3 = _risk_model.predire(features, horizon=3)
+    pred_j7 = _risk_model.predire(features, horizon=7)
+
+    return {
+        "risque_actuel":   {"scores": pred_j0, "niveau_alerte": _niveau_alerte(**pred_j0)},
+        "risque_prevu_3j": {"scores": pred_j3, "niveau_alerte": _niveau_alerte(**pred_j3)},
+        "risque_prevu_7j": {"scores": pred_j7, "niveau_alerte": _niveau_alerte(**pred_j7)},
+        "methode_risque":  "ml_gradient_boosting",
+    }
 
 
 # ─── ENDPOINTS ─────────────────────────────────────────────────────────────────
@@ -211,7 +235,7 @@ def health_check():
         })
     return {
         "status":           "ok",
-        "version":          "5.2.0",
+        "version":          "5.3.0",
         "modele_ml_charge": _risk_model is not None,
         "serveur_time":     datetime.now().isoformat(),
         "zones":            zones_status,
@@ -220,7 +244,6 @@ def health_check():
 
 @app.get("/api/zones", tags=["Zones"])
 def list_zones():
-    """Liste toutes les zones agricoles supportées avec leur statut de données."""
     result = []
     for z in ZONES_META:
         date = _last_collect_date(z["name"])
@@ -238,10 +261,13 @@ def get_nearest_zone(
     lon: float = Query(..., description="Longitude GPS de l'utilisateur (ex: 9.70)"),
 ):
     """
-    Retourne la zone SAMCAM la plus proche de la position GPS fournie,
-    avec la distance en km et les données météo/risque pré-collectées.
+    Retourne la zone SAMCAM la plus proche de la position GPS fournie.
 
-    Pour la météo en temps réel à la position exacte, utiliser /api/nearest-live.
+    La réponse inclut les scores de risque ML pré-calculés (risque_actuel,
+    risque_prevu_3j, risque_prevu_7j) directement dans les indicateurs,
+    afin que le client Flutter n'ait pas besoin d'un second appel.
+
+    Latence typique : < 50 ms (lecture fichier JSON + calcul ML)
     """
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
         raise HTTPException(status_code=422, detail="Coordonnées GPS invalides.")
@@ -255,23 +281,36 @@ def get_nearest_zone(
         data        = _load_zone_data(zone_name)
         meteo       = data.get("meteorologie", {})
         indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+        meta        = data.get("meta", {})
         donnees_dispo = True
     except HTTPException:
         meteo         = {}
         indicateurs   = {}
+        meta          = {}
         donnees_dispo = False
 
+    # Calcule les scores ML et les injecte directement dans indicateurs
+    # pour que Flutter puisse les lire sans second appel
+    risk_scores = _compute_risk_for_zone(zone_name, indicateurs)
+    if risk_scores:
+        indicateurs = {
+            **indicateurs,
+            **risk_scores,
+            "date_collecte":  meta.get("date_collecte"),
+            "methode_risque": risk_scores.get("methode_risque", "ml_gradient_boosting"),
+        }
+
     return {
-        "zone":                 zone_name,
-        "distance_km":         round(distance_km, 1),
-        "hors_zone":           hors_zone,
-        "position_utilisateur":{"lat": lat, "lon": lon},
-        "coordonnees_zone":    {"lat": best_zone["lat"], "lon": best_zone["lon"]},
-        "type":                best_zone["type"],
-        "cultures":            best_zone["cultures"],
-        "donnees_dispo":       donnees_dispo,
-        "meteo":               meteo,
-        "indicateurs":         indicateurs,
+        "zone":                  zone_name,
+        "distance_km":           round(distance_km, 1),
+        "hors_zone":             hors_zone,
+        "position_utilisateur":  {"lat": lat, "lon": lon},
+        "coordonnees_zone":      {"lat": best_zone["lat"], "lon": best_zone["lon"]},
+        "type":                  best_zone["type"],
+        "cultures":              best_zone["cultures"],
+        "donnees_dispo":         donnees_dispo,
+        "meteo":                 meteo,
+        "indicateurs":           indicateurs,
     }
 
 
@@ -283,17 +322,10 @@ async def get_nearest_live(
     """
     Récupère la météo EN TEMPS RÉEL à la position GPS exacte via Open-Meteo.
     Calcule aussi le risque ML basé sur la zone SAMCAM la plus proche.
-
-    - `meteo_live` : données Open-Meteo directement aux coordonnées fournies
-    - `risque`     : scores ML J0/J+3/J+7 de la zone de référence la plus proche
-    - `hors_zone`  : true si l'utilisateur est à plus de 200 km de toute zone SAMCAM
-
-    Exemple : GET /api/nearest-live?lat=4.0511&lon=9.7679  (Douala)
     """
     if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
-        raise HTTPException(status_code=422, detail="Coordonnées GPS invalides. lat ∈ [-90,90], lon ∈ [-180,180].")
+        raise HTTPException(status_code=422, detail="Coordonnées GPS invalides.")
 
-    # 1. — Appel Open-Meteo avec les coords exactes de l'utilisateur
     params = {
         "latitude":      lat,
         "longitude":     lon,
@@ -315,44 +347,21 @@ async def get_nearest_live(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Impossible de joindre Open-Meteo : {e}")
 
-    # 2. — Zone SAMCAM la plus proche (pour le modèle de risque ML)
     best_zone   = min(ZONES_META, key=lambda z: _haversine(lat, lon, z["lat"], z["lon"]))
     distance_km = _haversine(lat, lon, best_zone["lat"], best_zone["lon"])
     zone_name   = best_zone["name"]
     hors_zone   = distance_km > MAX_ZONE_DISTANCE_KM
 
-    # 3. — Calcul du risque ML basé sur la zone de référence
     risque = None
     try:
         data        = _load_zone_data(zone_name)
         indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
-        if _risk_model is not None:
-            features = {
-                "mois":          datetime.now().month,
-                "pluie_7j":      indicateurs.get("pluie_cumulee_7j_mm", 0),
-                "pluie_30j":     indicateurs.get("pluie_cumulee_30j_mm",
-                                    indicateurs.get("pluie_cumulee_7j_mm", 0) * 4),
-                "pluie_prev_7j": indicateurs.get("pluie_prevue_7j_mm", 0),
-                "temp_max":      indicateurs.get("temp_max", 29.0),
-                "temp_max_3j":   indicateurs.get("temp_max_3j", 29.0),
-                "sm_surface":    indicateurs.get("humidite_sol_sm_surface",
-                                    indicateurs.get("sm_surface", 0.35)),
-                "sm_rootzone":   indicateurs.get("sm_rootzone", 0.30),
-                "ndvi":          indicateurs.get("ndvi_moyen", 0.60),
-                "ndwi":          indicateurs.get("ndwi_moyen", 0.15),
-            }
-            pred_j0 = _risk_model.predire(features, horizon=None)
-            pred_j3 = _risk_model.predire(features, horizon=3)
-            pred_j7 = _risk_model.predire(features, horizon=7)
-            risque = {
-                "zone_reference":  zone_name,
-                "distance_km":     round(distance_km, 1),
-                "risque_actuel":   {"scores": pred_j0, "niveau_alerte": _niveau_alerte(**pred_j0)},
-                "risque_prevu_3j": {"scores": pred_j3, "niveau_alerte": _niveau_alerte(**pred_j3)},
-                "risque_prevu_7j": {"scores": pred_j7, "niveau_alerte": _niveau_alerte(**pred_j7)},
-            }
+        risque      = _compute_risk_for_zone(zone_name, indicateurs)
+        if risque:
+            risque["zone_reference"] = zone_name
+            risque["distance_km"]    = round(distance_km, 1)
     except Exception:
-        pass  # risque reste None si pas de données ML disponibles
+        pass
 
     return {
         "position":          {"lat": lat, "lon": lon},
@@ -368,48 +377,18 @@ async def get_nearest_live(
 def get_risk(
     zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua, Maroua)")
 ):
-    """
-    Retourne le niveau d'alerte et les scores de risque ML J0/J+3/J+7.
-
-    Paramètres :
-    - **zone** : Nom de la zone à interroger (défaut : Kribi)
-
-    Méthode :
-    - Si le modèle ML est chargé : scores GradientBoosting
-    - Sinon : fallback sur les indicateurs du rapport JSON
-    """
     _resolve_zone(zone)
     data = _load_zone_data(zone)
     indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
     meta = data.get("meta", {})
 
-    # ── Chemin V4 : modèle ML disponible
     if _risk_model is not None:
         try:
-            features = {
-                "mois":          datetime.now().month,
-                "pluie_7j":      indicateurs.get("pluie_cumulee_7j_mm", 0),
-                "pluie_30j":     indicateurs.get("pluie_cumulee_30j_mm",
-                                    indicateurs.get("pluie_cumulee_7j_mm", 0) * 4),
-                "pluie_prev_7j": indicateurs.get("pluie_prevue_7j_mm", 0),
-                "temp_max":      indicateurs.get("temp_max", 29.0),
-                "temp_max_3j":   indicateurs.get("temp_max_3j", 29.0),
-                "sm_surface":    indicateurs.get("humidite_sol_sm_surface",
-                                    indicateurs.get("sm_surface", 0.35)),
-                "sm_rootzone":   indicateurs.get("sm_rootzone", 0.30),
-                "ndvi":          indicateurs.get("ndvi_moyen", 0.60),
-                "ndwi":          indicateurs.get("ndwi_moyen", 0.15),
-            }
-
-            pred_j0 = _risk_model.predire(features, horizon=None)
-            pred_j3 = _risk_model.predire(features, horizon=3)
-            pred_j7 = _risk_model.predire(features, horizon=7)
-
-            niveau = _niveau_alerte(
-                score_inondation=pred_j0.get("inondation", 0),
-                score_secheresse=pred_j0.get("secheresse", 0),
-                score_chaleur=pred_j0.get("chaleur",    0),
-            )
+            risk = _compute_risk_for_zone(zone, indicateurs)
+            pred_j0 = risk["risque_actuel"]["scores"]
+            pred_j3 = risk["risque_prevu_3j"]["scores"]
+            pred_j7 = risk["risque_prevu_7j"]["scores"]
+            niveau  = risk["risque_actuel"]["niveau_alerte"]
 
             return {
                 "date":            meta.get("date_collecte"),
@@ -418,23 +397,9 @@ def get_risk(
                 "cultures":        meta.get("cultures", []),
                 "niveau_alerte":   niveau,
                 "methode_risque":  "ml_gradient_boosting",
-                "risque_actuel":   {"scores": pred_j0, "niveau_alerte": niveau},
-                "risque_prevu_3j": {
-                    "scores": pred_j3,
-                    "niveau_alerte": _niveau_alerte(
-                        score_inondation=pred_j3.get("inondation", 0),
-                        score_secheresse=pred_j3.get("secheresse", 0),
-                        score_chaleur=pred_j3.get("chaleur",    0),
-                    ),
-                },
-                "risque_prevu_7j": {
-                    "scores": pred_j7,
-                    "niveau_alerte": _niveau_alerte(
-                        score_inondation=pred_j7.get("inondation", 0),
-                        score_secheresse=pred_j7.get("secheresse", 0),
-                        score_chaleur=pred_j7.get("chaleur",    0),
-                    ),
-                },
+                "risque_actuel":   risk["risque_actuel"],
+                "risque_prevu_3j": risk["risque_prevu_3j"],
+                "risque_prevu_7j": risk["risque_prevu_7j"],
                 "indicateurs":          indicateurs,
                 "alerte_semis":         indicateurs.get("alerte_semis"),
                 "periode_semis_active": indicateurs.get("periode_semis_active", False),
@@ -443,7 +408,7 @@ def get_risk(
         except Exception as e:
             print(f"[API] Erreur prédiction ML ({zone}) : {e} — fallback JSON")
 
-    # ── Fallback : indicateurs bruts du JSON
+    # Fallback règles physiques
     risque_ino  = indicateurs.get("risque_inondation_observe", "inconnu")
     risque_sec  = indicateurs.get("risque_secheresse",         "inconnu")
     score_ino   = 0.70 if risque_ino == "élevé" else (0.40 if risque_ino == "modéré" else 0.10)
@@ -472,7 +437,6 @@ def get_risk(
 def get_meteo(
     zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua)")
 ):
-    """Retourne la météo actuelle + prévisions 7j pour la zone demandée."""
     _resolve_zone(zone)
     data = _load_zone_data(zone)
     meteo = data.get("meteorologie", {})
@@ -489,7 +453,6 @@ def get_meteo(
 def get_full_report(
     zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone")
 ):
-    """Retourne le rapport complet (météo + satellitaire + indicateurs) pour la zone."""
     _resolve_zone(zone)
     return _load_zone_data(zone)
 
@@ -499,10 +462,6 @@ def get_history(
     zone:  str = Query(default=DEFAULT_ZONE, description="Nom de la zone"),
     limit: int = Query(default=30, ge=1, le=90, description="Nombre de rapports (max 90)")
 ):
-    """
-    Retourne l'historique des N derniers rapports pour une zone.
-    Cherche dans reports/ (rapports d'analyse) et data/ (collectes brutes).
-    """
     _resolve_zone(zone)
     slug = _zone_slug(zone)
 
