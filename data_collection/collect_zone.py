@@ -44,6 +44,9 @@ os.makedirs(OUT_DIR, exist_ok=True)
 # Types de zones du nord sahélien — seuils pluviométriques abaissés
 ZONES_NORD = ("sahel", "agricole_nord", "elevage")
 
+# Mois de saison des pluies (toutes zones confondues, incl. juillet et août)
+MOIS_PLUIES = {3, 4, 5, 6, 7, 8, 9, 10, 11}
+
 
 # ─── ZONES AGRICOLES DU CAMEROUN ──────────────────────────────────────────────
 
@@ -88,14 +91,16 @@ ZONES = [
         "lat": 7.3167, "lon": 13.5833,
         "type": "elevage",
         "cultures": ["élevage bovin", "maïs", "sorgho"],
-        "saison_semis": [5, 6],
+        # FIX : juillet inclus — semis tardif maïs/sorgho possible
+        "saison_semis": [5, 6, 7],
     },
     {
         "name": "Garoua",
         "lat": 9.3017, "lon": 13.3922,
         "type": "agricole_nord",
         "cultures": ["coton", "sorgho", "mil", "arachide"],
-        "saison_semis": [5, 6],
+        # FIX : juillet inclus — semis tardif mil/sorgho fréquent
+        "saison_semis": [5, 6, 7],
     },
     {
         "name": "Maroua",
@@ -380,13 +385,14 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
 def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
     """
     Données ERA5-Land (ECMWF/ERA5_LAND/DAILY_AGGR) via GEE.
-    Résolution ~9km, disponibilité J-5 environ.
+    Résolution ~9km, latence réelle ~7-8 jours — fenêtre décalée de 8j pour fiabilité.
     """
     import ee
     today = datetime.date.today()
-    end   = today - datetime.timedelta(days=5)
+    # FIX : latence portée à 8j (était 5j) pour éviter count==0 en début de mois
+    end   = today - datetime.timedelta(days=8)
     start = end   - datetime.timedelta(days=days_back)
-    zone  = ee.Geometry.Point([lon, lat]).buffer(25000)
+    zone  = ee.Geometry.Point([lon, lat]).buffer(25000)  # rayon 25km pour ERA5
 
     ERA5_BANDS = [
         "temperature_2m",
@@ -451,7 +457,7 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
             "humidite_sol_era5_7_28cm":   sm2,
             "ruissellement_cumule_mm":    ruissellement_mm,
             "etp_era5_cumule_mm":         etp_era5_mm,
-            "note": "Rétroanalyse ECMWF — latence ~5j, résolution 9km",
+            "note": "Rétroanalyse ECMWF — latence ~8j, résolution 9km",
         }
     except Exception as e:
         print(f"  [GEE ERA5] ⚠️  Indisponible : {e}")
@@ -636,7 +642,8 @@ def aggregate_and_save(zone: dict, openmeteo: dict, nasa: dict, gee: dict) -> st
     indicateurs = compute_agricultural_indicators(zone, openmeteo, gee)
     slug        = zone_slug(zone["name"])
     saison_mois = datetime.date.today().month
-    saison      = "pluies" if saison_mois in [3, 4, 5, 6, 9, 10, 11] else "sèche"
+    # FIX : juillet (7) et août (8) désormais inclus en saison des pluies
+    saison      = "pluies" if saison_mois in MOIS_PLUIES else "sèche"
 
     payload = {
         "meta": {
