@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAMCAM V5.0 — Serveur FastAPI REST multi-zones agricoles
+SAMCAM V5.1 — Serveur FastAPI REST multi-zones agricoles
 
 Expose les données de risque climatique via une API JSON légère.
 Toutes les routes acceptent désormais un paramètre optionnel `?zone=`
@@ -16,6 +16,7 @@ Endpoints :
     GET /api/report        — Rapport complet
     GET /api/history       — Historique des N derniers rapports
     GET /api/zones         — Liste des zones disponibles + statut
+    GET /api/nearest       — Zone la plus proche d'une position GPS (lat/lon)
     GET /health            — Statut du serveur
     GET /docs              — Documentation Swagger auto-générée
 
@@ -24,14 +25,16 @@ Usage :
     bash server/start.sh
 
 Exemples :
-    GET /api/risk                    → Kribi (zone par défaut)
-    GET /api/risk?zone=Garoua        → Garoua
-    GET /api/meteo?zone=Maroua       → Météo de Maroua
-    GET /api/history?zone=Bafoussam  → Historique Bafoussam
+    GET /api/risk                         → Kribi (zone par défaut)
+    GET /api/risk?zone=Garoua             → Garoua
+    GET /api/meteo?zone=Maroua            → Météo de Maroua
+    GET /api/history?zone=Bafoussam       → Historique Bafoussam
+    GET /api/nearest?lat=4.05&lon=9.70    → Zone la plus proche du point GPS
 """
 
 import json
 import glob
+import math
 import os
 from datetime import datetime
 from typing import Optional
@@ -64,13 +67,16 @@ ZONES_META = [
 ]
 ZONES_NAMES = {z["name"].lower(): z for z in ZONES_META}
 
+# Distance maximale (km) au-delà de laquelle on signale que l'utilisateur est hors zone
+MAX_ZONE_DISTANCE_KM = 200
+
 
 # ─── APP ─────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(
     title="SAMCAM API",
-    description="Système d'Alerte Météorologique du Cameroun — API REST V5.0 multi-zones",
-    version="5.0.0",
+    description="Système d'Alerte Météorologique du Cameroun — API REST V5.1 multi-zones",
+    version="5.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -84,7 +90,7 @@ app.add_middleware(
 )
 
 
-# ─── CHARGEMENT DUMODÈLE ML ───────────────────────────────────────────────────
+# ─── CHARGEMENT DU MODÈLE ML ───────────────────────────────────────────────────
 
 def _charger_risk_model():
     try:
@@ -174,6 +180,16 @@ def _last_collect_date(zone: str) -> Optional[str]:
         return None
 
 
+def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calcule la distance en km entre deux points GPS (formule de Haversine)."""
+    R = 6371.0  # Rayon moyen de la Terre en km
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlam = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlam / 2) ** 2
+    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
 # ─── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
 @app.get("/health", tags=["Statut"])
@@ -189,7 +205,7 @@ def health_check():
         })
     return {
         "status":           "ok",
-        "version":          "5.0.0",
+        "version":          "5.1.0",
         "modele_ml_charge": _risk_model is not None,
         "serveur_time":     datetime.now().isoformat(),
         "zones":            zones_status,
@@ -210,6 +226,60 @@ def list_zones():
             "donnees_dispo":     date is not None,
         })
     return {"zones": result, "total": len(result)}
+
+
+@app.get("/api/nearest", tags=["Zones"])
+def get_nearest_zone(
+    lat: float = Query(..., description="Latitude GPS de l'utilisateur (ex: 4.05)"),
+    lon: float = Query(..., description="Longitude GPS de l'utilisateur (ex: 9.70)"),
+):
+    """
+    Retourne la zone SAMCAM la plus proche de la position GPS fournie,
+    avec la distance en km et les données météo/risque en temps réel.
+
+    - Si `hors_zone` est `true`, l'utilisateur est à plus de 200 km de toute zone.
+    - Utilise la formule de Haversine pour le calcul de distance.
+
+    Exemple : GET /api/nearest?lat=4.05&lon=9.70
+    """
+    if not (-90 <= lat <= 90) or not (-180 <= lon <= 180):
+        raise HTTPException(
+            status_code=422,
+            detail="Coordonnées GPS invalides. lat ∈ [-90, 90], lon ∈ [-180, 180]."
+        )
+
+    # Trouver la zone la plus proche
+    best_zone = min(
+        ZONES_META,
+        key=lambda z: _haversine(lat, lon, z["lat"], z["lon"])
+    )
+    distance_km = _haversine(lat, lon, best_zone["lat"], best_zone["lon"])
+    zone_name   = best_zone["name"]
+    hors_zone   = distance_km > MAX_ZONE_DISTANCE_KM
+
+    # Charger les données météo/risque de cette zone
+    try:
+        data        = _load_zone_data(zone_name)
+        meteo       = data.get("meteorologie", {})
+        indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+        donnees_dispo = True
+    except HTTPException:
+        meteo         = {}
+        indicateurs   = {}
+        donnees_dispo = False
+
+    return {
+        "zone":               zone_name,
+        "distance_km":        round(distance_km, 1),
+        "hors_zone":          hors_zone,
+        "position_utilisateur": {"lat": lat, "lon": lon},
+        "coordonnees_zone":   {"lat": best_zone["lat"], "lon": best_zone["lon"]},
+        "type":               best_zone["type"],
+        "cultures":           best_zone["cultures"],
+        "donnees_dispo":      donnees_dispo,
+        "meteo":              meteo,
+        "indicateurs":        indicateurs,
+    }
 
 
 @app.get("/api/risk", tags=["Risque climatique"])
