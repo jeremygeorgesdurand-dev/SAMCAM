@@ -6,6 +6,33 @@ import '../models/weather_forecast.dart';
 import 'api_service.dart';
 
 class WeatherService {
+  /// Reverse geocoding via Nominatim (OpenStreetMap) — retourne le nom de la ville en français.
+  /// Fallback sur "Ma position" si hors réseau.
+  static Future<String> getCityName(double lat, double lon) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=$lat&lon=$lon&format=json&accept-language=fr',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'SAMCAM-App/1.0'},
+      ).timeout(const Duration(seconds: 5));
+      if (response.statusCode == 200) {
+        final data    = jsonDecode(response.body) as Map<String, dynamic>;
+        final address = data['address'] as Map<String, dynamic>? ?? {};
+        // Priorité : city > town > village > county > state
+        return (address['city']    as String?) ??
+               (address['town']    as String?) ??
+               (address['village'] as String?) ??
+               (address['county']  as String?) ??
+               (address['state']   as String?) ??
+               'Ma position';
+      }
+    } catch (_) {}
+    return 'Ma position';
+  }
+
   /// Récupère les prévisions Open-Meteo pour la position GPS de l'utilisateur.
   /// Fallback automatique sur le mock Kribi si hors réseau ou GPS refusé.
   static Future<WeatherData> getForecast() async {

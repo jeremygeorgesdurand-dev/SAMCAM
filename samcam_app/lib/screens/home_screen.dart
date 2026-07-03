@@ -20,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   WeatherData? _weather;
   bool         _loading = true;
   String?      _error;
+  String       _cityName = '';
   bool _hourlyExpanded = true;
   bool _dailyExpanded  = true;
 
@@ -44,13 +45,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
     final weatherFuture = WeatherService.getForecast();
+    // Lance le reverse geocoding en parallèle dès le départ
+    final cityFuture = ApiService.getPosition().then(
+      (pos) => WeatherService.getCityName(pos.lat, pos.lon),
+    );
     try {
       final risk    = await ApiService.getRisk();
       final weather = await weatherFuture;
-      setState(() { _report = risk; _weather = weather; _loading = false; });
+      final city    = await cityFuture;
+      setState(() { _report = risk; _weather = weather; _cityName = city; _loading = false; });
     } catch (e) {
       final weather = await weatherFuture.catchError((_) => WeatherService.getForecast());
-      setState(() { _weather = weather; _error = 'Serveur SAMCAM inaccessible'; _loading = false; });
+      final city    = await cityFuture.catchError((_) async => '');
+      setState(() { _weather = weather; _cityName = city; _error = 'Serveur SAMCAM inaccessible'; _loading = false; });
     }
   }
 
@@ -356,7 +363,8 @@ class _HomeScreenState extends State<HomeScreen> {
     try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
     catch (_) { dateStr = DateFormat('yyyy-MM-dd').format(now); }
 
-    final city = _report?.zone ?? 'Kribi';
+    // Utilise le nom de ville du reverse geocoding, sinon la zone SAMCAM
+    final city = _cityName.isNotEmpty ? _cityName : (_report?.zone ?? 'Kribi');
     final cur  = weather.current;
 
     String currentTemp = '--';
@@ -533,9 +541,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Widget> _buildDailyContent(WeatherData weather) {
     if (weather.daily.isEmpty) return [_emptyState()];
 
-    // Plage dynamique : min/max global sur tous les jours affichés
-    // On ajoute 1° de marge de chaque côté pour que les extrêmes ne soient
-    // pas collés au bord de la barre.
     final globalMin = weather.daily.map((d) => d.tempMin).reduce((a, b) => a < b ? a : b) - 1;
     final globalMax = weather.daily.map((d) => d.tempMax).reduce((a, b) => a > b ? a : b) + 1;
 
@@ -555,9 +560,6 @@ class _HomeScreenState extends State<HomeScreen> {
       dayLabel = isToday ? "Auj." : days[d.date.weekday % 7];
     }
 
-    // Plage dynamique : la barre s'étire sur la plage globale des 7 jours.
-    // barStart = position relative du tempMin du jour dans la plage globale
-    // barWidth = largeur relative de la plage tempMin→tempMax du jour
     final range    = (globalMax - globalMin).clamp(1.0, double.infinity);
     final barStart = ((d.tempMin - globalMin) / range).clamp(0.0, 1.0);
     final barEnd   = ((d.tempMax - globalMin) / range).clamp(0.0, 1.0);
@@ -666,7 +668,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               if (today?.sunset != null)
-                Text('Protection jusqu\'à $sunsetStr.',
+                Text('Protection jusqu\'\u00e0 $sunsetStr.',
                   style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
@@ -1219,7 +1221,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _capitalize(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
 }
 
-// ══════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════
 class _SunArcPainter extends CustomPainter {
   final double progress;
   const _SunArcPainter({required this.progress});
