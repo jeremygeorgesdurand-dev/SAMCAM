@@ -27,6 +27,7 @@ import json
 import argparse
 import datetime
 import requests
+from typing import Optional
 
 # ─── CONFIG GLOBALE ────────────────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ ZONES = [
 def zone_slug(name: str) -> str:
     return name.lower().replace(" ", "_")
 
-def get_zone_by_name(name: str) -> dict | None:
+def get_zone_by_name(name: str) -> Optional[dict]:
     for z in ZONES:
         if z["name"].lower() == name.lower():
             return z
@@ -213,7 +214,7 @@ def _init_gee() -> bool:
         return False
 
 
-def fetch_gee_sentinel2(lat: float, lon: float, window_days: int = 60) -> dict | None:
+def fetch_gee_sentinel2(lat: float, lon: float, window_days: int = 60) -> Optional[dict]:
     import ee
     today = datetime.date.today()
     start = today - datetime.timedelta(days=window_days)
@@ -316,21 +317,10 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
     """
     Précipitations CHIRPS (Climate Hazards Group InfraRed Precipitation with Stations).
     Source : UCSB-CHG/CHIRPS/DAILY — résolution ~5km, latence ~2 jours.
-
-    Atouts vs Open-Meteo :
-    - Fusion données IR satellitaires + pluviomètres sol
-    - Bien adapté aux zones sans station météo (Garoua, Maroua, Ngaoundere)
-    - Archive disponible depuis 1981
-
-    Retourne :
-    - pluie_chirps_7j_mm  : cumul 7 jours
-    - pluie_chirps_30j_mm : cumul 30 jours (pour feature ML "pluie_30j")
-    - intensite_max_mm    : jour le plus pluvieux sur la période
-    - jours_pluie         : nombre de jours avec précipitation > 1mm
     """
     import ee
     today = datetime.date.today()
-    start = today - datetime.timedelta(days=max(days_back, 30))  # au moins 30j
+    start = today - datetime.timedelta(days=max(days_back, 30))
     zone  = ee.Geometry.Point([lon, lat]).buffer(10000)
 
     try:
@@ -344,12 +334,10 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
         if count == 0:
             raise ValueError("Aucune image CHIRPS disponible")
 
-        # Statistiques sur la période complète
         stats_full = col.sum().reduceRegion(
             reducer=ee.Reducer.mean(), geometry=zone, scale=5000, maxPixels=1e9,
         ).getInfo()
 
-        # Cumul 7 derniers jours
         start_7j = today - datetime.timedelta(days=7)
         stats_7j = (
             col.filterDate(start_7j.isoformat(), today.isoformat())
@@ -358,12 +346,10 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
             .getInfo()
         )
 
-        # Jour le plus pluvieux
         max_stats = col.max().reduceRegion(
             reducer=ee.Reducer.max(), geometry=zone, scale=5000, maxPixels=1e9,
         ).getInfo()
 
-        # Jours avec pluie > 1mm
         jours_pluie = (
             col.map(lambda img: img.gt(1).rename("rainy"))
             .sum()
@@ -395,27 +381,12 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
     """
     Données ERA5-Land (ECMWF/ERA5_LAND/DAILY_AGGR) via GEE.
     Résolution ~9km, disponibilité J-5 environ.
-
-    Variables collectées :
-    - temperature_2m                 : température à 2m (K)
-    - u_component_of_wind_10m        : composante U du vent
-    - v_component_of_wind_10m        : composante V du vent
-    - volumetric_soil_water_layer_1  : humidité sol 0-7cm (m³/m³)
-    - volumetric_soil_water_layer_2  : humidité sol 7-28cm (m³/m³)
-    - surface_runoff                 : ruissellement de surface (m)
-    - total_evaporation              : évapotranspiration (m)
-
-    Utilité principale :
-    - Zones Nord (Garoua, Maroua) : vent fort = stress évaporatoire + risque chaleur
-    - Ruissellement → indicateur inondation zones sahéliennes
-    - Complète SMAP sur l'humidité sol avec une meilleure résolution temporelle
     """
     import ee
     today = datetime.date.today()
-    # ERA5 a une latence ~5 jours
     end   = today - datetime.timedelta(days=5)
     start = end   - datetime.timedelta(days=days_back)
-    zone  = ee.Geometry.Point([lon, lat]).buffer(25000)  # rayon 25km pour ERA5
+    zone  = ee.Geometry.Point([lon, lat]).buffer(25000)
 
     ERA5_BANDS = [
         "temperature_2m",
@@ -445,28 +416,22 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
             maxPixels=1e9,
         ).getInfo()
 
-        # Calcul de la vitesse du vent depuis U et V
         u = stats.get("u_component_of_wind_10m") or 0
         v = stats.get("v_component_of_wind_10m") or 0
-        vent_ms = round((u ** 2 + v ** 2) ** 0.5, 2)
+        vent_ms  = round((u ** 2 + v ** 2) ** 0.5, 2)
         vent_kmh = round(vent_ms * 3.6, 1)
 
-        # Température K → °C
         temp_k = stats.get("temperature_2m")
         temp_c = round(temp_k - 273.15, 1) if temp_k else None
 
-        # Humidité sol (m³/m³)
         sm1 = round(stats.get("volumetric_soil_water_layer_1") or 0, 4)
         sm2 = round(stats.get("volumetric_soil_water_layer_2") or 0, 4)
 
-        # Ruissellement cumulé sur la période (m → mm)
-        runoff_col = col.select(["surface_runoff"])
-        runoff_sum = runoff_col.sum().reduceRegion(
+        runoff_sum = col.select(["surface_runoff"]).sum().reduceRegion(
             reducer=ee.Reducer.mean(), geometry=zone, scale=9000, maxPixels=1e9,
         ).getInfo()
         ruissellement_mm = round((runoff_sum.get("surface_runoff") or 0) * 1000, 2)
 
-        # ETP ERA5 cumulée (m → mm)
         evap_sum = (
             col.select(["total_evaporation"]).sum()
             .reduceRegion(reducer=ee.Reducer.mean(), geometry=zone, scale=9000, maxPixels=1e9)
@@ -496,28 +461,22 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
 def fetch_gee_all(lat: float, lon: float, zone_type: str = "agricole") -> dict:
     """
     Orchestre toutes les collectes GEE.
-    CHIRPS et ERA5 sont activés pour TOUTES les zones (pas seulement Nord).
+    CHIRPS et ERA5 sont activés pour TOUTES les zones.
     """
     if not _init_gee():
         return {"source": "gee", "erreur": "Initialisation GEE impossible"}
 
     result = {"source": "gee"}
 
-    # ── Végétation (Sentinel-2 ou MODIS en fallback)
     s2 = fetch_gee_sentinel2(lat, lon, window_days=60)
     if s2 is not None:
         result["sentinel2"] = s2
     else:
         result["modis"] = fetch_gee_modis_fallback(lat, lon, window_days=60)
 
-    # ── Humidité du sol (SMAP)
-    result["smap"] = fetch_gee_soil_moisture(lat, lon)
-
-    # ── Précipitations haute résolution (CHIRPS) — toutes zones
+    result["smap"]   = fetch_gee_soil_moisture(lat, lon)
     result["chirps"] = fetch_gee_chirps(lat, lon, days_back=30)
-
-    # ── Vent + humidité sol ERA5 — toutes zones
-    result["era5"] = fetch_gee_era5(lat, lon, days_back=7)
+    result["era5"]   = fetch_gee_era5(lat, lon, days_back=7)
 
     return result
 
@@ -528,7 +487,6 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
     today = datetime.date.today()
     zone_type = zone.get("type", "agricole")
 
-    # ── Pluie Open-Meteo
     pluie_7j, pluie_prev_7j = 0.0, 0.0
     try:
         pluie_7j = sum(
@@ -545,14 +503,11 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
     except Exception:
         pass
 
-    # ── CHIRPS : pluie 7j et 30j haute résolution (préféré pour le ML)
     chirps_7j  = gee.get("chirps", {}).get("pluie_chirps_7j_mm")
     chirps_30j = gee.get("chirps", {}).get("pluie_chirps_30j_mm")
-    # Si CHIRPS disponible, l'utiliser pour les indicateurs ML (plus précis en zones sans station)
     pluie_ref_7j  = chirps_7j  if chirps_7j  is not None else pluie_7j
     pluie_ref_30j = chirps_30j if chirps_30j is not None else (pluie_7j * 4)
 
-    # ── ETP Open-Meteo FAO-56
     etp_7j = 0.0
     try:
         etp_7j = sum(
@@ -562,17 +517,13 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
     except Exception:
         pass
 
-    # ── ETP ERA5 (complète si Open-Meteo insuffisant)
     etp_era5 = gee.get("era5", {}).get("etp_era5_cumule_mm")
     etp_ref  = etp_era5 if (etp_era5 and etp_era5 > 0) else etp_7j
-
     bilan_hydrique_7j = round(pluie_ref_7j - etp_ref, 2)
 
-    # ── Vent ERA5
-    vent_kmh = gee.get("era5", {}).get("vent_kmh")
+    vent_kmh         = gee.get("era5", {}).get("vent_kmh")
     ruissellement_mm = gee.get("era5", {}).get("ruissellement_cumule_mm")
 
-    # ── Humidité du sol : SMAP en priorité, ERA5 en complément
     humidite_sol = None
     sm_rootzone  = None
     try:
@@ -580,13 +531,11 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
         sm_rootzone  = gee["smap"]["humidite_sol"].get("sm_rootzone")
     except Exception:
         pass
-    # Fallback ERA5
     if humidite_sol is None:
         humidite_sol = gee.get("era5", {}).get("humidite_sol_era5_0_7cm")
     if sm_rootzone is None:
         sm_rootzone = gee.get("era5", {}).get("humidite_sol_era5_7_28cm")
 
-    # ── Indices végétation
     ndvi_val, ndwi_val, ndre_val, capteur = None, None, None, "inconnu"
     try:
         if "sentinel2" in gee:
@@ -602,15 +551,12 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
     except Exception:
         pass
 
-    # ── Seuils adaptés par région climatique
     est_nord = zone_type in ZONES_NORD
     seuil_inond_eleve  = 80  if est_nord else 150
     seuil_inond_modere = 40  if est_nord else 80
-    # Nord : risque chaleur si vent fort + sol sec
-    seuil_vent_chaleur = 30  # km/h
+    seuil_vent_chaleur = 30
 
-    # ── Risques
-    risque_inondation      = (
+    risque_inondation = (
         "élevé"  if pluie_ref_7j > seuil_inond_eleve
         else "modéré" if pluie_ref_7j > seuil_inond_modere
         else "faible"
@@ -625,29 +571,24 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
         else "modéré" if bilan_hydrique_7j < -10
         else "faible"
     )
-    risque_submersion = "élevé" if (ndwi_val is not None and ndwi_val > 0.3) else "faible"
-    risque_sol_sature = "élevé" if (humidite_sol is not None and humidite_sol > 0.4) else "faible"
-    # Risque chaleur/dessiccation zones Nord : vent fort + sol sec
-    risque_chaleur_vent = (
-        "élevé" if est_nord and (vent_kmh or 0) > seuil_vent_chaleur and bilan_hydrique_7j < -20
+    risque_submersion    = "élevé" if (ndwi_val is not None and ndwi_val > 0.3) else "faible"
+    risque_sol_sature    = "élevé" if (humidite_sol is not None and humidite_sol > 0.4) else "faible"
+    risque_chaleur_vent  = (
+        "élevé"  if est_nord and (vent_kmh or 0) > seuil_vent_chaleur and bilan_hydrique_7j < -20
         else "modéré" if est_nord and (vent_kmh or 0) > seuil_vent_chaleur
         else "faible"
     )
-    # Ruissellement excessif = risque inondation flash (surtout Sahel)
     risque_ruissellement = (
-        "élevé" if (ruissellement_mm or 0) > 20
+        "élevé"  if (ruissellement_mm or 0) > 20
         else "modéré" if (ruissellement_mm or 0) > 8
         else "faible"
     )
-
-    # ── Stress végétal
     stress_vegetal = (
         "élevé"  if (ndre_val is not None and ndre_val < 0.15)
         else "modéré" if (ndre_val is not None and ndre_val < 0.25)
         else "faible"
     )
 
-    # ── Alerte semis
     alerte_semis = None
     if is_semis_period(zone):
         if risque_inondation in ("modéré", "élevé"):
@@ -660,27 +601,21 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
             alerte_semis = "✅ Période de semis — conditions favorables"
 
     return {
-        # Pluie (source préférée : CHIRPS)
         "pluie_cumulee_7j_mm":      round(pluie_ref_7j,   2),
         "pluie_cumulee_30j_mm":     round(pluie_ref_30j,  2),
         "pluie_prevue_7j_mm":       round(pluie_prev_7j,  2),
         "pluie_source":             "CHIRPS" if chirps_7j is not None else "Open-Meteo",
-        # Bilan hydrique
         "etp_cumulee_7j_mm":        round(etp_ref,         2),
         "etp_source":               "ERA5" if (etp_era5 and etp_era5 > 0) else "Open-Meteo-FAO56",
         "bilan_hydrique_7j_mm":     bilan_hydrique_7j,
-        # Vent & ruissellement (ERA5)
         "vent_kmh_era5":            vent_kmh,
         "ruissellement_mm_era5":    ruissellement_mm,
-        # Sol (SMAP > ERA5)
         "humidite_sol_sm_surface":  humidite_sol,
         "humidite_sol_sm_rootzone": sm_rootzone,
-        # Végétation
         "ndvi_moyen":               ndvi_val,
         "ndwi_moyen":               ndwi_val,
         "ndre_moyen":               ndre_val,
         "capteur_satellite":        capteur,
-        # Risques
         "risque_inondation_observe":  risque_inondation,
         "risque_inondation_prevu":    risque_inondation_prev,
         "risque_secheresse":          risque_secheresse,
@@ -689,7 +624,6 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
         "risque_submersion_cotiere":  risque_submersion,
         "risque_sol_sature":          risque_sol_sature,
         "stress_vegetal":             stress_vegetal,
-        # Alertes
         "alerte_semis":               alerte_semis,
         "periode_semis_active":       is_semis_period(zone),
     }
@@ -761,7 +695,7 @@ def aggregate_and_save(zone: dict, openmeteo: dict, nasa: dict, gee: dict) -> st
 
 # ─── 6. COLLECTE D'UNE ZONE ────────────────────────────────────────────────────
 
-def collect(zone: dict | None = None, zone_name: str | None = None, days: int = 7) -> str:
+def collect(zone: Optional[dict] = None, zone_name: Optional[str] = None, days: int = 7) -> str:
     """Point d'entrée principal. Accepte un dict zone ou un nom de zone."""
     if zone is None:
         if zone_name is None:
@@ -781,7 +715,6 @@ def collect(zone: dict | None = None, zone_name: str | None = None, days: int = 
     return aggregate_and_save(zone, openmeteo, nasa, gee)
 
 
-# Alias pour compatibilité avec collect_all_zones.py
 def collect_zone_func(zone: dict, days: int = 7) -> str:
     return collect(zone=zone, days=days)
 
