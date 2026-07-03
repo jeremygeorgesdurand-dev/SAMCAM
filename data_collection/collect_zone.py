@@ -321,17 +321,20 @@ def fetch_gee_soil_moisture(lat: float, lon: float) -> dict:
 def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
     """
     Précipitations CHIRPS (Climate Hazards Group InfraRed Precipitation with Stations).
-    Source : UCSB-CHG/CHIRPS/DAILY — résolution ~5km, latence ~2 jours.
+    Source : UCSB-CHG/CHIRPS/DAILY — résolution ~5km, latence réelle ~3-5 jours.
+    FIX : end date décalée à today-3j pour éviter les collections vides.
     """
     import ee
     today = datetime.date.today()
-    start = today - datetime.timedelta(days=max(days_back, 30))
+    # FIX : CHIRPS latence réelle ~3-5j — on exclut les 3 derniers jours
+    end   = today - datetime.timedelta(days=3)
+    start = end   - datetime.timedelta(days=max(days_back, 30))
     zone  = ee.Geometry.Point([lon, lat]).buffer(10000)
 
     try:
         col = (
             ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
-            .filterDate(start.isoformat(), today.isoformat())
+            .filterDate(start.isoformat(), end.isoformat())
             .filterBounds(zone)
             .select(["precipitation"])
         )
@@ -343,9 +346,9 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
             reducer=ee.Reducer.mean(), geometry=zone, scale=5000, maxPixels=1e9,
         ).getInfo()
 
-        start_7j = today - datetime.timedelta(days=7)
+        start_7j = end - datetime.timedelta(days=7)
         stats_7j = (
-            col.filterDate(start_7j.isoformat(), today.isoformat())
+            col.filterDate(start_7j.isoformat(), end.isoformat())
             .sum()
             .reduceRegion(reducer=ee.Reducer.mean(), geometry=zone, scale=5000, maxPixels=1e9)
             .getInfo()
@@ -370,7 +373,7 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
         print(f"  [GEE CHIRPS] ✅ Pluie 7j={pluie_7j}mm, 30j={pluie_30j}mm, max/j={intensite}mm")
         return {
             "source": "CHIRPS-UCSB-CHG-DAILY-5km",
-            "periode": {"debut": start.isoformat(), "fin": today.isoformat()},
+            "periode": {"debut": start.isoformat(), "fin": end.isoformat()},
             "pluie_chirps_7j_mm":  pluie_7j,
             "pluie_chirps_30j_mm": pluie_30j,
             "intensite_max_mm":    intensite,
@@ -386,6 +389,7 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
     """
     Données ERA5-Land (ECMWF/ERA5_LAND/DAILY_AGGR) via GEE.
     Résolution ~9km, latence réelle ~7-8 jours — fenêtre décalée de 8j pour fiabilité.
+    FIX : bandes agrégées renommées avec suffixe _sum dans DAILY_AGGR.
     """
     import ee
     today = datetime.date.today()
@@ -394,14 +398,16 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
     start = end   - datetime.timedelta(days=days_back)
     zone  = ee.Geometry.Point([lon, lat]).buffer(25000)  # rayon 25km pour ERA5
 
+    # FIX : surface_runoff → surface_runoff_sum, total_evaporation → total_evaporation_sum
+    # Le dataset ECMWF/ERA5_LAND/DAILY_AGGR a renommé les bandes cumulées avec le suffixe _sum
     ERA5_BANDS = [
         "temperature_2m",
         "u_component_of_wind_10m",
         "v_component_of_wind_10m",
         "volumetric_soil_water_layer_1",
         "volumetric_soil_water_layer_2",
-        "surface_runoff",
-        "total_evaporation",
+        "surface_runoff_sum",       # FIX: était surface_runoff
+        "total_evaporation_sum",    # FIX: était total_evaporation
     ]
 
     try:
@@ -433,17 +439,17 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
         sm1 = round(stats.get("volumetric_soil_water_layer_1") or 0, 4)
         sm2 = round(stats.get("volumetric_soil_water_layer_2") or 0, 4)
 
-        runoff_sum = col.select(["surface_runoff"]).sum().reduceRegion(
+        runoff_sum = col.select(["surface_runoff_sum"]).sum().reduceRegion(
             reducer=ee.Reducer.mean(), geometry=zone, scale=9000, maxPixels=1e9,
         ).getInfo()
-        ruissellement_mm = round((runoff_sum.get("surface_runoff") or 0) * 1000, 2)
+        ruissellement_mm = round((runoff_sum.get("surface_runoff_sum") or 0) * 1000, 2)
 
         evap_sum = (
-            col.select(["total_evaporation"]).sum()
+            col.select(["total_evaporation_sum"]).sum()
             .reduceRegion(reducer=ee.Reducer.mean(), geometry=zone, scale=9000, maxPixels=1e9)
             .getInfo()
         )
-        etp_era5_mm = round(abs((evap_sum.get("total_evaporation") or 0)) * 1000, 2)
+        etp_era5_mm = round(abs((evap_sum.get("total_evaporation_sum") or 0)) * 1000, 2)
 
         print(f"  [GEE ERA5] ✅ Vent {vent_kmh}km/h, sol sm1={sm1}, ruiss={ruissellement_mm}mm")
         return {
