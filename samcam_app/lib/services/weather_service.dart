@@ -1,17 +1,21 @@
 // SAMCAM — Service météo via Open-Meteo (gratuit, sans clé)
+// V2 : coordonnées GPS dynamiques — plus de lat/lon fixe
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather_forecast.dart';
+import 'api_service.dart';
 
 class WeatherService {
-  static const double _lat = 2.9399;
-  static const double _lon = 9.9094;
-
+  /// Récupère les prévisions météo Open-Meteo pour la position GPS de l'utilisateur.
+  /// Fallback automatique sur le mock Kribi si hors réseau ou GPS refusé.
   static Future<WeatherData> getForecast() async {
     try {
+      // Récupère la position réelle (ou debug URL params)
+      final (lat, lon) = await ApiService.getPosition();
+
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=$_lat&longitude=$_lon'
+        '?latitude=$lat&longitude=$lon'
         '&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m'
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
@@ -29,7 +33,7 @@ class WeatherService {
     }
   }
 
-  // ── Mock Kribi (fallback si pas de réseau) ─────────────────────────────
+  // ── Mock Kribi (fallback si pas de réseau ou GPS refusé) ────────────────
   static WeatherData _mockKribi() {
     final now = DateTime.now();
     final hourly = List.generate(24, (i) {
@@ -66,16 +70,16 @@ class WeatherService {
       daily: daily,
       current: CurrentConditions(
         temperature: 28, feelsLike: 31, pressure: 1012,
-        visibility: 17, uvIndex: 3, humidity: 76,
+        visibility: 17,
+        uvIndex: 3, humidity: 76,
         windSpeed: 11, windGusts: 19,
         weatherCode: 61,
       ),
     );
   }
 
-  // ── Parsing réponse Open-Meteo ─────────────────────────────────────────
+  // ── Parsing réponse Open-Meteo ──────────────────────────────────────────
   static WeatherData _parse(Map<String, dynamic> json) {
-    // Current
     CurrentConditions? current;
     if (json['current'] != null) {
       final c = json['current'] as Map<String, dynamic>;
@@ -92,15 +96,14 @@ class WeatherService {
       );
     }
 
-    // Hourly — filtre fenêtre +25h à partir de maintenant
     final h      = json['hourly'] as Map<String, dynamic>;
-    final times  = (h['time']                   as List).cast<String>();
-    final temps  = (h['temperature_2m']         as List).map((v) => (v as num).toDouble()).toList();
-    final feels  = (h['apparent_temperature']   as List).map((v) => (v as num).toDouble()).toList();
-    final precip = (h['precipitation']          as List).map((v) => (v as num).toDouble()).toList();
-    final wcH    = (h['weather_code']           as List).map((v) => (v as num).toInt()).toList();
-    final windH  = (h['wind_speed_10m']         as List).map((v) => (v as num).toDouble()).toList();
-    final humH   = (h['relative_humidity_2m']   as List).map((v) => (v as num).toInt()).toList();
+    final times  = (h['time']                 as List).cast<String>();
+    final temps  = (h['temperature_2m']       as List).map((v) => (v as num).toDouble()).toList();
+    final feels  = (h['apparent_temperature'] as List).map((v) => (v as num).toDouble()).toList();
+    final precip = (h['precipitation']        as List).map((v) => (v as num).toDouble()).toList();
+    final wcH    = (h['weather_code']         as List).map((v) => (v as num).toInt()).toList();
+    final windH  = (h['wind_speed_10m']       as List).map((v) => (v as num).toDouble()).toList();
+    final humH   = (h['relative_humidity_2m'] as List).map((v) => (v as num).toInt()).toList();
 
     final now    = DateTime.now();
     final hourly = <HourlyForecast>[];
@@ -120,7 +123,6 @@ class WeatherService {
       }
     }
 
-    // Daily
     final d     = json['daily'] as Map<String, dynamic>;
     final dates = (d['time']               as List).cast<String>();
     final wcD   = (d['weather_code']       as List).map((v) => (v as num).toInt()).toList();
@@ -142,11 +144,15 @@ class WeatherService {
       weatherCode:          wcD[i],
       windSpeedMax:         windD[i],
       uvIndexMax:           uvD[i],
-      sunrise:              DateTime.tryParse(srD[i]),
-      sunset:               DateTime.tryParse(ssD[i]),
+      sunrise:              DateTime.parse(srD[i]),
+      sunset:               DateTime.parse(ssD[i]),
       precipitationProbMax: ppD[i],
     ));
 
-    return WeatherData(hourly: hourly, daily: daily, current: current);
+    return WeatherData(
+      hourly:  hourly,
+      daily:   daily,
+      current: current,
+    );
   }
 }

@@ -1,23 +1,72 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
 
 class ApiService {
-  /// Récupère l'URL du serveur depuis SharedPreferences
+  // ── URL serveur ──────────────────────────────────────────────────────────
+
   static Future<String> getServerUrl() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(Config.prefServerUrl) ?? Config.defaultServerUrl;
   }
 
-  /// Sauvegarde l'URL du serveur
   static Future<void> setServerUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(Config.prefServerUrl, url);
   }
 
-  /// GET /api/risk — Dernier rapport de risque
+  // ── Position GPS (ou debug via URL params en mode web) ───────────────────
+
+  /// Retourne (latitude, longitude) de l'utilisateur.
+  /// En debug web, lit ?lat=...&lon=... depuis l'URL du navigateur.
+  static Future<(double, double)> getPosition() async {
+    if (kDebugMode && kIsWeb) {
+      final uri = Uri.base;
+      final lat = double.tryParse(uri.queryParameters['lat'] ?? '');
+      final lon = double.tryParse(uri.queryParameters['lon'] ?? '');
+      if (lat != null && lon != null) return (lat, lon);
+    }
+
+    LocationPermission perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.deniedForever) {
+      // Fallback sur Kribi si GPS refusé
+      return (2.9399, 9.9094);
+    }
+
+    final pos = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.medium,
+    );
+    return (pos.latitude, pos.longitude);
+  }
+
+  // ── GET /api/nearest-live — météo temps réel à la position GPS ───────────
+
+  /// Retourne la météo en temps réel et le risque ML pour la position
+  /// GPS exacte de l'utilisateur.
+  static Future<Map<String, dynamic>> getNearestLive() async {
+    final base        = await getServerUrl();
+    final (lat, lon)  = await getPosition();
+    final uri         = Uri.parse('$base/api/nearest-live?lat=$lat&lon=$lon');
+
+    final response = await http
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(Config.httpTimeout);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    }
+    throw Exception('Erreur serveur : ${response.statusCode}');
+  }
+
+  // ── GET /api/risk ────────────────────────────────────────────────────────
+
   static Future<RiskReport> getRisk() async {
     final base = await getServerUrl();
     final uri  = Uri.parse('$base/api/risk');
@@ -34,7 +83,8 @@ class ApiService {
     throw Exception('Erreur serveur : ${response.statusCode}');
   }
 
-  /// GET /health — Statut du serveur
+  // ── GET /health ──────────────────────────────────────────────────────────
+
   static Future<Map<String, dynamic>> getHealth() async {
     final base = await getServerUrl();
     final uri  = Uri.parse('$base/health');
@@ -49,7 +99,8 @@ class ApiService {
     throw Exception('Serveur inaccessible');
   }
 
-  /// GET /api/history — Historique des rapports
+  // ── GET /api/history ─────────────────────────────────────────────────────
+
   static Future<List<Map<String, dynamic>>> getHistory({
     int limit = 30,
   }) async {
