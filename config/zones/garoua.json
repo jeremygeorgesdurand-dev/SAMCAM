@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "zone": "garoua",
+    "label": "Garoua",
+    "version": "1.0.0",
+    "regime": "soudanien_semi_aride",
+    "description": "Plaine de la B\u00e9nou\u00e9 \u2014 altitude 240m, r\u00e9gime soudanien unimodal court (juin-sept), c\u00e9r\u00e9ales et coton, saison s\u00e8che de 8 mois",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+  },
+  "coordonnees": {
+    "lat": 9.3017,
+    "lon": 13.3922,
+    "altitude_m": 240,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 0,  "2": 2,  "3": 8,  "4": 25,
+    "5": 65, "6": 120, "7": 185, "8": 210,
+    "9": 155, "10": 45, "11": 5,  "12": 0
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 48, "2": 50, "3": 52, "4": 48, "5": 42, "6": 35,
+    "7": 28, "8": 26, "9": 28, "10": 35, "11": 42, "12": 46
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 33.5, "2": 36.0, "3": 38.5, "4": 39.5, "5": 37.5, "6": 33.5,
+    "7": 30.5, "8": 29.5, "9": 31.0, "10": 34.5, "11": 35.5, "12": 33.5
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 2.8, "2": 3.0, "3": 2.8, "4": 2.5, "5": 2.2, "6": 1.8,
+    "7": 1.5, "8": 1.4, "9": 1.6, "10": 2.0, "11": 2.4, "12": 2.6
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 16.5, "2": 18.5, "3": 22.0, "4": 24.5, "5": 24.5, "6": 23.5,
+    "7": 22.5, "8": 22.0, "9": 22.5, "10": 22.0, "11": 18.5, "12": 16.5
+  },
+  "sm_surface_normales": {
+    "1": 0.06, "2": 0.06, "3": 0.07, "4": 0.10, "5": 0.16, "6": 0.26,
+    "7": 0.35, "8": 0.38, "9": 0.32, "10": 0.18, "11": 0.09, "12": 0.06
+  },
+  "sm_rootzone_normales": {
+    "1": 0.08, "2": 0.08, "3": 0.08, "4": 0.11, "5": 0.17, "6": 0.26,
+    "7": 0.35, "8": 0.38, "9": 0.33, "10": 0.20, "11": 0.11, "12": 0.08
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.10, "2": 0.10, "3": 0.12, "4": 0.18, "5": 0.28, "6": 0.40,
+    "7": 0.48, "8": 0.50, "9": 0.45, "10": 0.30, "11": 0.14, "12": 0.10
+  },
+  "percentiles_hebdo_pluie": {
+    "1":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
+    "2":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 4},
+    "3":  {"p25": 0,  "p50": 0,  "p75": 2,  "p90": 10},
+    "4":  {"p25": 0,  "p50": 4,  "p75": 12, "p90": 26},
+    "5":  {"p25": 2,  "p50": 12, "p75": 30, "p90": 58},
+    "6":  {"p25": 6,  "p50": 24, "p75": 52, "p90": 96},
+    "7":  {"p25": 12, "p50": 40, "p75": 84, "p90": 148},
+    "8":  {"p25": 14, "p50": 46, "p75": 94, "p90": 165},
+    "9":  {"p25": 8,  "p50": 32, "p75": 68, "p90": 122},
+    "10": {"p25": 0,  "p50": 6,  "p75": 22, "p90": 46},
+    "11": {"p25": 0,  "p50": 0,  "p75": 2,  "p90": 8},
+    "12": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2}
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.5,
+    "pluie_prev_7j_facteur_normale": 1.3,
+    "sm_surface_seuil_haut": 0.40,
+    "score_min_label_1": 2,
+    "commentaire": "Sol sableux \u00e0 drainage rapide \u2014 inondations soudaines en pic de saison (juil-ao\u00fbt)"
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.50,
+    "sm_rootzone_delta_seuil": -0.10,
+    "ndvi_seuil_critique": 0.14,
+    "et0_facteur_stress": 1.5,
+    "score_min_label_1": 2,
+    "commentaire": "Zone semi-aride \u2014 risque s\u00e9cheresse chronique 8 mois/an"
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 0.8,
+    "temp_max_3j_anomalie_sigma": 0.4,
+    "et0_facteur_stress": 1.6,
+    "pluie_7j_max_sec": 5.0,
+    "score_min_label_1": 2,
+    "commentaire": "Chaleur extr\u00eame en mars-mai (>38\u00b0C) \u2014 seuils abaiss\u00e9s, anomalies plus fr\u00e9quentes"
+  },
+  "saisons": {
+    "saison_pluies": [6, 7, 8, 9],
+    "saison_seche": [10, 11, 12, 1, 2, 3, 4, 5],
+    "commentaire": "R\u00e9gime soudanien court \u2014 seulement 4 mois de pluie"
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/dataset_garoua_historical.csv",
+    "flood_events_csv": "data/flood_events_garoua.csv"
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "zone": "kumba",
+    "label": "Kumba",
+    "version": "1.0.0",
+    "regime": "equatorial_oceanique",
+    "description": "Zone \u00e9quatoriale oc\u00e9anique SW \u2014 pr\u00e9cipitations parmi les plus \u00e9lev\u00e9es du Cameroun, influence du Golfe de Guin\u00e9e et du Mont Cameroun, altitude ~310m",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+  },
+  "coordonnees": {
+    "lat": 4.6362,
+    "lon": 9.4467,
+    "altitude_m": 310,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 40, "2": 70, "3": 160, "4": 250,
+    "5": 310, "6": 280, "7": 150, "8": 180,
+    "9": 290, "10": 320, "11": 220, "12": 65
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 23, "2": 25, "3": 23, "4": 20, "5": 18, "6": 16,
+    "7": 17, "8": 18, "9": 18, "10": 17, "11": 18, "12": 21
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 31.0, "2": 31.5, "3": 31.5, "4": 30.8, "5": 29.8, "6": 28.5,
+    "7": 27.5, "8": 27.8, "9": 28.5, "10": 29.0, "11": 30.0, "12": 30.5
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 2.0, "2": 1.9, "3": 1.8, "4": 1.6, "5": 1.5, "6": 1.3,
+    "7": 1.2, "8": 1.2, "9": 1.4, "10": 1.5, "11": 1.6, "12": 1.9
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 19.0, "2": 19.5, "3": 20.0, "4": 20.0, "5": 19.8, "6": 19.2,
+    "7": 18.5, "8": 18.5, "9": 19.0, "10": 19.5, "11": 19.8, "12": 19.2
+  },
+  "sm_surface_normales": {
+    "1": 0.30, "2": 0.33, "3": 0.40, "4": 0.48, "5": 0.51, "6": 0.49,
+    "7": 0.38, "8": 0.40, "9": 0.48, "10": 0.52, "11": 0.46, "12": 0.32
+  },
+  "sm_rootzone_normales": {
+    "1": 0.33, "2": 0.35, "3": 0.42, "4": 0.49, "5": 0.52, "6": 0.50,
+    "7": 0.40, "8": 0.41, "9": 0.49, "10": 0.53, "11": 0.47, "12": 0.35
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.50, "2": 0.54, "3": 0.60, "4": 0.65, "5": 0.66, "6": 0.64,
+    "7": 0.55, "8": 0.56, "9": 0.63, "10": 0.66, "11": 0.62, "12": 0.52
+  },
+  "percentiles_hebdo_pluie": {
+    "1":  {"p25": 0,  "p50": 6,  "p75": 16,  "p90": 35},
+    "2":  {"p25": 2,  "p50": 14, "p75": 34,  "p90": 65},
+    "3":  {"p25": 10, "p50": 34, "p75": 72,  "p90": 130},
+    "4":  {"p25": 22, "p50": 58, "p75": 115, "p90": 200},
+    "5":  {"p25": 28, "p50": 72, "p75": 140, "p90": 240},
+    "6":  {"p25": 24, "p50": 64, "p75": 125, "p90": 220},
+    "7":  {"p25": 10, "p50": 30, "p75": 64,  "p90": 116},
+    "8":  {"p25": 12, "p50": 36, "p75": 76,  "p90": 135},
+    "9":  {"p25": 26, "p50": 68, "p75": 132, "p90": 232},
+    "10": {"p25": 28, "p50": 74, "p75": 145, "p90": 252},
+    "11": {"p25": 18, "p50": 50, "p75": 100, "p90": 178},
+    "12": {"p25": 2,  "p50": 12, "p75": 30,  "p90": 58}
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.15,
+    "pluie_prev_7j_facteur_normale": 1.05,
+    "sm_surface_seuil_haut": 0.52,
+    "score_min_label_1": 2,
+    "commentaire": "Zone tr\u00e8s humide \u2014 sols souvent satur\u00e9s, seuils d\u00e9clenchement bas"
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.55,
+    "sm_rootzone_delta_seuil": -0.05,
+    "ndvi_seuil_critique": 0.50,
+    "et0_facteur_stress": 1.15,
+    "score_min_label_1": 2,
+    "commentaire": "S\u00e9cheresse exceptionnelle ici \u2014 seuils tr\u00e8s stricts"
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 1.0,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.25,
+    "pluie_7j_max_sec": 15.0,
+    "score_min_label_1": 2,
+    "commentaire": "Humidit\u00e9 constante att\u00e9nue stress thermique"
+  },
+  "saisons": {
+    "saison_pluies_principale": [4, 5, 6, 7, 8, 9, 10, 11],
+    "saison_seche": [12, 1, 2, 3],
+    "commentaire": "R\u00e9gime quasi-unimodal avec tr\u00e8s courte saison s\u00e8che"
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/dataset_kumba_historical.csv",
+    "flood_events_csv": "data/flood_events_kumba.csv"
+  }
+}

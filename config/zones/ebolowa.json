@@ -1,0 +1,96 @@
+{
+  "_meta": {
+    "zone": "ebolowa",
+    "label": "Ebolowa",
+    "version": "1.0.0",
+    "regime": "equatorial_bimodal_interieur",
+    "description": "Zone \u00e9quatoriale int\u00e9rieure \u2014 r\u00e9gime bimodal (mars-juin, sept-nov), altitude ~700m, couverture for\u00eati\u00e8re dense",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+  },
+  "coordonnees": {
+    "lat": 2.9167,
+    "lon": 11.1500,
+    "altitude_m": 700,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 35, "2": 60, "3": 130, "4": 190,
+    "5": 210, "6": 160, "7": 45, "8": 60,
+    "9": 180, "10": 240, "11": 170, "12": 55
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 24, "2": 25, "3": 24, "4": 20, "5": 19, "6": 18,
+    "7": 21, "8": 22, "9": 20, "10": 19, "11": 19, "12": 22
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 30.5, "2": 31.0, "3": 31.0, "4": 30.5, "5": 29.5, "6": 28.5,
+    "7": 27.5, "8": 27.8, "9": 28.5, "10": 29.0, "11": 29.5, "12": 30.0
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 2.0, "2": 1.9, "3": 1.8, "4": 1.6, "5": 1.5, "6": 1.4,
+    "7": 1.3, "8": 1.3, "9": 1.4, "10": 1.5, "11": 1.6, "12": 1.8
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 17.5, "2": 18.0, "3": 18.5, "4": 18.5, "5": 18.2, "6": 17.8,
+    "7": 17.0, "8": 17.2, "9": 17.8, "10": 18.0, "11": 18.0, "12": 17.5
+  },
+  "sm_surface_normales": {
+    "1": 0.27, "2": 0.29, "3": 0.35, "4": 0.43, "5": 0.45, "6": 0.40,
+    "7": 0.26, "8": 0.28, "9": 0.40, "10": 0.46, "11": 0.42, "12": 0.29
+  },
+  "sm_rootzone_normales": {
+    "1": 0.32, "2": 0.34, "3": 0.40, "4": 0.46, "5": 0.48, "6": 0.44,
+    "7": 0.30, "8": 0.31, "9": 0.44, "10": 0.49, "11": 0.45, "12": 0.34
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.52, "2": 0.55, "3": 0.60, "4": 0.65, "5": 0.65, "6": 0.62,
+    "7": 0.50, "8": 0.50, "9": 0.60, "10": 0.65, "11": 0.62, "12": 0.54
+  },
+  "percentiles_hebdo_pluie": {
+    "1":  {"p25": 0,  "p50": 5,  "p75": 15,  "p90": 30},
+    "2":  {"p25": 2,  "p50": 12, "p75": 30,  "p90": 58},
+    "3":  {"p25": 6,  "p50": 26, "p75": 55,  "p90": 100},
+    "4":  {"p25": 14, "p50": 42, "p75": 85,  "p90": 148},
+    "5":  {"p25": 16, "p50": 46, "p75": 92,  "p90": 162},
+    "6":  {"p25": 10, "p50": 34, "p75": 70,  "p90": 125},
+    "7":  {"p25": 0,  "p50": 6,  "p75": 15,  "p90": 30},
+    "8":  {"p25": 0,  "p50": 8,  "p75": 20,  "p90": 40},
+    "9":  {"p25": 12, "p50": 38, "p75": 78,  "p90": 140},
+    "10": {"p25": 18, "p50": 52, "p75": 105, "p90": 185},
+    "11": {"p25": 12, "p50": 36, "p75": 75,  "p90": 134},
+    "12": {"p25": 2,  "p50": 10, "p75": 26,  "p90": 50}
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.3,
+    "pluie_prev_7j_facteur_normale": 1.15,
+    "sm_surface_seuil_haut": 0.46,
+    "score_min_label_1": 2,
+    "commentaire": "Zone int\u00e9rieure for\u00easti\u00e8re \u2014 drainage correct mais risque en bas-fonds"
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.60,
+    "sm_rootzone_delta_seuil": -0.07,
+    "ndvi_seuil_critique": 0.48,
+    "et0_facteur_stress": 1.2,
+    "score_min_label_1": 2,
+    "commentaire": "S\u00e9cheresse modeste sous couvert forestier"
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 1.0,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.25,
+    "pluie_7j_max_sec": 12.0,
+    "score_min_label_1": 2,
+    "commentaire": "Altitude att\u00e9nue les pics de chaleur"
+  },
+  "saisons": {
+    "grande_saison_pluies": [3, 4, 5, 6],
+    "petite_saison_pluies": [9, 10, 11],
+    "grande_saison_seche": [7, 8],
+    "petite_saison_seche": [12, 1, 2]
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/dataset_ebolowa_historical.csv",
+    "flood_events_csv": "data/flood_events_ebolowa.csv"
+  }
+}

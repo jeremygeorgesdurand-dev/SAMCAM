@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "zone": "ngaoundere",
+    "label": "Ngaound\u00e9r\u00e9",
+    "version": "1.0.0",
+    "regime": "tropical_altitude_soudano_guineeen",
+    "description": "Plateau de l'Adamaoua \u2014 altitude 1150m, r\u00e9gime unimodal soudano-guin\u00e9en (avr-oct), \u00e9levage et cultures c\u00e9r\u00e9ali\u00e8res, longue saison s\u00e8che",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+  },
+  "coordonnees": {
+    "lat": 7.3167,
+    "lon": 13.5833,
+    "altitude_m": 1150,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 5,  "2": 8,  "3": 30, "4": 90,
+    "5": 155, "6": 195, "7": 220, "8": 210,
+    "9": 175, "10": 100, "11": 20, "12": 5
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 38, "2": 38, "3": 36, "4": 30, "5": 26, "6": 22,
+    "7": 20, "8": 20, "9": 22, "10": 26, "11": 32, "12": 36
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 27.0, "2": 28.5, "3": 30.0, "4": 29.5, "5": 27.5, "6": 25.5,
+    "7": 24.5, "8": 24.8, "9": 25.5, "10": 26.5, "11": 27.5, "12": 26.5
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 2.8, "2": 2.6, "3": 2.4, "4": 2.2, "5": 1.8, "6": 1.6,
+    "7": 1.4, "8": 1.4, "9": 1.6, "10": 1.8, "11": 2.2, "12": 2.6
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 12.5, "2": 13.5, "3": 16.0, "4": 17.5, "5": 17.5, "6": 17.0,
+    "7": 16.8, "8": 16.8, "9": 17.0, "10": 16.5, "11": 14.0, "12": 12.5
+  },
+  "sm_surface_normales": {
+    "1": 0.12, "2": 0.13, "3": 0.16, "4": 0.26, "5": 0.36, "6": 0.42,
+    "7": 0.44, "8": 0.43, "9": 0.40, "10": 0.30, "11": 0.18, "12": 0.13
+  },
+  "sm_rootzone_normales": {
+    "1": 0.15, "2": 0.15, "3": 0.18, "4": 0.27, "5": 0.37, "6": 0.43,
+    "7": 0.45, "8": 0.44, "9": 0.41, "10": 0.32, "11": 0.20, "12": 0.16
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.18, "2": 0.18, "3": 0.22, "4": 0.35, "5": 0.48, "6": 0.56,
+    "7": 0.58, "8": 0.57, "9": 0.52, "10": 0.40, "11": 0.26, "12": 0.18
+  },
+  "percentiles_hebdo_pluie": {
+    "1":  {"p25": 0,  "p50": 0,  "p75": 2,   "p90": 6},
+    "2":  {"p25": 0,  "p50": 0,  "p75": 4,   "p90": 10},
+    "3":  {"p25": 0,  "p50": 4,  "p75": 14,  "p90": 30},
+    "4":  {"p25": 4,  "p50": 18, "p75": 40,  "p90": 76},
+    "5":  {"p25": 10, "p50": 32, "p75": 68,  "p90": 122},
+    "6":  {"p25": 14, "p50": 42, "p75": 88,  "p90": 155},
+    "7":  {"p25": 16, "p50": 48, "p75": 98,  "p90": 170},
+    "8":  {"p25": 14, "p50": 44, "p75": 92,  "p90": 162},
+    "9":  {"p25": 12, "p50": 38, "p75": 78,  "p90": 140},
+    "10": {"p25": 4,  "p50": 20, "p75": 46,  "p90": 85},
+    "11": {"p25": 0,  "p50": 2,  "p75": 10,  "p90": 22},
+    "12": {"p25": 0,  "p50": 0,  "p75": 2,   "p90": 6}
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.4,
+    "pluie_prev_7j_facteur_normale": 1.25,
+    "sm_surface_seuil_haut": 0.45,
+    "score_min_label_1": 2,
+    "commentaire": "Sol ferrugineux \u00e0 faible capacit\u00e9 de r\u00e9tention \u2014 ruissellement rapide en pic de saison"
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.55,
+    "sm_rootzone_delta_seuil": -0.09,
+    "ndvi_seuil_critique": 0.22,
+    "et0_facteur_stress": 1.35,
+    "score_min_label_1": 2,
+    "commentaire": "Longue saison s\u00e8che (nov-mars) \u2014 risque s\u00e9cheresse structurel fort"
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 1.0,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.4,
+    "pluie_7j_max_sec": 8.0,
+    "score_min_label_1": 2,
+    "commentaire": "Saison s\u00e8che longue + ET0 \u00e9lev\u00e9 en mars \u2014 pics de chaleur possibles avant les pluies"
+  },
+  "saisons": {
+    "saison_pluies": [4, 5, 6, 7, 8, 9, 10],
+    "saison_seche": [11, 12, 1, 2, 3],
+    "commentaire": "R\u00e9gime unimodal de l'Adamaoua \u2014 6 mois secs"
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/dataset_ngaoundere_historical.csv",
+    "flood_events_csv": "data/flood_events_ngaoundere.csv"
+  }
+}

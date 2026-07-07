@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "zone": "maroua",
+    "label": "Maroua",
+    "version": "1.0.0",
+    "regime": "sahelien_aride",
+    "description": "Extr\u00eame-Nord \u2014 altitude 420m, r\u00e9gime sah\u00e9lien (juil-sept), mil/sorgho/oignon, s\u00e9cheresse chronique, temp\u00e9ratures extremes pr\u00e9-mousson",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+  },
+  "coordonnees": {
+    "lat": 10.5960,
+    "lon": 14.3158,
+    "altitude_m": 420,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 0,  "2": 0,  "3": 2,  "4": 10,
+    "5": 35, "6": 80, "7": 155, "8": 180,
+    "9": 115, "10": 20, "11": 1,  "12": 0
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 52, "2": 56, "3": 62, "4": 62, "5": 56, "6": 46,
+    "7": 36, "8": 32, "9": 34, "10": 42, "11": 50, "12": 50
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 32.5, "2": 35.0, "3": 38.5, "4": 41.0, "5": 40.0, "6": 36.0,
+    "7": 32.5, "8": 31.0, "9": 33.0, "10": 37.0, "11": 36.0, "12": 33.0
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 3.0, "2": 3.2, "3": 3.0, "4": 2.8, "5": 2.5, "6": 2.0,
+    "7": 1.6, "8": 1.5, "9": 1.7, "10": 2.2, "11": 2.6, "12": 2.8
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 14.0, "2": 16.5, "3": 21.0, "4": 25.0, "5": 26.0, "6": 25.0,
+    "7": 23.5, "8": 23.0, "9": 23.5, "10": 23.0, "11": 18.5, "12": 14.5
+  },
+  "sm_surface_normales": {
+    "1": 0.04, "2": 0.04, "3": 0.04, "4": 0.06, "5": 0.10, "6": 0.18,
+    "7": 0.28, "8": 0.32, "9": 0.26, "10": 0.12, "11": 0.05, "12": 0.04
+  },
+  "sm_rootzone_normales": {
+    "1": 0.05, "2": 0.05, "3": 0.05, "4": 0.07, "5": 0.11, "6": 0.18,
+    "7": 0.28, "8": 0.32, "9": 0.27, "10": 0.14, "11": 0.07, "12": 0.05
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.08, "2": 0.08, "3": 0.09, "4": 0.12, "5": 0.18, "6": 0.28,
+    "7": 0.38, "8": 0.42, "9": 0.36, "10": 0.20, "11": 0.10, "12": 0.08
+  },
+  "percentiles_hebdo_pluie": {
+    "1":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0},
+    "2":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
+    "3":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 4},
+    "4":  {"p25": 0,  "p50": 0,  "p75": 4,  "p90": 12},
+    "5":  {"p25": 0,  "p50": 4,  "p75": 14, "p90": 30},
+    "6":  {"p25": 2,  "p50": 14, "p75": 34, "p90": 66},
+    "7":  {"p25": 8,  "p50": 30, "p75": 66, "p90": 118},
+    "8":  {"p25": 10, "p50": 36, "p75": 76, "p90": 135},
+    "9":  {"p25": 4,  "p50": 22, "p75": 50, "p90": 92},
+    "10": {"p25": 0,  "p50": 2,  "p75": 10, "p90": 22},
+    "11": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
+    "12": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0}
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.6,
+    "pluie_prev_7j_facteur_normale": 1.4,
+    "sm_surface_seuil_haut": 0.34,
+    "score_min_label_1": 2,
+    "commentaire": "Sol aride tr\u00e8s sec \u2014 pluies intenses brut\u00e8rent g\u00e9n\u00e8rent ruissellement instantan\u00e9"
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.45,
+    "sm_rootzone_delta_seuil": -0.10,
+    "ndvi_seuil_critique": 0.10,
+    "et0_facteur_stress": 1.7,
+    "score_min_label_1": 1,
+    "commentaire": "Zone sah\u00e9lienne \u2014 score_min=1 car s\u00e9cheresse quasi-permanente hors juillet-ao\u00fbt"
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 0.7,
+    "temp_max_3j_anomalie_sigma": 0.4,
+    "et0_facteur_stress": 1.8,
+    "pluie_7j_max_sec": 3.0,
+    "score_min_label_1": 1,
+    "commentaire": "Chaleur extr\u00eame structurelle (>40\u00b0C en avr-mai) \u2014 score_min=1, sensibilit\u00e9 maximale"
+  },
+  "saisons": {
+    "saison_pluies": [6, 7, 8, 9],
+    "saison_seche": [10, 11, 12, 1, 2, 3, 4, 5],
+    "commentaire": "R\u00e9gime sah\u00e9lien \u2014 3 mois de pluie effective (juil-sept)"
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/dataset_maroua_historical.csv",
+    "flood_events_csv": "data/flood_events_maroua.csv"
+  }
+}
