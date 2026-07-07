@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.6.2 — Construction du dataset historique
+SAMCAM V4.7.0 — Construction du dataset historique
+
+NOUVEAUTÉS V4.7.0 :
+    - label_secheresse : RECALIBRATION MAJEURE pour zones tropicales humides.
+      Seuil NDVI corrigé (0.55 → 0.65), seuil pluie_30j (0.65 → 0.70),
+      sm_rootzone (0.25 → 0.28), nouveau critère pluie_7j < 20mm.
+      Signature étendue : label_secheresse(..., pluie_7j=0.0).
+      Correctif garde-fou : modèle ML sécheresse trop biaisé → recalibration
+      des positifs d'entraînement de ~2% → ~10-18% sur 40 ans.
 
 NOUVEAUTÉS V4.6.2 :
     - label_chaleur : INDICE DE STRESS THERMIQUE multi-critères.
@@ -157,7 +165,7 @@ def features_derivees(mois, pluie_7j, pluie_30j,
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# LABELS — V4.6.2
+# LABELS — V4.7.0
 # ───────────────────────────────────────────────────────────────────────────────
 
 def label_inondation_hybride(date_semaine, pluie_7j, pluie_prev_7j,
@@ -190,15 +198,30 @@ def label_inondation(pluie_7j, pluie_prev_7j, sm_surface, ndwi, mois):
     return 1 if score >= 2 else 0
 
 
-def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0):
+def label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine=0.0, pluie_7j=0.0):
+    """
+    V4.7.0 — Sécheresse recalibrée pour zones tropicales humides.
+
+    Correctif majeur V4.7.0 :
+      - ndvi < 0.55 → ndvi < 0.65 : en zone équatoriale (Kribi, Kumba, Ebolowa),
+        le NDVI naturel est 0.65-0.85. L'ancien seuil ne déclenchait jamais
+        (+0 positifs sur 40 ans). Le nouveau seuil capture les épisodes réels.
+      - Ajout critère pluie_7j < 20mm : semaine très sèche en déficit 30j = signal fort.
+      - Seuil pluie_30j relevé : 0.65 → 0.70 (déficit modéré suffisant si combiné).
+      - sm_rootzone : 0.25 → 0.28 (sous capacité au champ).
+      - Score >= 2 conservé pour éviter faux positifs.
+      Objectif : 10-18% positifs sur 40 ans (sécheresses doc : 1983-84, 1987,
+      1992, 2001-02, 2009-10, 2015-16 El Niño, 2021-22).
+    """
     normale_30j = NORMALES_MENSUELLES.get(mois, 120) * (30 / 7)
     et0_normale = ET0_NORMALES_MENSUELLES.get(mois, 21)
     score = 0
-    if pluie_30j   < normale_30j * 0.65:     score += 1
-    if ndvi        < 0.55:                   score += 1
-    if sm_rootzone < 0.25:                   score += 1
-    if et0_semaine > et0_normale * 1.2 and pluie_30j < normale_30j * 0.80:
+    if pluie_30j   < normale_30j * 0.70:                              score += 1
+    if ndvi        < 0.65:                                            score += 1
+    if sm_rootzone < 0.28:                                            score += 1
+    if et0_semaine > et0_normale * 1.1 and pluie_30j < normale_30j * 0.85:
         score += 1
+    if pluie_7j    < 20.0 and pluie_30j < normale_30j * 0.80:        score += 1
     return 1 if score >= 2 else 0
 
 
@@ -231,7 +254,7 @@ def label_chaleur(temp_max, temp_max_3j_moy, mois, et0_semaine=0.0, pluie_7j=0.0
 
 
 # ───────────────────────────────────────────────────────────────────────────────
-# MODE OPEN-METEO HISTORIQUE — V4.6.2
+# MODE OPEN-METEO HISTORIQUE — V4.7.0
 # ───────────────────────────────────────────────────────────────────────────────
 
 def collecter_via_openmeteo(annee_debut, annee_fin):
@@ -374,7 +397,8 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
             "et0_semaine":      round(et0_semaine, 2),
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
-            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
+            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois,
+                                                  et0_semaine, pluie_7j),
             # V4.6.2 : et0_semaine + pluie_7j transmis à label_chaleur
             "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
                                               et0_semaine=et0_semaine, pluie_7j=pluie_7j),
@@ -387,9 +411,11 @@ def collecter_via_openmeteo(annee_debut, annee_fin):
         current += delta_7j
 
     n_inond_reel  = sum(1 for l in lignes if l["label_inondation"] == 1)
+    n_sech        = sum(1 for l in lignes if l["label_secheresse"] == 1)
     n_chaleur     = sum(1 for l in lignes if l["label_chaleur"]    == 1)
-    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.6.2 — 1984→{annee_fin})")
+    print(f"[OPEN-METEO] ✅ {len(lignes)} semaines (V4.7.0 — 1984→{annee_fin})")
     print(f"[OPEN-METEO]    label_inondation=1 : {n_inond_reel} semaines")
+    print(f"[OPEN-METEO]    label_secheresse=1 : {n_sech} semaines ({100*n_sech//max(len(lignes),1)}%)")
     print(f"[OPEN-METEO]    label_chaleur=1    : {n_chaleur} semaines")
     print(f"[OPEN-METEO]    dont événements réels : {len(evenements)} catalogués")
     return lignes
@@ -501,7 +527,8 @@ def collecter_via_gee(annee_debut, annee_fin):
                 "et0_semaine":      round(et0_semaine, 2),
                 **{k: round(v, 4) for k, v in deriv.items()},
                 "label_inondation": lbl_inond,
-                "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois, et0_semaine),
+                "label_secheresse": label_secheresse(chirps_30j, ndvi, sm_root, mois,
+                                                      et0_semaine, chirps_7j),
                 "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
                                                   et0_semaine=et0_semaine, pluie_7j=chirps_7j),
                 "source":           "gee",
@@ -538,7 +565,7 @@ def _facteur_enso(annee):
 
 
 def generer_simulation(annee_debut, annee_fin):
-    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.6.2)...")
+    print(f"[SIM] Génération simulation {annee_debut}→{annee_fin} (V4.7.0)...")
     print(f"[SIM] ⚠️  Mode simulation : données synthétiques uniquement.")
     print(f"[SIM]    Utilisez --openmeteo pour de vraies données historiques.")
 
@@ -642,7 +669,8 @@ def generer_simulation(annee_debut, annee_fin):
             "et0_semaine":      round(et0_semaine, 2),
             **{k: round(v, 4) for k, v in deriv.items()},
             "label_inondation": lbl_inond,
-            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois, et0_semaine),
+            "label_secheresse": label_secheresse(pluie_30j, ndvi, sm_rootzone, mois,
+                                                  et0_semaine, pluie_7j),
             "label_chaleur":    label_chaleur(temp_max, temp_max_3j, mois,
                                               et0_semaine=et0_semaine, pluie_7j=pluie_7j),
             "source":           "simulation",
@@ -675,7 +703,7 @@ def exporter_csv(lignes, chemin):
     source = lignes[0].get("source", "?") if lignes else "?"
 
     print(f"\n[BUILD] Dataset exporté : {chemin}")
-    print(f"        Version         : V4.6.2 (1984→{lignes[-1]['date'][:4]})")
+    print(f"        Version         : V4.7.0 (1984→{lignes[-1]['date'][:4]})")
     print(f"        Source          : {source}")
     print(f"        Lignes totales  : {n}")
     print(f"        Features        : {len(entetes) - 5} (+ date, mois, labels, source)")
@@ -691,7 +719,7 @@ def exporter_csv(lignes, chemin):
 # ───────────────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM V4.6.2 — Build dataset historique")
+    parser = argparse.ArgumentParser(description="SAMCAM V4.7.0 — Build dataset historique")
     parser.add_argument(
         "--start", type=int, default=1984,
         help="Année de début (défaut: 1984 — limite basse ERA5-Land fiable)"
