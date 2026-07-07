@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SAMCAM v3.1 - Script de collecte multi-zones climatiques
+SAMCAM v3.2 - Script de collecte multi-zones climatiques
 
 Sources :
 - Open-Meteo         : météo historique + prévisions 16j (aucune clé)
@@ -9,8 +9,9 @@ Sources :
     · Sentinel-2 COPERNICUS/S2_SR_HARMONIZED  → NDVI, NDWI, NBR, NDRE (10–20m)
     · MODIS MOD13A1                           → NDVI, EVI (500m, fallback S2)
     · NASA SMAP SPL4SMGP/008                  → humidité sol surface + racinaire (9km)
-    · CHIRPS UCSB-CHG/CHIRPS/DAILY            → précipitations 5km, latence 2j ★ NOUVEAU
-    · ERA5 ECMWF/ERA5_LAND/DAILY_AGGR         → vent, humidité sol ERA5, temp (9km) ★ NOUVEAU
+    · CHIRPS UCSB-CHG/CHIRPS/DAILY            → précipitations 5km, latence 2j ★
+    · GPM IMERG NASA/GPM_L3/IMERG_V07/MONTHLY → précipitations 11km, fallback CHIRPS ★ NOUVEAU
+    · ERA5 ECMWF/ERA5_LAND/DAILY_AGGR         → vent, humidité sol ERA5, temp (9km) ★
 
 Usage :
     python collect_zone.py                   # Toutes les zones
@@ -385,6 +386,77 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
         return {"source": "CHIRPS-UCSB-CHG-DAILY-5km", "erreur": str(e)}
 
 
+def fetch_gee_imerg(lat: float, lon: float, days_back: int = 30) -> dict:
+    """
+    Précipitations GPM IMERG — fallback automatique CHIRPS.
+    Source : NASA/GPM_L3/IMERG_V07/MONTHLY (fallback V06) — résolution ~11km, latence ~4j.
+    Même structure de sortie que fetch_gee_chirps → pipeline downstream inchangé.
+    Bande 'precipitation' en mm/h × heures du mois ≈ mm cumulés.
+    """
+    import ee
+    today = datetime.date.today()
+    end   = today - datetime.timedelta(days=4)   # latence IMERG Late ~4j
+    start = end   - datetime.timedelta(days=max(days_back, 30))
+    zone  = ee.Geometry.Point([lon, lat]).buffer(10000)
+
+    for collection_id in [
+        "NASA/GPM_L3/IMERG_V07/MONTHLY",
+        "NASA/GPM_L3/IMERG_V06/MONTHLY",
+    ]:
+        try:
+            col = (
+                ee.ImageCollection(collection_id)
+                .filterDate(start.isoformat(), end.isoformat())
+                .filterBounds(zone)
+                .select(["precipitation"])
+            )
+            count = col.size().getInfo()
+            if count == 0:
+                continue
+
+            # IMERG monthly : bande en mm/h → convertir en mm (× heures du mois ≈ 730h)
+            def to_mm(img):
+                hours = ee.Number(
+                    img.date().difference(img.date().advance(1, "month"), "hour").abs()
+                )
+                return img.multiply(hours).copyProperties(img, ["system:time_start"])
+
+            col_mm = col.map(to_mm)
+
+            stats_full = col_mm.sum().reduceRegion(
+                reducer=ee.Reducer.mean(), geometry=zone, scale=11000, maxPixels=1e9
+            ).getInfo()
+
+            pluie_30j = round(stats_full.get("precipitation") or 0, 2)
+            pluie_7j  = round(pluie_30j * 7 / 30, 2)  # approximation linéaire
+
+            max_stats = col_mm.max().reduceRegion(
+                reducer=ee.Reducer.max(), geometry=zone, scale=11000, maxPixels=1e9
+            ).getInfo()
+            intensite = round((max_stats.get("precipitation") or 0) / 730, 2)  # mm/h→mm/j
+
+            label = collection_id.split("/")[-1]
+            print(
+                f"  [GEE IMERG ✅ fallback] {label} — "
+                f"7j≈{pluie_7j}mm, 30j={pluie_30j}mm, max≈{intensite}mm/j"
+            )
+            return {
+                "source":              f"GPM-IMERG-{label}-11km",
+                "periode":             {"debut": start.isoformat(), "fin": end.isoformat()},
+                "pluie_chirps_7j_mm":  pluie_7j,    # clés identiques CHIRPS → pipeline inchangé
+                "pluie_chirps_30j_mm": pluie_30j,
+                "intensite_max_mm":    intensite,
+                "jours_pluie_30j":     None,          # non disponible en mensuel
+                "note":                "GPM IMERG fallback CHIRPS — résolution 11km",
+            }
+        except Exception as ex:
+            print(f"  [GEE IMERG] ⚠️  {collection_id} : {ex}")
+            continue
+
+    print("  [GEE IMERG] ⚠️  Toutes collections IMERG indisponibles")
+    return {"source": "GPM-IMERG-fallback", "erreur": "Toutes collections IMERG indisponibles"}
+
+
 def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
     """
     Données ERA5-Land (ECMWF/ERA5_LAND/DAILY_AGGR) via GEE.
@@ -473,7 +545,7 @@ def fetch_gee_era5(lat: float, lon: float, days_back: int = 7) -> dict:
 def fetch_gee_all(lat: float, lon: float, zone_type: str = "agricole") -> dict:
     """
     Orchestre toutes les collectes GEE.
-    CHIRPS et ERA5 sont activés pour TOUTES les zones.
+    CHIRPS (+ fallback GPM IMERG) et ERA5 sont activés pour TOUTES les zones.
     """
     if not _init_gee():
         return {"source": "gee", "erreur": "Initialisation GEE impossible"}
@@ -486,8 +558,15 @@ def fetch_gee_all(lat: float, lon: float, zone_type: str = "agricole") -> dict:
     else:
         result["modis"] = fetch_gee_modis_fallback(lat, lon, window_days=60)
 
-    result["smap"]   = fetch_gee_soil_moisture(lat, lon)
-    result["chirps"] = fetch_gee_chirps(lat, lon, days_back=30)
+    result["smap"] = fetch_gee_soil_moisture(lat, lon)
+
+    # Précipitations : CHIRPS en priorité, GPM IMERG en fallback automatique
+    _chirps = fetch_gee_chirps(lat, lon, days_back=30)
+    if "erreur" in _chirps:
+        print("  [GEE] CHIRPS indisponible → fallback GPM IMERG")
+        _chirps = fetch_gee_imerg(lat, lon, days_back=30)
+    result["chirps"] = _chirps
+
     result["era5"]   = fetch_gee_era5(lat, lon, days_back=7)
 
     return result
@@ -612,11 +691,20 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
         else:
             alerte_semis = "✅ Période de semis — conditions favorables"
 
+    # Détermine le label de source précipitations (CHIRPS, GPM-IMERG ou Open-Meteo)
+    _chirps_source = gee.get("chirps", {}).get("source", "")
+    if "IMERG" in _chirps_source:
+        pluie_source_label = "GPM-IMERG"
+    elif chirps_7j is not None:
+        pluie_source_label = "CHIRPS"
+    else:
+        pluie_source_label = "Open-Meteo"
+
     return {
         "pluie_cumulee_7j_mm":      round(pluie_ref_7j,   2),
         "pluie_cumulee_30j_mm":     round(pluie_ref_30j,  2),
         "pluie_prevue_7j_mm":       round(pluie_prev_7j,  2),
-        "pluie_source":             "CHIRPS" if chirps_7j is not None else "Open-Meteo",
+        "pluie_source":             pluie_source_label,
         "etp_cumulee_7j_mm":        round(etp_ref,         2),
         "etp_source":               "ERA5" if (etp_era5 and etp_era5 > 0) else "Open-Meteo-FAO56",
         "bilan_hydrique_7j_mm":     bilan_hydrique_7j,
@@ -653,7 +741,7 @@ def aggregate_and_save(zone: dict, openmeteo: dict, nasa: dict, gee: dict) -> st
 
     payload = {
         "meta": {
-            "version":           "3.1-multizone-chirps-era5",
+            "version":           "3.2-imerg-fallback",
             "date_collecte":     today,
             "zone":              zone["name"],
             "zone_type":         zone["type"],
@@ -668,7 +756,7 @@ def aggregate_and_save(zone: dict, openmeteo: dict, nasa: dict, gee: dict) -> st
                 "NASA POWER (rayonnement solaire, AG)",
                 "Copernicus Sentinel-2 via GEE (NDVI/NDWI/NDRE/NBR 10-20m)",
                 "NASA SMAP SPL4SMGP/008 via GEE (humidité sol 9km)",
-                "CHIRPS UCSB-CHG/DAILY via GEE (précipitations 5km)",
+                "CHIRPS UCSB-CHG/DAILY via GEE (précipitations 5km) + fallback GPM IMERG V07/MONTHLY",
                 "ERA5-Land ECMWF via GEE (vent, sol, ruissellement 9km)",
             ],
         },
@@ -722,7 +810,7 @@ def collect(zone: Optional[dict] = None, zone_name: Optional[str] = None, days: 
     openmeteo = fetch_openmeteo(lat, lon, days_back=days)
     print(f"  [2/4] NASA POWER...")
     nasa = fetch_nasa_power(lat, lon, days_back=days)
-    print(f"  [3/4] GEE (S2/MODIS + SMAP + CHIRPS + ERA5)...")
+    print(f"  [3/4] GEE (S2/MODIS + SMAP + CHIRPS/IMERG + ERA5)...")
     gee = fetch_gee_all(lat, lon, zone_type=zone.get("type", "agricole"))
     print(f"  [4/4] Agrégation et sauvegarde...")
     return aggregate_and_save(zone, openmeteo, nasa, gee)
@@ -735,7 +823,7 @@ def collect_zone_func(zone: dict, days: int = 7) -> str:
 # ─── 7. POINT D'ENTRÉE CLI ─────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="SAMCAM v3.1 — Collecte multi-zones")
+    parser = argparse.ArgumentParser(description="SAMCAM v3.2 — Collecte multi-zones")
     parser.add_argument("--zone", type=str, default=None,
                         help="Zone à collecter (ex: Kribi, Garoua)")
     parser.add_argument("--days", type=int, default=7,
@@ -758,10 +846,10 @@ def main():
         return
 
     print("=" * 60)
-    print(f"SAMCAM v3.1 — Collecte multi-zones")
+    print(f"SAMCAM v3.2 — Collecte multi-zones")
     print(f"Date    : {datetime.date.today().isoformat()}")
     print(f"Zones   : {len(zones_to_collect)} zone(s)")
-    print(f"Sources : Open-Meteo · NASA POWER · S2/MODIS · SMAP · CHIRPS · ERA5")
+    print(f"Sources : Open-Meteo · NASA POWER · S2/MODIS · SMAP · CHIRPS/IMERG · ERA5")
     print("=" * 60)
 
     results, errors = [], []
