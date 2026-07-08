@@ -36,6 +36,7 @@ import logging
 from datetime import datetime, date
 from dateutil.relativedelta import relativedelta
 from pathlib import Path
+from typing import Optional
 
 import requests
 import pandas as pd
@@ -55,7 +56,7 @@ ZONES = {
     "Maroua":       {"lat": 10.5910, "lon": 14.3159, "climate": "sahelian",         "start": "1990-01-01"},
 }
 
-DEFAULT_END          = "2025-12-31"
+DEFAULT_END           = "2025-12-31"
 CHUNK_YEARS_OPENMETEO = 2   # Open-Meteo : fenêtre max avant timeout (2 ans)
 CHUNK_YEARS_NASA      = 5   # NASA POWER : moins sensible, 5 ans OK
 MAX_RETRIES           = 3   # Nombre de tentatives par chunk
@@ -89,7 +90,7 @@ def date_chunks(start: str, end: str, chunk_years: int):
         current = chunk_end + relativedelta(days=1)
 
 
-def request_with_retry(url: str, params: dict, timeout: int, label: str) -> dict | None:
+def request_with_retry(url: str, params: dict, timeout: int, label: str) -> Optional[dict]:
     """GET avec retry exponentiel. Retourne le JSON ou None en cas d'échec total."""
     for attempt in range(1, MAX_RETRIES + 1):
         try:
@@ -239,10 +240,10 @@ def merge_and_enrich(df_meteo: pd.DataFrame, df_nasa: pd.DataFrame,
     df.reset_index(drop=True, inplace=True)
 
     # Features temporelles
-    df["year"]       = df["date"].dt.year
-    df["month"]      = df["date"].dt.month
+    df["year"]        = df["date"].dt.year
+    df["month"]       = df["date"].dt.month
     df["day_of_year"] = df["date"].dt.dayofyear
-    df["week"]       = df["date"].dt.isocalendar().week.astype(int)
+    df["week"]        = df["date"].dt.isocalendar().week.astype(int)
 
     # Cumuls glissants précipitations
     rain_col = "precipitation_sum" if "precipitation_sum" in df.columns else "nasa_prectotcorr"
@@ -276,7 +277,7 @@ def merge_and_enrich(df_meteo: pd.DataFrame, df_nasa: pd.DataFrame,
 def collect_zone_historical(zone_name: str, start: str, end: str,
                              force: bool = False,
                              chunk_years_om: int = CHUNK_YEARS_OPENMETEO,
-                             chunk_years_nasa: int = CHUNK_YEARS_NASA) -> Path | None:
+                             chunk_years_nasa: int = CHUNK_YEARS_NASA) -> Optional[Path]:
     """Collecte et sauvegarde les données historiques pour une zone."""
     output_path = OUTPUT_DIR / f"{zone_name}_historical.csv"
 
