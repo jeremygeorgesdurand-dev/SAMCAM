@@ -1,0 +1,58 @@
+2026-07-08 15:10:31,306 [WARNING] ⚠️  imbalanced-learn non installé — SMOTE désactivé. pip install imbalanced-learn
+2026-07-08 15:10:31,306 [INFO] Entraînement : 8 zones × 3 risques = 24 modèles
+2026-07-08 15:10:31,306 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-08 15:10:31,343 [INFO] 
+[Bafoussam] 13149 jours (1990-01-01 → 2025-12-31)
+2026-07-08 15:10:31,343 [INFO] 
+==================================================
+2026-07-08 15:10:31,343 [INFO] Entraînement : Bafoussam / INONDATION
+2026-07-08 15:10:31,343 [INFO] ==================================================
+2026-07-08 15:10:31,343 [INFO] [Features] inondation: 23 features
+2026-07-08 15:10:31,347 [INFO] Dataset : 13149 jours | 227 positifs (1.7%) | ratio 56.9:1
+2026-07-08 15:10:34,028 [INFO]   Fold  4 | RF=0.696 | GB=0.661 | pos=93
+2026-07-08 15:10:34,028 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:10:41,960 [INFO]   Fold  5 | RF=0.929 | GB=0.915 | pos=131
+2026-07-08 15:10:41,961 [INFO]   CV AUC → RF=0.812±0.117 | GB=0.788±0.127 (2 folds utiles)
+2026-07-08 15:10:42,050 [INFO]   ✅ RandomForest | CV AUC=0.812±0.117 | F1=0.450 | Thr=0.30 | SMOTE: 0/2 folds
+2026-07-08 15:10:42,055 [INFO]   Sauvegardé : models/zonal/model_inondation_Bafoussam.pkl
+2026-07-08 15:10:42,056 [INFO] 
+==================================================
+2026-07-08 15:10:42,056 [INFO] Entraînement : Bafoussam / SECHERESSE
+2026-07-08 15:10:42,057 [INFO] ==================================================
+2026-07-08 15:10:42,057 [INFO] [Features] secheresse: 31 features
+2026-07-08 15:10:42,060 [INFO] Dataset : 13149 jours | 5317 positifs (40.4%) | ratio 1.5:1
+2026-07-08 15:10:44,513 [INFO]   Fold  1 | RF=0.992 | GB=0.995 | pos=854
+2026-07-08 15:10:49,600 [INFO]   Fold  2 | RF=0.999 | GB=0.999 | pos=902
+2026-07-08 15:10:56,535 [INFO]   Fold  3 | RF=0.997 | GB=0.999 | pos=969
+2026-07-08 15:11:05,414 [INFO]   Fold  4 | RF=0.997 | GB=1.000 | pos=877
+2026-07-08 15:11:16,542 [INFO]   Fold  5 | RF=0.994 | GB=0.997 | pos=996
+2026-07-08 15:11:16,544 [INFO]   CV AUC → RF=0.996±0.003 | GB=0.998±0.002 (5 folds utiles)
+2026-07-08 15:11:16,563 [INFO]   ✅ GradientBoosting | CV AUC=0.998±0.002 | F1=0.979 | Thr=0.35 | SMOTE: 0/5 folds
+2026-07-08 15:11:16,569 [INFO]   Sauvegardé : models/zonal/model_secheresse_Bafoussam.pkl
+2026-07-08 15:11:16,570 [INFO] 
+==================================================
+2026-07-08 15:11:16,570 [INFO] Entraînement : Bafoussam / CHALEUR
+2026-07-08 15:11:16,570 [INFO] ==================================================
+2026-07-08 15:11:16,570 [INFO] [Features] chaleur: 28 features
+2026-07-08 15:11:16,576 [INFO] Dataset : 13149 jours | 2173 positifs (16.5%) | ratio 5.1:1
+2026-07-08 15:11:16,576 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:11:18,999 [INFO]   Fold  1 | RF=0.988 | GB=0.981 | pos=325
+2026-07-08 15:11:19,000 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:11:23,450 [INFO]   Fold  2 | RF=0.992 | GB=0.988 | pos=374
+2026-07-08 15:11:23,454 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:11:29,762 [INFO]   Fold  3 | RF=0.991 | GB=0.990 | pos=391
+2026-07-08 15:11:29,763 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:11:38,135 [INFO]   Fold  4 | RF=0.968 | GB=0.969 | pos=415
+2026-07-08 15:11:38,136 [WARNING]   [SMOTE] imbalanced-learn non installé — skip (pip install imbalanced-learn)
+2026-07-08 15:11:48,467 [INFO]   Fold  5 | RF=0.961 | GB=0.963 | pos=458
+2026-07-08 15:11:48,469 [INFO]   CV AUC → RF=0.980±0.013 | GB=0.978±0.011 (5 folds utiles)
+2026-07-08 15:11:48,632 [INFO]   ✅ RandomForest | CV AUC=0.980±0.013 | F1=0.834 | Thr=0.45 | SMOTE: 0/5 folds
+2026-07-08 15:11:48,639 [INFO]   Sauvegardé : models/zonal/model_chaleur_Bafoussam.pkl
+2026-07-08 15:11:48,672 [INFO] 
+[Ebolowa] 9497 jours (2000-01-01 → 2025-12-31)
+2026-07-08 15:11:48,672 [INFO] 
+==================================================
+2026-07-08 15:11:48,672 [INFO] Entraînement : Ebolowa / INONDATION
+2026-07-08 15:11:48,672 [INFO] ==================================================
+2026-07-08 15:11:48,672 [INFO] [Features] inondation: 23 features
+2026-07-08 15:11:48,676 [INFO] Dataset : 9497 jours | 182 positifs (1.9%) | ratio 51.2:1
