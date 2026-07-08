@@ -1,11 +1,12 @@
 {
   "_meta": {
     "zone": "yaounde_peri",
-    "label": "Yaound\u00e9 P\u00e9riurbain",
-    "version": "1.0.0",
-    "regime": "equatorial_bimodal_plateau",
-    "description": "P\u00e9riph\u00e9rie agricole de Yaound\u00e9 \u2014 plateau \u00e9quatorial alt. 750m, r\u00e9gime bimodal, cultures mar\u00eeach\u00e8res et vivri\u00e8res intensives",
-    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+    "label": "Yaoundé Périurbain",
+    "version": "1.1.0",
+    "regime": "equatorial_bimodal_periurbain",
+    "description": "Zone périurbaine de Yaoundé — altitude 750m, bimodal équatorial (mars-juin, sept-nov), imperméabilisation urbaine, maraîchage péri-urbain",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
+    "calibration_note": "v1.1 — zone périurbaine: imperméabilisation partielle accélère le ruissellement. flood score=2 (vs score=3 pour Kribi/Kumba forestiers) car bétonisation réduit l'infiltration. Sécheresse score=2. Chaleur amplifiée îlot de chaleur urbain: sigma=0.9."
   },
   "coordonnees": {
     "lat": 3.8480,
@@ -14,80 +15,81 @@
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 25, "2": 50, "3": 110, "4": 170,
-    "5": 195, "6": 145, "7": 55, "8": 70,
-    "9": 175, "10": 220, "11": 155, "12": 40
+    "1": 25,  "2": 55,  "3": 130, "4": 185,
+    "5": 195, "6": 145, "7": 55,  "8": 80,
+    "9": 195, "10": 230, "11": 135, "12": 35
   },
   "et0_normales_mensuelles_mm": {
-    "1": 27, "2": 28, "3": 26, "4": 22, "5": 20, "6": 19,
-    "7": 22, "8": 23, "9": 21, "10": 20, "11": 20, "12": 24
+    "1": 26, "2": 25, "3": 23, "4": 20, "5": 19, "6": 18,
+    "7": 21, "8": 21, "9": 19, "10": 18, "11": 19, "12": 24
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 30.0, "2": 30.5, "3": 30.5, "4": 29.8, "5": 28.5, "6": 27.5,
-    "7": 27.0, "8": 27.5, "9": 28.0, "10": 28.5, "11": 29.0, "12": 29.5
+    "1": 30.5, "2": 31.5, "3": 31.5, "4": 30.5, "5": 29.5, "6": 28.5,
+    "7": 28.0, "8": 28.5, "9": 28.5, "10": 29.0, "11": 29.5, "12": 30.0
   },
   "temp_max_std_mensuelles_c": {
-    "1": 2.2, "2": 2.0, "3": 1.9, "4": 1.7, "5": 1.5, "6": 1.4,
-    "7": 1.3, "8": 1.3, "9": 1.4, "10": 1.5, "11": 1.7, "12": 2.0
+    "1": 2.0, "2": 1.9, "3": 1.8, "4": 1.6, "5": 1.5, "6": 1.4,
+    "7": 1.4, "8": 1.4, "9": 1.5, "10": 1.5, "11": 1.6, "12": 1.9
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 17.0, "2": 17.5, "3": 18.0, "4": 18.5, "5": 18.2, "6": 17.8,
-    "7": 17.2, "8": 17.2, "9": 17.5, "10": 18.0, "11": 18.0, "12": 17.2
+    "1": 17.5, "2": 18.0, "3": 18.5, "4": 18.5, "5": 18.0, "6": 17.5,
+    "7": 17.0, "8": 17.0, "9": 17.5, "10": 18.0, "11": 18.0, "12": 17.5
   },
   "sm_surface_normales": {
-    "1": 0.22, "2": 0.26, "3": 0.33, "4": 0.41, "5": 0.44, "6": 0.38,
-    "7": 0.26, "8": 0.29, "9": 0.39, "10": 0.45, "11": 0.40, "12": 0.26
+    "1": 0.24, "2": 0.26, "3": 0.34, "4": 0.42, "5": 0.44, "6": 0.38,
+    "7": 0.28, "8": 0.32, "9": 0.44, "10": 0.48, "11": 0.40, "12": 0.28
   },
   "sm_rootzone_normales": {
-    "1": 0.26, "2": 0.29, "3": 0.36, "4": 0.43, "5": 0.46, "6": 0.41,
-    "7": 0.29, "8": 0.31, "9": 0.41, "10": 0.47, "11": 0.42, "12": 0.29
+    "1": 0.28, "2": 0.30, "3": 0.36, "4": 0.43, "5": 0.45, "6": 0.40,
+    "7": 0.32, "8": 0.35, "9": 0.44, "10": 0.47, "11": 0.41, "12": 0.30
   },
   "ndvi_seuil_alerte": {
-    "1": 0.35, "2": 0.38, "3": 0.44, "4": 0.52, "5": 0.54, "6": 0.50,
-    "7": 0.38, "8": 0.40, "9": 0.50, "10": 0.54, "11": 0.50, "12": 0.38
+    "1": 0.30, "2": 0.34, "3": 0.44, "4": 0.54, "5": 0.56, "6": 0.50,
+    "7": 0.38, "8": 0.44, "9": 0.56, "10": 0.58, "11": 0.52, "12": 0.34
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 0,  "p50": 4,  "p75": 10,  "p90": 22},
-    "2":  {"p25": 2,  "p50": 10, "p75": 24,  "p90": 46},
-    "3":  {"p25": 5,  "p50": 22, "p75": 48,  "p90": 88},
-    "4":  {"p25": 12, "p50": 36, "p75": 75,  "p90": 132},
-    "5":  {"p25": 14, "p50": 42, "p75": 86,  "p90": 150},
-    "6":  {"p25": 8,  "p50": 28, "p75": 60,  "p90": 110},
-    "7":  {"p25": 2,  "p50": 10, "p75": 24,  "p90": 46},
-    "8":  {"p25": 2,  "p50": 12, "p75": 30,  "p90": 58},
-    "9":  {"p25": 12, "p50": 36, "p75": 76,  "p90": 136},
-    "10": {"p25": 16, "p50": 46, "p75": 96,  "p90": 168},
-    "11": {"p25": 10, "p50": 32, "p75": 68,  "p90": 120},
-    "12": {"p25": 0,  "p50": 6,  "p75": 18,  "p90": 36}
+    "1":  {"p25": 0,  "p50": 4,  "p75": 12,  "p90": 24},
+    "2":  {"p25": 2,  "p50": 10, "p75": 26,  "p90": 50},
+    "3":  {"p25": 6,  "p50": 26, "p75": 58,  "p90": 105},
+    "4":  {"p25": 12, "p50": 38, "p75": 82,  "p90": 148},
+    "5":  {"p25": 14, "p50": 42, "p75": 88,  "p90": 158},
+    "6":  {"p25": 8,  "p50": 28, "p75": 62,  "p90": 115},
+    "7":  {"p25": 2,  "p50": 10, "p75": 26,  "p90": 52},
+    "8":  {"p25": 4,  "p50": 16, "p75": 38,  "p90": 72},
+    "9":  {"p25": 14, "p50": 40, "p75": 86,  "p90": 155},
+    "10": {"p25": 16, "p50": 46, "p75": 98,  "p90": 178},
+    "11": {"p25": 8,  "p50": 26, "p75": 58,  "p90": 108},
+    "12": {"p25": 0,  "p50": 6,  "p75": 16,  "p90": 32}
   },
   "seuils_inondation": {
-    "pluie_7j_facteur_normale": 1.3,
-    "pluie_prev_7j_facteur_normale": 1.15,
-    "sm_surface_seuil_haut": 0.46,
+    "pluie_7j_facteur_normale": 1.38,
+    "pluie_prev_7j_facteur_normale": 1.22,
+    "sm_surface_seuil_haut": 0.48,
     "score_min_label_1": 2,
-    "commentaire": "Plateau urbanis\u00e9 \u2014 imperm\u00e9abilisation aggrave le ruissellement en p\u00e9riph\u00e9rie"
+    "commentaire": "Zone périurbaine: imperméabilisation partielle (routes, toitures) accélère ruissellement et sature les bas-fonds. score_min=2 (moins de capacité d'absorption que zones forestières). sm_surface=0.48 reflète des sols mixtes urbain/agricole. Inondations fréquentes Mfoundi/Biyem-Assi lors des deux saisons pluies."
   },
   "seuils_secheresse": {
-    "pluie_30j_facteur_deficit": 0.62,
-    "sm_rootzone_delta_seuil": -0.07,
-    "ndvi_seuil_critique": 0.38,
-    "et0_facteur_stress": 1.25,
+    "pluie_30j_facteur_deficit": 0.57,
+    "sm_rootzone_delta_seuil": -0.09,
+    "ndvi_seuil_critique": 0.26,
+    "et0_facteur_stress": 1.32,
     "score_min_label_1": 2,
-    "commentaire": "Petite saison s\u00e8che juil-ao\u00fbt perceptible sur les cultures"
+    "commentaire": "Bimodal avec deux saisons sèches (déc-fév intense, juil petite). Maraîchage péri-urbain sensible au déficit hydrique. score_min=2 car zones humides résiduelles tamponnent. ndvi_critique=0.26 pour cultures maraîchères (plus bas que zones forestières)."
   },
   "seuils_chaleur": {
-    "temp_max_anomalie_sigma": 1.0,
-    "temp_max_3j_anomalie_sigma": 0.5,
-    "et0_facteur_stress": 1.3,
-    "pluie_7j_max_sec": 10.0,
+    "temp_max_anomalie_sigma": 0.9,
+    "temp_max_3j_anomalie_sigma": 0.45,
+    "et0_facteur_stress": 1.35,
+    "pluie_7j_max_sec": 9.0,
     "score_min_label_1": 2,
-    "commentaire": "Effet urbain de chaleur en p\u00e9riph\u00e9rie \u2014 seuils l\u00e9g\u00e8rement abaiss\u00e9s"
+    "commentaire": "Îlot de chaleur urbain: Tmax périurbaine +0.5 à +1°C vs forêt environnante. sigma=0.9 (plus sensible que Kribi forestier mais moins que zones soudaniennes). Chaleur ressentie amplifiée par humidité et asphalte jan-mars et juil-août."
   },
   "saisons": {
-    "grande_saison_pluies": [3, 4, 5, 6],
-    "petite_saison_pluies": [9, 10, 11],
-    "grande_saison_seche": [7, 8],
-    "petite_saison_seche": [12, 1, 2]
+    "saison_pluies_1": [3, 4, 5, 6],
+    "saison_pluies_2": [8, 9, 10, 11],
+    "petite_saison_seche": [7],
+    "grande_saison_seche": [12, 1, 2],
+    "commentaire": "Bimodal équatorial périurbain — décalage léger vs Kribi (pic oct à 230mm > pic mai à 195mm)"
   },
   "fichiers_historiques": {
     "dataset_csv": "data/dataset_yaounde_peri_historical.csv",

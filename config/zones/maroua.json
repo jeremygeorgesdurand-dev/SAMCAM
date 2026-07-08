@@ -2,10 +2,11 @@
   "_meta": {
     "zone": "maroua",
     "label": "Maroua",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "regime": "sahelien_aride",
-    "description": "Extr\u00eame-Nord \u2014 altitude 420m, r\u00e9gime sah\u00e9lien (juil-sept), mil/sorgho/oignon, s\u00e9cheresse chronique, temp\u00e9ratures extremes pr\u00e9-mousson",
-    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+    "description": "Extrême-Nord — altitude 420m, régime sahélien (juil-sept), mil/sorgho/oignon, sécheresse chronique, températures extrêmes pré-mousson",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
+    "calibration_note": "v1.1 — ajustement pluie_prev flood: sols sableux Extrême-Nord saturent en <24h donc prévision 7j moins pertinente que cumul observé. Seuils sécheresse et chaleur confirmés corrects."
   },
   "coordonnees": {
     "lat": 10.5960,
@@ -62,10 +63,10 @@
   },
   "seuils_inondation": {
     "pluie_7j_facteur_normale": 1.6,
-    "pluie_prev_7j_facteur_normale": 1.4,
+    "pluie_prev_7j_facteur_normale": 1.2,
     "sm_surface_seuil_haut": 0.34,
     "score_min_label_1": 2,
-    "commentaire": "Sol aride tr\u00e8s sec \u2014 pluies intenses brut\u00e8rent g\u00e9n\u00e8rent ruissellement instantan\u00e9"
+    "commentaire": "Sol aride très sec — pluies intenses bruttes génèrent ruissellement instantané. pluie_prev réduit à 1.2 (sols sableux saturent en <24h, prévision J+7 moins pertinente que signal observé). Seuils déjà bien calibrés — seul ajustement pluie_prev."
   },
   "seuils_secheresse": {
     "pluie_30j_facteur_deficit": 0.45,
@@ -73,7 +74,7 @@
     "ndvi_seuil_critique": 0.10,
     "et0_facteur_stress": 1.7,
     "score_min_label_1": 1,
-    "commentaire": "Zone sah\u00e9lienne \u2014 score_min=1 car s\u00e9cheresse quasi-permanente hors juillet-ao\u00fbt"
+    "commentaire": "Zone sahélienne — score_min=1 car sécheresse quasi-permanente hors juillet-août. Seuils validés et performants — aucun changement."
   },
   "seuils_chaleur": {
     "temp_max_anomalie_sigma": 0.7,
@@ -81,12 +82,12 @@
     "et0_facteur_stress": 1.8,
     "pluie_7j_max_sec": 3.0,
     "score_min_label_1": 1,
-    "commentaire": "Chaleur extr\u00eame structurelle (>40\u00b0C en avr-mai) \u2014 score_min=1, sensibilit\u00e9 maximale"
+    "commentaire": "Chaleur extrême structurelle (>40°C en avr-mai) — score_min=1, sensibilité maximale. Seuils validés et performants — aucun changement."
   },
   "saisons": {
     "saison_pluies": [6, 7, 8, 9],
     "saison_seche": [10, 11, 12, 1, 2, 3, 4, 5],
-    "commentaire": "R\u00e9gime sah\u00e9lien \u2014 3 mois de pluie effective (juil-sept)"
+    "commentaire": "Régime sahélien — 3 mois de pluie effective (juil-sept)"
   },
   "fichiers_historiques": {
     "dataset_csv": "data/dataset_maroua_historical.csv",

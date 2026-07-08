@@ -2,10 +2,11 @@
   "_meta": {
     "zone": "bafoussam",
     "label": "Bafoussam",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "regime": "tropical_altitude_unimodal",
-    "description": "Zone des Hautes Terres de l'Ouest \u2014 altitude 1450m, r\u00e9gime unimodal (avr-oct), viticulture et ma\u00efs, nuits fra\u00eeches",
-    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo"
+    "description": "Zone des Hautes Terres de l'Ouest — altitude 1450m, régime unimodal (avr-oct), viticulture et maïs, nuits fraîches",
+    "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
+    "calibration_note": "v1.1 — seuils recalibrés pour altitude 1450m: drainage naturel rapide, chaleur rare mais significative, sécheresse réelle nov-mars"
   },
   "coordonnees": {
     "lat": 5.4737,
@@ -61,32 +62,32 @@
     "12": {"p25": 0,  "p50": 2,  "p75": 6,   "p90": 14}
   },
   "seuils_inondation": {
-    "pluie_7j_facteur_normale": 1.35,
-    "pluie_prev_7j_facteur_normale": 1.2,
-    "sm_surface_seuil_haut": 0.48,
-    "score_min_label_1": 2,
-    "commentaire": "Hautes terres \u2014 drainage naturel, risque concentr\u00e9 dans les vall\u00e9es"
+    "pluie_7j_facteur_normale": 1.50,
+    "pluie_prev_7j_facteur_normale": 1.30,
+    "sm_surface_seuil_haut": 0.49,
+    "score_min_label_1": 3,
+    "commentaire": "Hautes terres 1450m — drainage naturel rapide sur sols ferrallitiques. score_min=3 car pluies abondantes en saison normale ne déclenchent pas de crue. Risque concentré dans les vallées de la Mifi uniquement lors de saturation + débit exceptionnel."
   },
   "seuils_secheresse": {
-    "pluie_30j_facteur_deficit": 0.60,
-    "sm_rootzone_delta_seuil": -0.08,
-    "ndvi_seuil_critique": 0.30,
-    "et0_facteur_stress": 1.3,
+    "pluie_30j_facteur_deficit": 0.55,
+    "sm_rootzone_delta_seuil": -0.10,
+    "ndvi_seuil_critique": 0.28,
+    "et0_facteur_stress": 1.40,
     "score_min_label_1": 2,
-    "commentaire": "Saison s\u00e8che marqu\u00e9e (nov-mars) \u2014 risque r\u00e9el en fin de saison"
+    "commentaire": "Saison sèche marquée nov-mars (ET0 élevée + nuits fraîches). Cultures maraîchères et maïs vulnérables dès janvier si déficit >45%. sm_rootzone_delta=-0.10 calibré sur sols andiques des Hautes Terres."
   },
   "seuils_chaleur": {
-    "temp_max_anomalie_sigma": 1.2,
-    "temp_max_3j_anomalie_sigma": 0.6,
-    "et0_facteur_stress": 1.35,
+    "temp_max_anomalie_sigma": 1.0,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.40,
     "pluie_7j_max_sec": 8.0,
     "score_min_label_1": 2,
-    "commentaire": "Altitude att\u00e9nue chaleur \u2014 anomalies rares mais significatives"
+    "commentaire": "Altitude 1450m atténue chaleur (Tmax normale 23-28°C). Vagues de chaleur rares mais réelles en fév-mars (harmattan + faible humidité). sigma=1.0 adapté à la variance réelle des Hautes Terres."
   },
   "saisons": {
     "saison_pluies": [4, 5, 6, 7, 8, 9, 10],
     "saison_seche": [11, 12, 1, 2, 3],
-    "commentaire": "R\u00e9gime unimodal typique des Hautes Terres de l'Ouest"
+    "commentaire": "Régime unimodal typique des Hautes Terres de l'Ouest"
   },
   "fichiers_historiques": {
     "dataset_csv": "data/dataset_bafoussam_historical.csv",
