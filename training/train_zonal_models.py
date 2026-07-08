@@ -158,6 +158,17 @@ def apply_smote_if_needed(X_train: pd.DataFrame, y_train: pd.Series,
         return X_train, y_train, False
 
 
+def _has_two_classes_with_weight(y: pd.Series, weights: np.ndarray) -> bool:
+    """Vérifie que y contient bien les 2 classes parmi les exemples avec poids > 0.
+
+    GradientBoostingClassifier lève un ValueError si, après trimming des poids
+    nuls, une seule classe subsiste. Cette garde évite ce crash sur les folds
+    très déséquilibrés (ex. inondation avec <5 positifs dans le fold train).
+    """
+    mask = weights > 0
+    return len(np.unique(y[mask])) >= 2
+
+
 # ---------------------------------------------------------------------------
 # Entraînement principal
 # ---------------------------------------------------------------------------
@@ -219,29 +230,46 @@ def train_model_for_zone_risk(zone_name: str, risk: str,
 
         sample_weights_f = compute_sample_weight("balanced", y_tr)
 
-        # RandomForest
+        # --- Garde anti-single-class (crash GradientBoosting avec sample_weight) ---
+        # Sur les folds très déséquilibrés, compute_sample_weight peut produire
+        # des poids nuls pour tous les positifs → GB refuse de fitter.
+        gb_can_fit = _has_two_classes_with_weight(y_tr, sample_weights_f)
+        if not gb_can_fit:
+            logger.warning(
+                f"  [Fold {fold}] Skip GB — une seule classe après sample_weight "
+                f"(zone={zone_name}, risk={risk}, n_pos_train={int(y_tr.sum())})"
+            )
+
+        # RandomForest (class_weight='balanced' interne, pas de sample_weight externe)
         rf_f = RandomForestClassifier(
             n_estimators=300, max_depth=12, min_samples_leaf=5,
             class_weight="balanced", random_state=42, n_jobs=-1,
         )
         rf_f.fit(X_tr, y_tr)
 
-        # GradientBoosting
-        gb_f = GradientBoostingClassifier(
-            n_estimators=200, max_depth=5, learning_rate=0.05,
-            subsample=0.8, random_state=42,
-        )
-        gb_f.fit(X_tr, y_tr, sample_weight=sample_weights_f)
+        # GradientBoosting — seulement si les deux classes sont présentes
+        gb_f = None
+        if gb_can_fit:
+            gb_f = GradientBoostingClassifier(
+                n_estimators=200, max_depth=5, learning_rate=0.05,
+                subsample=0.8, random_state=42,
+            )
+            gb_f.fit(X_tr, y_tr, sample_weight=sample_weights_f)
 
         try:
             auc_rf = roc_auc_score(y_test_f, rf_f.predict_proba(X_test_f)[:, 1])
-            auc_gb = roc_auc_score(y_test_f, gb_f.predict_proba(X_test_f)[:, 1])
             rf_aucs.append(auc_rf)
-            gb_aucs.append(auc_gb)
-            logger.info(f"  Fold {fold:2d} | RF={auc_rf:.3f} | GB={auc_gb:.3f} | pos={n_pos_f}")
+            if gb_f is not None:
+                auc_gb = roc_auc_score(y_test_f, gb_f.predict_proba(X_test_f)[:, 1])
+                gb_aucs.append(auc_gb)
+                logger.info(f"  Fold {fold:2d} | RF={auc_rf:.3f} | GB={auc_gb:.3f} | pos={n_pos_f}")
+            else:
+                logger.info(f"  Fold {fold:2d} | RF={auc_rf:.3f} | GB=skip  | pos={n_pos_f}")
             valid_folds += 1
             last_X_test, last_y_test = X_test_f, y_test_f
-            last_rf, last_gb = rf_f, gb_f
+            last_rf = rf_f
+            if gb_f is not None:
+                last_gb = gb_f
         except Exception as e:
             logger.debug(f"  Fold {fold} AUC error: {e}")
 
@@ -253,7 +281,7 @@ def train_model_for_zone_risk(zone_name: str, risk: str,
 
     logger.info(f"  CV AUC → RF={mean_rf:.3f}±{std_rf:.3f} | GB={mean_gb:.3f}±{std_gb:.3f} ({valid_folds} folds utiles)")
 
-    if mean_gb >= mean_rf:
+    if last_gb is not None and mean_gb >= mean_rf:
         best_model = last_gb
         best_name  = "GradientBoosting"
         cv_auc_mean, cv_auc_std = mean_gb, std_gb
