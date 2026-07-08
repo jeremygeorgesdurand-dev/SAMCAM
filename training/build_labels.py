@@ -34,6 +34,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import numpy as np
@@ -325,21 +326,21 @@ def _monthly_vector(df: pd.DataFrame, monthly_list: list,
     return months.map(lambda m: monthly_list[int(m) - 1])
 
 
-def _get_rain_col(df: pd.DataFrame) -> str | None:
+def _get_rain_col(df: pd.DataFrame) -> Optional[str]:
     for c in ["precipitation_sum", "nasa_prectotcorr"]:
         if c in df.columns:
             return c
     return None
 
 
-def _get_sm_col(df: pd.DataFrame) -> str | None:
+def _get_sm_col(df: pd.DataFrame) -> Optional[str]:
     for c in ["soil_moisture_0_to_7cm_mean", "nasa_gwettop", "nasa_gwetroot"]:
         if c in df.columns:
             return c
     return None
 
 
-def _get_tmax_col(df: pd.DataFrame) -> str | None:
+def _get_tmax_col(df: pd.DataFrame) -> Optional[str]:
     for c in ["temperature_2m_max", "nasa_t2m_max", "nasa_t2m"]:
         if c in df.columns:
             return c
