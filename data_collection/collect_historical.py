@@ -18,6 +18,7 @@ Robustesse réseau :
   - Requêtes découpées en chunks annuels (Open-Meteo: 2 ans, NASA: 5 ans)
     pour éviter les timeouts sur les longues séries.
   - Retry automatique jusqu'à MAX_RETRIES tentatives avec backoff exponentiel.
+  - Pause de 3s avant chaque requête pour éviter le rate limit HTTP 429.
 
 Sortie : data/historical/<zone>_historical.csv
 
@@ -57,10 +58,11 @@ ZONES = {
 }
 
 DEFAULT_END           = "2025-12-31"
-CHUNK_YEARS_OPENMETEO = 2   # Open-Meteo : fenêtre max avant timeout (2 ans)
-CHUNK_YEARS_NASA      = 5   # NASA POWER : moins sensible, 5 ans OK
-MAX_RETRIES           = 3   # Nombre de tentatives par chunk
-RETRY_BACKOFF_BASE    = 5   # Secondes de base pour le backoff exponentiel
+CHUNK_YEARS_OPENMETEO = 2    # Open-Meteo : fenêtre max avant timeout (2 ans)
+CHUNK_YEARS_NASA      = 5    # NASA POWER : moins sensible, 5 ans OK
+MAX_RETRIES           = 3    # Nombre de tentatives par chunk
+RETRY_BACKOFF_BASE    = 30   # Secondes de base pour le backoff (HTTP 429 nécessite ~30s)
+REQUEST_DELAY         = 3    # Pause systématique avant chaque requête (anti-rate-limit)
 
 OUTPUT_DIR = Path("data/historical")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -91,9 +93,11 @@ def date_chunks(start: str, end: str, chunk_years: int):
 
 
 def request_with_retry(url: str, params: dict, timeout: int, label: str) -> Optional[dict]:
-    """GET avec retry exponentiel. Retourne le JSON ou None en cas d'échec total."""
+    """GET avec retry exponentiel. Pause REQUEST_DELAY avant chaque tentative.
+    Retourne le JSON ou None en cas d'échec total."""
     for attempt in range(1, MAX_RETRIES + 1):
         try:
+            time.sleep(REQUEST_DELAY)  # pause anti-rate-limit avant chaque requête
             resp = requests.get(url, params=params, timeout=timeout)
             resp.raise_for_status()
             return resp.json()
@@ -155,7 +159,6 @@ def collect_openmeteo_historical(zone_name: str, lat: float, lon: float,
         df_chunk.rename(columns={"time": "date"}, inplace=True)
         df_chunk["date"] = pd.to_datetime(df_chunk["date"])
         frames.append(df_chunk)
-        time.sleep(0.5)  # politesse API
 
     if not frames:
         logger.error(f"[Open-Meteo] Aucune donnée collectée pour {zone_name}")
@@ -208,7 +211,6 @@ def collect_nasa_power_historical(zone_name: str, lat: float, lon: float,
         df_chunk["date"] = pd.to_datetime(df_chunk["date_str"], format="%Y%m%d")
         df_chunk.drop(columns=["date_str"], inplace=True)
         frames.append(df_chunk)
-        time.sleep(0.5)
 
     if not frames:
         logger.error(f"[NASA POWER] Aucune donnée collectée pour {zone_name}")
@@ -293,9 +295,9 @@ def collect_zone_historical(zone_name: str, start: str, end: str,
     lat, lon, climate = info["lat"], info["lon"], info["climate"]
 
     df_meteo = collect_openmeteo_historical(zone_name, lat, lon, start, end, chunk_years=chunk_years_om)
-    time.sleep(2)
+    time.sleep(5)  # pause entre les deux APIs
     df_nasa = collect_nasa_power_historical(zone_name, lat, lon, start, end, chunk_years=chunk_years_nasa)
-    time.sleep(2)
+    time.sleep(5)  # pause avant zone suivante
 
     df = merge_and_enrich(df_meteo, df_nasa, zone_name, climate)
 
@@ -344,7 +346,7 @@ def main():
             chunk_years_nasa=chunk_nasa,
         )
         results.append({"zone": zone, "status": "OK" if path else "ERREUR", "fichier": str(path)})
-        time.sleep(2)
+        time.sleep(5)  # pause inter-zone
 
     # Résumé
     print("\n" + "="*60)
