@@ -6,6 +6,7 @@ import '../models/weather_forecast.dart';
 import '../services/api_service.dart';
 import '../services/weather_service.dart';
 import '../widgets/weather_animation.dart';
+import '../widgets/zone_drawer.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
 
@@ -24,7 +25,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hourlyExpanded = true;
   bool _dailyExpanded  = true;
 
-  final _scrollCtrl = ScrollController();
+  /// null = mode GPS automatique ; sinon = zone SAMCAM forcée
+  String? _selectedZone;
+
+  final _scrollCtrl  = ScrollController();
+  final _drawerKey   = GlobalKey<ScaffoldState>();
   double _scrollOffset = 0;
 
   @override
@@ -42,24 +47,48 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  // ── Chargement données ────────────────────────────────────────────────────
+
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
-    final weatherFuture = WeatherService.getForecast();
-    // Lance le reverse geocoding en parallèle dès le départ
-    final cityFuture = ApiService.getPosition().then(
-      (pos) => WeatherService.getCityName(pos.lat, pos.lon),
-    );
+    final weatherFuture = WeatherService.getForecast(zone: _selectedZone);
+    final cityFuture = _selectedZone != null
+        ? Future.value(_selectedZone!)
+        : ApiService.getPosition().then(
+            (pos) => WeatherService.getCityName(pos.lat, pos.lon));
     try {
-      final risk    = await ApiService.getRisk();
+      final risk    = await ApiService.getRisk(zone: _selectedZone);
       final weather = await weatherFuture;
       final city    = await cityFuture;
-      setState(() { _report = risk; _weather = weather; _cityName = city; _loading = false; });
+      setState(() {
+        _report   = risk;
+        _weather  = weather;
+        _cityName = city;
+        _loading  = false;
+      });
     } catch (e) {
       final weather = await weatherFuture.catchError((_) => WeatherService.getForecast());
-      final city    = await cityFuture.catchError((_) async => '');
-      setState(() { _weather = weather; _cityName = city; _error = 'Serveur SAMCAM inaccessible'; _loading = false; });
+      final city    = await cityFuture.catchError((_) async => _selectedZone ?? '');
+      setState(() {
+        _weather  = weather;
+        _cityName = city;
+        _error    = 'Serveur SAMCAM inaccessible';
+        _loading  = false;
+      });
     }
   }
+
+  void _onZoneSelected(String zoneName) {
+    setState(() => _selectedZone = zoneName);
+    _fetchAll();
+  }
+
+  void _onGpsSelected() {
+    setState(() => _selectedZone = null);
+    _fetchAll();
+  }
+
+  // ── Helpers couleurs / labels ─────────────────────────────────────────────
 
   Color _alertColor(String niveau) =>
       Color(Config.alertColors[niveau] ?? Config.alertColors['INCONNU']!);
@@ -88,6 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool get _hasAlert => _report != null || _error != null;
   double get _alertBannerHeight => _hasAlert ? 36.0 : 0.0;
 
+  // ── Build ─────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
     final hour     = DateTime.now().hour;
@@ -97,7 +128,15 @@ class _HomeScreenState extends State<HomeScreen> {
     final gradient = weatherGradient(animType);
 
     return Scaffold(
+      key: _drawerKey,
       extendBodyBehindAppBar: true,
+      // ── Volet latéral gauche ─────────────────────────────────────────
+      drawer: ZoneDrawer(
+        currentCity:               _cityName,
+        selectedZone:              _selectedZone,
+        onZoneSelected:            _onZoneSelected,
+        onCurrentLocationSelected: _onGpsSelected,
+      ),
       appBar: _buildAppBar(),
       body: Stack(
         children: [
@@ -164,18 +203,35 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    const SizedBox(width: 16),
-                    const Text(
-                      'SAMCAM',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                        fontSize: 18,
-                        shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
+                    const SizedBox(width: 4),
+                    // ── Bouton SAMCAM → ouvre le drawer ─────────────
+                    TextButton.icon(
+                      onPressed: () => _drawerKey.currentState?.openDrawer(),
+                      icon: const Icon(
+                        Icons.menu,
+                        color: Colors.white70,
+                        size: 18,
+                      ),
+                      label: const Text(
+                        'SAMCAM',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          fontSize: 18,
+                          shadows: [Shadow(color: Colors.black45, blurRadius: 6)],
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        overlayColor: Colors.white12,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 8),
                     if (_hasAlert)
                       Expanded(child: _buildInlineAlertBanner())
                     else
@@ -363,7 +419,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try { dateStr = DateFormat('EEEE d MMMM', 'fr_FR').format(now); }
     catch (_) { dateStr = DateFormat('yyyy-MM-dd').format(now); }
 
-    // Utilise le nom de ville du reverse geocoding, sinon la zone SAMCAM
     final city = _cityName.isNotEmpty ? _cityName : (_report?.zone ?? 'Kribi');
     final cur  = weather.current;
 
@@ -526,7 +581,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ══ PRÉVISIONS 7 JOURS
   Widget _buildDailySection(WeatherData weather) => _glassCard(
     child: Column(children: [
       _expandableHeader(
