@@ -5,12 +5,12 @@ build_labels.py — Génération des labels (ground truth) pour l'entraînement 
 Stratégie hybride :
   1. Labels par seuils ZONAUX lus depuis config/zones/{slug}.json
      Structure réelle des JSONs :
-       - pluie_normales_mensuelles_mm   : dict {\"1\"..\"12\": float}
-       - et0_normales_mensuelles_mm     : dict {\"1\"..\"12\": float}
-       - temp_max_normales_mensuelles_c : dict {\"1\"..\"12\": float}
-       - temp_max_std_mensuelles_c      : dict {\"1\"..\"12\": float}
-       - sm_rootzone_normales           : dict {\"1\"..\"12\": float}
-       - percentiles_hebdo_pluie        : dict {\"1\"..\"12\": {p25,p50,p75,p90}}
+       - pluie_normales_mensuelles_mm   : dict {"1".."12": float}
+       - et0_normales_mensuelles_mm     : dict {"1".."12": float}
+       - temp_max_normales_mensuelles_c : dict {"1".."12": float}
+       - temp_max_std_mensuelles_c      : dict {"1".."12": float}
+       - sm_rootzone_normales           : dict {"1".."12": float}
+       - percentiles_hebdo_pluie        : dict {"1".."12": {p25,p50,p75,p90}}
        - seuils_inondation              : {pluie_7j_facteur_normale, sm_surface_seuil_haut, score_min_label_1}
        - seuils_secheresse              : {pluie_30j_facteur_deficit, sm_rootzone_delta_seuil, et0_facteur_stress, score_min_label_1}
        - seuils_chaleur                 : {temp_max_anomalie_sigma, temp_max_3j_anomalie_sigma, pluie_7j_max_sec, score_min_label_1}
@@ -41,9 +41,13 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-DATA_DIR = Path("data/historical")
+DATA_DIR   = Path("data/historical")
 OUTPUT_DIR = Path("data/historical")
 CONFIG_DIR = Path("config/zones")
+
+# Créer les dossiers AVANT d'initialiser le FileHandler
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -200,7 +204,7 @@ KNOWN_EVENTS = [
 # Lit la VRAIE structure des JSONs SAMCAM (pas per_hazard_thresholds)
 # ---------------------------------------------------------------------------
 def _dict_to_monthly_list(d: dict) -> list:
-    """Convertit {\"1\": v1, ..., \"12\": v12} en liste [v1, ..., v12]."""
+    """Convertit {"1": v1, ..., "12": v12} en liste [v1, ..., v12]."""
     return [float(d.get(str(m), 0.0)) for m in range(1, 13)]
 
 
