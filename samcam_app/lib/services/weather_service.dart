@@ -1,13 +1,24 @@
 // SAMCAM — Service météo via Open-Meteo (gratuit, sans clé)
-// V2 : coordonnées GPS dynamiques via ApiService.getPosition()
+// V3 : paramètre [zone] optionnel pour cibler une zone SAMCAM explicite
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/weather_forecast.dart';
 import 'api_service.dart';
 
+/// Coordonnées des zones SAMCAM (utilisées quand zone != null)
+const Map<String, List<double>> _zoneCoords = {
+  'Kribi':        [2.9399,  9.9098 ],
+  'Ebolowa':      [2.9000,  11.1500],
+  'Kumba':        [4.6364,  9.4469 ],
+  'Bafoussam':    [5.4765,  10.4178],
+  'Yaounde_peri': [3.8480,  11.5021],
+  'Ngaoundere':   [7.3220,  13.5840],
+  'Garoua':       [9.3000,  13.3900],
+  'Maroua':       [10.5910, 14.3159],
+};
+
 class WeatherService {
-  /// Reverse geocoding via Nominatim (OpenStreetMap) — retourne le nom de la ville en français.
-  /// Fallback sur "Ma position" si hors réseau.
+  /// Reverse geocoding via Nominatim — retourne le nom de la ville en français.
   static Future<String> getCityName(double lat, double lon) async {
     try {
       final uri = Uri.parse(
@@ -21,7 +32,6 @@ class WeatherService {
       if (response.statusCode == 200) {
         final data    = jsonDecode(response.body) as Map<String, dynamic>;
         final address = data['address'] as Map<String, dynamic>? ?? {};
-        // Priorité : city > town > village > county > state
         return (address['city']    as String?) ??
                (address['town']    as String?) ??
                (address['village'] as String?) ??
@@ -33,15 +43,27 @@ class WeatherService {
     return 'Ma position';
   }
 
-  /// Récupère les prévisions Open-Meteo pour la position GPS de l'utilisateur.
-  /// Fallback automatique sur le mock Kribi si hors réseau ou GPS refusé.
-  static Future<WeatherData> getForecast() async {
+  /// Récupère les prévisions Open-Meteo.
+  ///
+  /// - Si [zone] est fourni, utilise les coordonnées fixes de cette zone SAMCAM.
+  /// - Sinon, utilise la position GPS de l'utilisateur.
+  /// - Fallback automatique sur le mock Kribi si hors réseau.
+  static Future<WeatherData> getForecast({String? zone}) async {
     try {
-      final pos = await ApiService.getPosition();
+      double lat, lon;
+
+      if (zone != null && _zoneCoords.containsKey(zone)) {
+        lat = _zoneCoords[zone]![0];
+        lon = _zoneCoords[zone]![1];
+      } else {
+        final pos = await ApiService.getPosition();
+        lat = pos.lat;
+        lon = pos.lon;
+      }
 
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=${pos.lat}&longitude=${pos.lon}'
+        '?latitude=$lat&longitude=$lon'
         '&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m'
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
@@ -52,7 +74,7 @@ class WeatherService {
       );
 
       final response = await http.get(uri).timeout(const Duration(seconds: 10));
-      if (response.statusCode != 200) throw Exception('HTTP ${response.statusCode}');
+      if (response.statusCode != 200) throw Exception('HTTP \${response.statusCode}');
       return _parse(jsonDecode(response.body) as Map<String, dynamic>);
     } catch (e) {
       return _mockKribi();

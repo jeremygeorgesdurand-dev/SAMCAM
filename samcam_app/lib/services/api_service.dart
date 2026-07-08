@@ -61,45 +61,78 @@ class ApiService {
     return GpsPosition(pos.latitude, pos.longitude);
   }
 
-  // ── GET /api/risk — GPS-aware ──────────────────────────────────────
+  // ── GET /api/risk — GPS-aware ou zone explicite ───────────────────
   //
-  // Stratégie :
-  //   1. Récupère la position GPS de l'utilisateur
-  //   2. Appelle /api/nearest?lat=X&lon=Y  → données de la zone agricole
-  //      la plus proche (collectées chaque jour par le scheduler)
-  //   3. Si le serveur est inaccessible → Exception (home_screen gère le fallback)
-  //
-  // Réponse /api/nearest :
-  //   { zone, distance_km, hors_zone, indicateurs, meteo, … }
-  // On reconstitue un RiskReport compatible avec l'existant.
+  // Si [zone] est fourni : appelle /api/risk?zone=<zone>
+  // Sinon               : appelle /api/nearest?lat=X&lon=Y  (GPS auto)
 
-  static Future<RiskReport> getRisk() async {
+  static Future<RiskReport> getRisk({String? zone}) async {
     final base = await getServerUrl();
-    final pos  = await getPosition();
 
-    // Appel zone la plus proche avec les données pré-collectées (< 50 ms)
-    final uri = Uri.parse('$base/api/nearest?lat=${pos.lat}&lon=${pos.lon}');
+    if (zone != null) {
+      // Mode zone explicite → endpoint dédié
+      final uri = Uri.parse(
+          '$base/api/risk?zone=${Uri.encodeQueryComponent(zone)}');
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(Config.httpTimeout);
+
+      if (response.statusCode != 200) {
+        throw Exception('Erreur serveur : \${response.statusCode}');
+      }
+
+      final json =
+          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      // /api/risk retourne directement un objet compatible _nearestToRiskReport
+      return _nearestToRiskReport(json, null);
+    }
+
+    // Mode GPS automatique
+    final pos = await getPosition();
+    final uri = Uri.parse('$base/api/nearest?lat=\${pos.lat}&lon=\${pos.lon}');
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
         .timeout(Config.httpTimeout);
 
     if (response.statusCode != 200) {
-      throw Exception('Erreur serveur : ${response.statusCode}');
+      throw Exception('Erreur serveur : \${response.statusCode}');
     }
 
-    final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    final json =
+        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     return _nearestToRiskReport(json, pos);
   }
 
+  // ── GET /api/zones — liste des zones disponibles ──────────────────
+
+  static Future<List<String>> listZones() async {
+    final base = await getServerUrl();
+    final uri  = Uri.parse('$base/api/zones');
+
+    final response = await http
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(Config.httpTimeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Zones indisponibles');
+    }
+
+    final data = jsonDecode(utf8.decode(response.bodyBytes));
+    // Le serveur peut retourner : ["Kribi", ...] ou {"zones": [...]}
+    if (data is List) {
+      return List<String>.from(data);
+    } else if (data is Map && data['zones'] is List) {
+      return List<String>.from(data['zones'] as List);
+    }
+    return [];
+  }
+
   // ── GET /api/nearest-live ───────────────────────────────────────────
-  //
-  // Météo Open-Meteo temps réel à la position exacte + risque ML zone proche.
-  // Plus lent (~1-2 s) — à appeler uniquement si l'utilisateur veut rafraîchir.
 
   static Future<Map<String, dynamic>> getNearestLive() async {
     final base = await getServerUrl();
     final pos  = await getPosition();
-    final uri  = Uri.parse('$base/api/nearest-live?lat=${pos.lat}&lon=${pos.lon}');
+    final uri  = Uri.parse('$base/api/nearest-live?lat=\${pos.lat}&lon=\${pos.lon}');
 
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
@@ -108,7 +141,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     }
-    throw Exception('Erreur serveur : ${response.statusCode}');
+    throw Exception('Erreur serveur : \${response.statusCode}');
   }
 
   // ── GET /health ────────────────────────────────────────────────────────
@@ -133,10 +166,9 @@ class ApiService {
     final base = await getServerUrl();
     final pos  = await getPosition();
 
-    // Historique de la zone la plus proche de l'utilisateur
     final uri = Uri.parse('$base/api/history'
         '?limit=$limit'
-        '&zone=${Uri.encodeQueryComponent(await _nearestZoneName(base, pos))}');
+        '&zone=\${Uri.encodeQueryComponent(await _nearestZoneName(base, pos))}');
 
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
@@ -151,10 +183,9 @@ class ApiService {
 
   // ── Helpers privés ─────────────────────────────────────────────────
 
-  /// Interroge /api/nearest pour obtenir le nom de la zone la plus proche.
   static Future<String> _nearestZoneName(String base, GpsPosition pos) async {
     try {
-      final uri = Uri.parse('$base/api/nearest?lat=${pos.lat}&lon=${pos.lon}');
+      final uri = Uri.parse('$base/api/nearest?lat=\${pos.lat}&lon=\${pos.lon}');
       final r = await http.get(uri).timeout(Config.httpTimeout);
       if (r.statusCode == 200) {
         final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
@@ -164,12 +195,10 @@ class ApiService {
     return 'Kribi';
   }
 
-  /// Convertit la réponse de /api/nearest en RiskReport.
-  /// /api/nearest retourne les données pré-collectées de la zone la plus proche.
-  /// Le modèle ML n'est PAS réexécuté ici — on lit les scores stockés dans le JSON.
+  /// Convertit la réponse de /api/nearest (ou /api/risk) en RiskReport.
   static RiskReport _nearestToRiskReport(
     Map<String, dynamic> json,
-    GpsPosition pos,
+    GpsPosition? pos,
   ) {
     final zone        = (json['zone']        as String?) ?? 'Kribi';
     final distanceKm  = (json['distance_km'] as num?)?.toDouble() ?? 0.0;
@@ -177,11 +206,9 @@ class ApiService {
     final indicateurs = (json['indicateurs'] as Map<String, dynamic>?) ?? {};
     final meteo       = (json['meteo']       as Map<String, dynamic>?) ?? {};
 
-    // Les scores de risque sont dans indicateurs (champ pré-calculé lors de
-    // la collecte quotidienne). Si absents, on retourne des scores nuls.
-    final scores = (indicateurs['risque_actuel']   as Map<String, dynamic>?) ??
-                   (indicateurs['scores']           as Map<String, dynamic>?) ??
-                   {};
+    final scores   = (indicateurs['risque_actuel']   as Map<String, dynamic>?) ??
+                     (indicateurs['scores']           as Map<String, dynamic>?) ??
+                     {};
     final scores3j = (indicateurs['risque_prevu_3j'] as Map<String, dynamic>?) ?? {};
     final scores7j = (indicateurs['risque_prevu_7j'] as Map<String, dynamic>?) ?? {};
 
@@ -197,9 +224,8 @@ class ApiService {
       return 'VERT';
     }
 
-    // Note de distance affichée dans la zone si hors-zone
     final zoneLabel = hors_zone
-        ? '$zone (${distanceKm.toStringAsFixed(0)} km)'
+        ? '$zone (\${distanceKm.toStringAsFixed(0)} km)'
         : zone;
 
     return RiskReport(
