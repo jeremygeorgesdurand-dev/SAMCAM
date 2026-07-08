@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """
-SAMCAM V5.0.1 — Pipeline complet multi-zones : collecte + analyse + dashboard
+SAMCAM V5.0.2 — Pipeline complet multi-zones : collecte + analyse + dashboard
+
+FIX V5.0.2 :
+    - Étape [2/4] : utilise training/train_zonal_models.py (modèles zonaux V5)
+      à la place de inference/train_model.py (modèles V4 génériques).
+      Produit 24 .pkl (8 zones × 3 risques) dans models/zonal/.
 
 FIX V5.0.1 :
     - Correction appel collect_zone.py : suppression de --all (argument inexistant).
@@ -290,7 +295,7 @@ def test_prediction_v4():
 def main():
     import argparse
     parser = argparse.ArgumentParser(
-        description="SAMCAM Pipeline V5.0 — collecte + analyse multi-zones"
+        description="SAMCAM Pipeline V5.0.2 — collecte + analyse multi-zones"
     )
     parser.add_argument(
         "--days", type=int, default=7,
@@ -310,7 +315,7 @@ def main():
     )
     args = parser.parse_args()
 
-    print(f"\n🚀 SAMCAM Pipeline V5.0.1 — {datetime.date.today().isoformat()}")
+    print(f"\n🚀 SAMCAM Pipeline V5.0.2 — {datetime.date.today().isoformat()}")
     print(f"   Zones : {len(ZONES_SLUGS)} zones ({', '.join(ZONES_SLUGS)})")
 
     if args.test:
@@ -326,11 +331,11 @@ def main():
         "[1/4] Collecte météo + satellite — toutes les zones"
     )
 
-    # ── Étape 2 : Ré-entraînement conditionnel
+    # ── Étape 2 : Ré-entraînement conditionnel (modèles zonaux V5)
     if verifier_retrain_necessaire(force=args.retrain):
         run(
-            [sys.executable, "inference/train_model.py", "--all-horizons"],
-            "[2/4] Ré-entraînement modèles V4.4 (tous horizons)"
+            [sys.executable, "training/train_zonal_models.py", "--all-horizons"],
+            "[2/4] Ré-entraînement modèles zonaux V5 (tous horizons)"
         )
     else:
         print(f"\n[PIPELINE] ⏭️  Ré-entraînement ignoré "
@@ -345,7 +350,7 @@ def main():
     # ── Étape 4 : Copie des rapports dans dashboard/
     copier_rapport_multi()
 
-    print(f"\n✅ Pipeline V5.0.1 terminé — {len(ZONES_SLUGS)} zones analysées.")
+    print(f"\n✅ Pipeline V5.0.2 terminé — {len(ZONES_SLUGS)} zones analysées.")
     print(f"   Rapports : reports/rapport_<zone>_{datetime.date.today().isoformat()}.json")
     dashboard_path = os.path.join(ROOT, "dashboard", "samcam-v4-dashboard.html")
     print(f"[PIPELINE] 🌐 Dashboard : file://{os.path.abspath(dashboard_path)}")
