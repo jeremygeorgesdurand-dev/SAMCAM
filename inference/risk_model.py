@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 """
-SAMCAM V4.7.5 — Module d'inférence des risques climatiques
+SAMCAM V5.0.0 — Module d'inférence des risques climatiques
 Multi-horizons améliorés : J+1 / J+3 / J+7
+
+NOUVEAUTÉS V5.0.0 :
+    - FIX CRITIQUE chargement des modèles zonaux :
+        La V4.7.x pointait uniquement vers models/ pour tous les modèles.
+        Les modèles zonaux entraînés dans models/zonal/ n'étaient jamais utilisés.
+        Nouveau comportement de _charger_modele(nom, horizon, zone) :
+          1. models/zonal/model_{risque}_{Zone}.pkl  (zonal + spécifique zone)
+          2. models/zonal/model_{risque}.pkl          (zonal générique)
+          3. models/model_{risque}_j{horizon}.pkl     (global multi-horizon)
+          4. models/model_{risque}.pkl                (global fallback final)
+        predire_risques() et evaluer_previsions() propagent le paramètre `zone`.
+        Le cache interne est keyed sur (cle, zone) pour éviter les collisions.
 
 NOUVEAUTÉS V4.7.5 :
     - FIX CRITIQUE bug trend_sm double-appel :
@@ -51,9 +63,10 @@ import math
 import random
 from typing import Optional, Dict, Any
 
-MODELS_DIR   = os.path.join(os.path.dirname(__file__), "..", "models")
-REPORTS_DIR  = os.path.join(os.path.dirname(__file__), "..", "reports")
-DATA_DIR     = os.path.join(os.path.dirname(__file__), "..", "data")
+MODELS_DIR        = os.path.join(os.path.dirname(__file__), "..", "models")
+ZONAL_MODELS_DIR  = os.path.join(os.path.dirname(__file__), "..", "models", "zonal")
+REPORTS_DIR       = os.path.join(os.path.dirname(__file__), "..", "reports")
+DATA_DIR          = os.path.join(os.path.dirname(__file__), "..", "data")
 
 # ──────────────────────────────────────────────────────────────────────────────────
 # CLIMATOLOGIE KRIBI — V4.7.3 (données réelles régime bimodal côtier équatorial)
@@ -209,15 +222,6 @@ FEATURES_J7 = [
 # ──────────────────────────────────────────────────────────────────────────────────
 # TREND SM — FONCTION PURE (V4.7.5 — fix bug double-appel)
 # ──────────────────────────────────────────────────────────────────────────────────
-# L'ancienne implémentation utilisait un état global mutable (_sm_surface_historique)
-# que evaluer_previsions() corrompait en appelant predire_risques() 4 fois de suite
-# (J0, J+1, J+3, J+7). Chaque appel écrasait l'historique, rendant trend_sm
-# différent d'un horizon à l'autre pour le même cycle de prédiction.
-#
-# Solution : fonction PURE — aucun état global, la valeur de référence est
-# passée explicitement depuis _lire_donnees(). trend_sm est désormais calculé
-# une seule fois dans _lire_donnees() et réutilisé par tous les horizons.
-# ──────────────────────────────────────────────────────────────────────────────────
 
 _sm_surface_precedente: Optional[float] = None
 
@@ -240,7 +244,6 @@ def _get_trend_sm_pur(sm_surface_actuel: float,
     return round(sm_surface_actuel - sm_reference, 4)
 
 
-# Compatibilité ascendante — ne PAS appeler depuis evaluer_previsions()
 def reset_historique():
     global _sm_surface_precedente
     _sm_surface_precedente = None
@@ -395,8 +398,6 @@ def _lire_donnees(data: dict) -> dict:
     temp_list   = prev.get("temperature_2m_max", []) or []
     et0_list    = prev.get("et0_fao_evapotranspiration", []) or []
 
-    # trend_sm calculé UNE SEULE FOIS ici, partagé par tous les horizons du cycle
-    # Fix V4.7.5 : _get_trend_sm_pur() est pure, pas d'état global muté
     trend_sm_value = _get_trend_sm_pur(round(sm_surface, 4), _sm_surface_precedente)
 
     return {
@@ -414,52 +415,106 @@ def _lire_donnees(data: dict) -> dict:
         "precip_list":   [float(p or 0) for p in precip_list],
         "temp_list":     [float(t or temp_max) for t in temp_list],
         "et0_list":      [float(e or 0) for e in et0_list],
-        # trend_sm PRÉ-CALCULÉ (pure, pas d'état global) — fix bug V4.7.5
         "trend_sm":      trend_sm_value,
     }
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# CHARGEMENT DES MODÈLES
+# CHARGEMENT DES MODÈLES — V5.0.0 (résolution zonale)
+# ──────────────────────────────────────────────────────────────────────────────────
+# Ordre de résolution pour _charger_modele(nom, horizon, zone) :
+#   1. models/zonal/model_{nom}_{Zone}.pkl   → modèle zonal spécifique à la zone
+#   2. models/zonal/model_{nom}.pkl          → modèle zonal générique
+#   3. models/model_{nom}_j{horizon}.pkl     → modèle global multi-horizon
+#   4. models/model_{nom}.pkl               → modèle global fallback
+#
+# Le cache est keyed sur (cle, zone) pour éviter les collisions entre zones.
 # ──────────────────────────────────────────────────────────────────────────────────
 
 _cache_modeles: dict = {}
 
 
-def _charger_modele(nom: str, horizon: Optional[int] = None):
-    cles_a_tester = []
+def _charger_modele(nom: str, horizon: Optional[int] = None,
+                    zone: Optional[str] = None):
+    """
+    Charge un modèle pickle en suivant l'ordre de priorité zonal.
+
+    Paramètres
+    ----------
+    nom     : risque cible — 'inondation', 'secheresse' ou 'chaleur'
+    horizon : horizon de prévision (1, 3 ou 7) — None pour J0
+    zone    : nom de la zone (ex: 'Kribi', 'Garoua') — None = fallback global
+
+    Retourne (clf, seuil, features) ou (None, 0.5, FEATURES_BASE) si introuvable.
+    """
+    cache_key = (nom, horizon, zone)
+    if cache_key in _cache_modeles:
+        return _cache_modeles[cache_key]
+
+    # Construire la liste ordonnée des chemins à tester
+    chemins_a_tester = []
+
+    # 1. Modèle zonal spécifique à la zone (models/zonal/model_{nom}_{Zone}.pkl)
+    if zone:
+        chemins_a_tester.append(
+            os.path.join(ZONAL_MODELS_DIR, f"model_{nom}_{zone}.pkl")
+        )
+
+    # 2. Modèle zonal générique (models/zonal/model_{nom}.pkl)
+    chemins_a_tester.append(
+        os.path.join(ZONAL_MODELS_DIR, f"model_{nom}.pkl")
+    )
+
+    # 3. Modèle global multi-horizon (models/model_{nom}_j{horizon}.pkl)
     if horizon is not None:
-        cles_a_tester.append(f"{nom}_j{horizon}")
-    cles_a_tester.append(nom)
+        chemins_a_tester.append(
+            os.path.join(MODELS_DIR, f"model_{nom}_j{horizon}.pkl")
+        )
 
-    for cle in cles_a_tester:
-        if cle in _cache_modeles:
-            return _cache_modeles[cle]
-        chemin = os.path.join(MODELS_DIR, f"model_{cle}.pkl")
-        if os.path.exists(chemin):
-            try:
-                import joblib
-                obj = joblib.load(chemin)
-                if isinstance(obj, dict):
-                    clf      = obj["clf"]
-                    seuil    = obj.get("seuil",    0.5)
-                    features = obj.get("features", FEATURES_BASE)
-                else:
-                    clf      = obj
-                    seuil    = 0.5
-                    features = FEATURES_BASE
-                _cache_modeles[cle] = (clf, seuil, features)
-                return clf, seuil, features
-            except Exception:
-                continue
+    # 4. Modèle global fallback (models/model_{nom}.pkl)
+    chemins_a_tester.append(
+        os.path.join(MODELS_DIR, f"model_{nom}.pkl")
+    )
 
+    for chemin in chemins_a_tester:
+        if not os.path.exists(chemin):
+            continue
+        try:
+            import joblib
+            obj = joblib.load(chemin)
+            if isinstance(obj, dict):
+                clf      = obj["clf"]
+                seuil    = obj.get("seuil",    0.5)
+                features = obj.get("features", FEATURES_BASE)
+            else:
+                clf      = obj
+                seuil    = 0.5
+                features = FEATURES_BASE
+            print(f"[RISK] 📦 Modèle chargé : {os.path.relpath(chemin)} "
+                  f"(zone={zone}, horizon={horizon})")
+            _cache_modeles[cache_key] = (clf, seuil, features)
+            return clf, seuil, features
+        except Exception as e:
+            print(f"[RISK] ⚠️  Impossible de charger {chemin} : {e}")
+            continue
+
+    # Aucun modèle trouvé → fallback règles physiques
     return None, 0.5, FEATURES_BASE
 
 
 def modeles_disponibles() -> list:
     modeles = []
     for n in ["inondation", "secheresse", "chaleur"]:
-        if os.path.exists(os.path.join(MODELS_DIR, f"model_{n}.pkl")):
+        zonal_exists = (
+            any(
+                os.path.exists(os.path.join(ZONAL_MODELS_DIR, f"model_{n}_{z}.pkl"))
+                for z in ["Kribi", "Garoua", "Maroua", "Bafoussam",
+                           "Ebolowa", "Kumba", "Ngaoundere", "Yaounde_peri"]
+            ) or
+            os.path.exists(os.path.join(ZONAL_MODELS_DIR, f"model_{n}.pkl"))
+        )
+        global_exists = os.path.exists(os.path.join(MODELS_DIR, f"model_{n}.pkl"))
+        if zonal_exists or global_exists:
             modeles.append(n)
     return modeles
 
@@ -519,7 +574,7 @@ def _features_j0(data: dict) -> dict:
     anomalie     = round((d["pluie_7j"] - normale_7j) / max(1.0, normale_7j), 4)
     ratio        = round(d["pluie_30j"] / max(1.0, d["pluie_7j"] * (30 / 7)), 4) if d["pluie_7j"] > 0 else 1.0
     ratio        = min(ratio, 5.0)
-    trend_sm     = d["trend_sm"]  # pré-calculé dans _lire_donnees() — fix bug V4.7.5
+    trend_sm     = d["trend_sm"]
     sm_def       = round(max(0.0, (SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35) - d["sm_rootzone"]) / max(0.01, SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.35))), 4)
     ratio_et0    = round(d["et0_semaine"] / max(1.0, d["pluie_7j"]), 4)
     ratio_et0    = min(ratio_et0, 10.0)
@@ -576,7 +631,6 @@ def _features_horizon(data: dict, horizon: int) -> dict:
     ratio_30j_prev  = min(ratio_30j_prev, 5.0)
     ratio_et0_prev  = round(et0_hor / max(1.0, pluie_prev), 4)
     ratio_et0_prev  = min(ratio_et0_prev, 10.0)
-    # trend_sm pré-calculé dans _lire_donnees() — fix bug V4.7.5
     trend_sm        = d["trend_sm"] if horizon == 1 else 0.0
 
     p1 = _corriger_pluie_prevision(sum(d["precip_list"][:1]), 1)
@@ -681,11 +735,19 @@ def _appliquer_garde_fou(nom: str, score_ml: float, feats: dict) -> tuple:
 
 
 # ──────────────────────────────────────────────────────────────────────────────────
-# INFÉRENCE PRINCIPALE
+# INFÉRENCE PRINCIPALE — V5.0.0 (propagation zone)
 # ──────────────────────────────────────────────────────────────────────────────────
 
 def predire_risques(data: dict, use_previsions: bool = False,
-                    horizon_jours: int = 7) -> dict:
+                    horizon_jours: int = 7,
+                    zone: Optional[str] = None) -> dict:
+    """
+    Prédit les risques pour un horizon donné.
+
+    Paramètre `zone` (V5.0.0) : nom de la zone (ex: 'Kribi', 'Garoua').
+    Utilisé pour sélectionner le modèle zonal depuis models/zonal/.
+    Si None, résolution globale (models/) uniquement.
+    """
     if use_previsions:
         feats = _features_horizon(data, horizon_jours)
         fiabilite = FIABILITE_HORIZON.get(horizon_jours, 0.50)
@@ -699,7 +761,8 @@ def predire_risques(data: dict, use_previsions: bool = False,
 
     for nom in ["inondation", "secheresse", "chaleur"]:
         hor_key = horizon_jours if horizon_jours > 0 else None
-        clf, seuil, features_modele = _charger_modele(nom, horizon=hor_key)
+        # V5.0.0 : passer `zone` pour résolution zonale
+        clf, seuil, features_modele = _charger_modele(nom, horizon=hor_key, zone=zone)
 
         score_brut    = None
         garde_fou_msg = ""
@@ -718,6 +781,9 @@ def predire_risques(data: dict, use_previsions: bool = False,
                 if methode_valide == "modele_ml":
                     score_brut = score_brut_valide
                     methode_utilisee[nom] = (
+                        f"modele_zonal_v5_j{horizon_jours}" if horizon_jours > 0
+                        else "modele_zonal_v5_j0"
+                    ) if zone else (
                         f"modele_ml_v4.7_j{horizon_jours}" if horizon_jours > 0
                         else "modele_ml_v4.7_j0"
                     )
@@ -726,7 +792,7 @@ def predire_risques(data: dict, use_previsions: bool = False,
                     methode_utilisee[nom] = methode_valide
 
             except Exception as e:
-                print(f"[RISK] Erreur modèle {nom} h={horizon_jours} : {e} → fallback règles physiques")
+                print(f"[RISK] Erreur modèle {nom} h={horizon_jours} zone={zone} : {e} → fallback règles physiques")
                 score_brut = None
 
         if score_brut is None:
@@ -787,19 +853,32 @@ def predire_risques(data: dict, use_previsions: bool = False,
         "descriptions":       {k: v["description"] for k, v in resultats.items()},
         "avertissements":     {k: v["avertissement"] for k, v in resultats.items()},
         "niveau_global":      niveau_global,
-        "methode_globale":    "modele_ml_v4.7" if any(
-            "modele_ml" in v for v in methode_utilisee.values()
-        ) else "regles_physiques",
+        "methode_globale":    (
+            f"modele_zonal_v5 (zone={zone})" if zone and any(
+                "modele_zonal" in v for v in methode_utilisee.values()
+            ) else (
+                "modele_ml_v4.7" if any(
+                    "modele_ml" in v for v in methode_utilisee.values()
+                ) else "regles_physiques"
+            )
+        ),
         "features_utilisees": feats,
         "modeles_charges":    modeles_disponibles(),
+        "zone":               zone,
     }
 
 
-def evaluer_previsions(data: dict) -> dict:
-    risque_j0 = predire_risques(data, use_previsions=False)
-    risque_j1 = predire_risques(data, use_previsions=True, horizon_jours=1)
-    risque_j3 = predire_risques(data, use_previsions=True, horizon_jours=3)
-    risque_j7 = predire_risques(data, use_previsions=True, horizon_jours=7)
+def evaluer_previsions(data: dict, zone: Optional[str] = None) -> dict:
+    """
+    Évalue les prévisions de risque pour les 4 horizons (J0, J+1, J+3, J+7).
+
+    Paramètre `zone` (V5.0.0) : propagé à predire_risques() pour la résolution
+    zonale des modèles depuis models/zonal/.
+    """
+    risque_j0 = predire_risques(data, use_previsions=False, zone=zone)
+    risque_j1 = predire_risques(data, use_previsions=True, horizon_jours=1, zone=zone)
+    risque_j3 = predire_risques(data, use_previsions=True, horizon_jours=3, zone=zone)
+    risque_j7 = predire_risques(data, use_previsions=True, horizon_jours=7, zone=zone)
 
     def _pack(r: dict, label: str) -> dict:
         return {
@@ -845,11 +924,13 @@ def evaluer_previsions(data: dict) -> dict:
             "fiabilite_j3": FIABILITE_HORIZON[3],
             "fiabilite_j7": FIABILITE_HORIZON[7],
             "note": (
-                "V4.7.5 — trend_sm pur (fix bug double-appel evaluer_previsions). "
+                "V5.0.0 — Modèles zonaux actifs (models/zonal/). "
+                "trend_sm pur (fix bug double-appel). "
                 "Garde-fou de cohérence physique activé pour sécheresse. "
                 "NDVI seuil contextuel selon saison. sm_rootzone vs normale mensuelle SMAP."
             ),
         },
+        "zone": zone,
     }
 
 
@@ -868,9 +949,9 @@ def sauvegarder_rapport_json(data_source: dict, previsions_risque: dict) -> str:
     sortie = {
         "date":            today,
         "zone":            "Kribi",
-        "modele":          "risk_model_v4.7.5",
+        "modele":          "risk_model_v5.0.0",
         "rapport_texte":   (
-            f"Rapport automatisé SAMCAM V4.7.5 — {today}\n"
+            f"Rapport automatisé SAMCAM V5.0.0 — {today}\n"
             f"Niveau global : {niveau_global}\n"
             f"Inondation : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('inondation', '?')}\n"
             f"Sécheresse : {previsions_risque.get('actuel', {}).get('niveaux', {}).get('secheresse', '?')}\n"
@@ -935,7 +1016,8 @@ if __name__ == "__main__":
         with open(fichier, "r", encoding="utf-8") as f:
             data_source = json.load(f)
 
-    previsions_risque = evaluer_previsions(data_source)
+    # V5 : passer zone="Kribi" pour utiliser le modèle zonal
+    previsions_risque = evaluer_previsions(data_source, zone="Kribi")
     print(json.dumps(previsions_risque, ensure_ascii=False, indent=2))
 
     print("\n=== RÉSUMÉ TENDANCE ===")
