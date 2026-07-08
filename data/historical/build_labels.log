@@ -1,0 +1,2 @@
+2026-07-08 12:58:16,056 [ERROR] Aucun fichier historique trouvé dans data/historical/
+2026-07-08 12:58:16,056 [ERROR] ➡️  Lancez d'abord : python data_collection/collect_historical.py

@@ -1,0 +1,49 @@
+2026-07-08 12:58:47,839 [INFO] Collecte historique 2015-01-01 → 2025-12-31 pour : ['Kribi', 'Ebolowa', 'Kumba', 'Bafoussam', 'Yaounde_peri', 'Ngaoundere', 'Garoua', 'Maroua']
+2026-07-08 12:58:47,839 [INFO] [Open-Meteo] Kribi 2015-01-01 → 2025-12-31
+2026-07-08 12:59:52,597 [ERROR] [Open-Meteo] Erreur Kribi: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Read timed out. (read timeout=60)
+2026-07-08 12:59:53,629 [INFO] [NASA POWER] Kribi 2015-01-01 → 2025-12-31
+2026-07-08 13:00:06,608 [INFO] [NASA POWER] Kribi : 4018 jours collectés
+2026-07-08 13:00:07,633 [INFO] [Merge] Kribi : 4018 lignes, 24 colonnes
+2026-07-08 13:00:07,678 [INFO] [Sauvegarde] data/historical/Kribi_historical.csv (4018 lignes)
+2026-07-08 13:00:09,683 [INFO] [Open-Meteo] Ebolowa 2015-01-01 → 2025-12-31
+2026-07-08 13:00:48,495 [ERROR] [Open-Meteo] Erreur Ebolowa: 502 Server Error: Bad Gateway for url: https://archive-api.open-meteo.com/v1/archive?latitude=2.9&longitude=11.15&start_date=2015-01-01&end_date=2025-12-31&daily=temperature_2m_max&daily=temperature_2m_min&daily=temperature_2m_mean&daily=precipitation_sum&daily=rain_sum&daily=et0_fao_evapotranspiration&daily=wind_speed_10m_max&daily=wind_gusts_10m_max&daily=shortwave_radiation_sum&daily=relative_humidity_2m_max&daily=relative_humidity_2m_min&daily=soil_moisture_0_to_7cm_mean&daily=soil_moisture_7_to_28cm_mean&daily=soil_moisture_28_to_100cm_mean&daily=precipitation_hours&daily=sunshine_duration&timezone=Africa%2FDouala
+2026-07-08 13:00:49,510 [INFO] [NASA POWER] Ebolowa 2015-01-01 → 2025-12-31
+2026-07-08 13:01:19,580 [INFO] [NASA POWER] Ebolowa : 4018 jours collectés
+2026-07-08 13:01:20,602 [INFO] [Merge] Ebolowa : 4018 lignes, 24 colonnes
+2026-07-08 13:01:20,644 [INFO] [Sauvegarde] data/historical/Ebolowa_historical.csv (4018 lignes)
+2026-07-08 13:01:22,651 [INFO] [Open-Meteo] Kumba 2015-01-01 → 2025-12-31
+2026-07-08 13:02:28,578 [ERROR] [Open-Meteo] Erreur Kumba: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Read timed out. (read timeout=60)
+2026-07-08 13:02:29,599 [INFO] [NASA POWER] Kumba 2015-01-01 → 2025-12-31
+2026-07-08 13:02:56,638 [INFO] [NASA POWER] Kumba : 4018 jours collectés
+2026-07-08 13:02:57,664 [INFO] [Merge] Kumba : 4018 lignes, 24 colonnes
+2026-07-08 13:02:57,706 [INFO] [Sauvegarde] data/historical/Kumba_historical.csv (4018 lignes)
+2026-07-08 13:02:59,721 [INFO] [Open-Meteo] Bafoussam 2015-01-01 → 2025-12-31
+2026-07-08 13:04:19,651 [INFO] [Open-Meteo] Bafoussam : 4018 jours collectés
+2026-07-08 13:04:20,658 [INFO] [NASA POWER] Bafoussam 2015-01-01 → 2025-12-31
+2026-07-08 13:04:48,586 [INFO] [NASA POWER] Bafoussam : 4018 jours collectés
+2026-07-08 13:04:49,613 [INFO] [Merge] Bafoussam : 4018 lignes, 41 colonnes
+2026-07-08 13:04:49,671 [INFO] [Sauvegarde] data/historical/Bafoussam_historical.csv (4018 lignes)
+2026-07-08 13:04:51,677 [INFO] [Open-Meteo] Yaounde_peri 2015-01-01 → 2025-12-31
+2026-07-08 13:05:55,450 [ERROR] [Open-Meteo] Erreur Yaounde_peri: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Read timed out. (read timeout=60)
+2026-07-08 13:05:56,485 [INFO] [NASA POWER] Yaounde_peri 2015-01-01 → 2025-12-31
+2026-07-08 13:06:55,578 [INFO] [NASA POWER] Yaounde_peri : 4018 jours collectés
+2026-07-08 13:06:56,623 [INFO] [Merge] Yaounde_peri : 4018 lignes, 24 colonnes
+2026-07-08 13:06:56,670 [INFO] [Sauvegarde] data/historical/Yaounde_peri_historical.csv (4018 lignes)
+2026-07-08 13:06:58,678 [INFO] [Open-Meteo] Ngaoundere 2015-01-01 → 2025-12-31
+2026-07-08 13:07:52,508 [INFO] [Open-Meteo] Ngaoundere : 4018 jours collectés
+2026-07-08 13:07:53,514 [INFO] [NASA POWER] Ngaoundere 2015-01-01 → 2025-12-31
+2026-07-08 13:08:10,574 [INFO] [NASA POWER] Ngaoundere : 4018 jours collectés
+2026-07-08 13:08:11,620 [INFO] [Merge] Ngaoundere : 4018 lignes, 41 colonnes
+2026-07-08 13:08:11,678 [INFO] [Sauvegarde] data/historical/Ngaoundere_historical.csv (4018 lignes)
+2026-07-08 13:08:13,686 [INFO] [Open-Meteo] Garoua 2015-01-01 → 2025-12-31
+2026-07-08 13:08:59,479 [INFO] [Open-Meteo] Garoua : 4018 jours collectés
+2026-07-08 13:09:00,486 [INFO] [NASA POWER] Garoua 2015-01-01 → 2025-12-31
+2026-07-08 13:09:15,501 [INFO] [NASA POWER] Garoua : 4018 jours collectés
+2026-07-08 13:09:16,534 [INFO] [Merge] Garoua : 4018 lignes, 41 colonnes
+2026-07-08 13:09:16,592 [INFO] [Sauvegarde] data/historical/Garoua_historical.csv (4018 lignes)
+2026-07-08 13:09:18,599 [INFO] [Open-Meteo] Maroua 2015-01-01 → 2025-12-31
+2026-07-08 13:10:02,583 [INFO] [Open-Meteo] Maroua : 4018 jours collectés
+2026-07-08 13:10:03,589 [INFO] [NASA POWER] Maroua 2015-01-01 → 2025-12-31
+2026-07-08 13:10:18,545 [INFO] [NASA POWER] Maroua : 4018 jours collectés
+2026-07-08 13:10:19,576 [INFO] [Merge] Maroua : 4018 lignes, 41 colonnes
+2026-07-08 13:10:19,632 [INFO] [Sauvegarde] data/historical/Maroua_historical.csv (4018 lignes)
