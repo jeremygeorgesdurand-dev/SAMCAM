@@ -63,7 +63,7 @@ import math
 import random
 from typing import Optional, Dict, Any
 
-MODELS_DIR        = os.path.join(os.path.dirname(__file__), "..", "models")
+MODELS_DIR        = os.path.join(os.path.dirname(__file__), "..", "models", "zonal")
 ZONAL_MODELS_DIR  = os.path.join(os.path.dirname(__file__), "..", "models", "zonal")
 REPORTS_DIR       = os.path.join(os.path.dirname(__file__), "..", "reports")
 DATA_DIR          = os.path.join(os.path.dirname(__file__), "..", "data")

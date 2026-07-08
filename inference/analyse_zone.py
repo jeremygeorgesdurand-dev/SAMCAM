@@ -35,7 +35,7 @@ if ROOT not in sys.path:
 
 DATA_DIR    = os.path.join(ROOT, "data")
 REPORTS_DIR = os.path.join(ROOT, "reports")
-MODELS_DIR  = os.path.join(ROOT, "models")
+MODELS_DIR  = os.path.join(ROOT, "models", "zonal")
 
 # ─── ZONES (miroir de collect_zone.py et api.py) ──────────────────────────────
 
