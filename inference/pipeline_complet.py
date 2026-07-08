@@ -334,7 +334,7 @@ def main():
     # ── Étape 2 : Ré-entraînement conditionnel (modèles zonaux V5)
     if verifier_retrain_necessaire(force=args.retrain):
         run(
-            [sys.executable, "training/train_zonal_models.py", "--all-horizons"],
+            [sys.executable, "training/train_zonal_models.py", "--force"],
             "[2/4] Ré-entraînement modèles zonaux V5 (tous horizons)"
         )
     else:
