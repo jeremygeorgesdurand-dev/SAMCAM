@@ -98,16 +98,21 @@ app.add_middleware(
 
 # ─── CHARGEMENT DU MODÈLE ML ───────────────────────────────────────────────────
 
+# risk_model.py V5 expose des fonctions directement (pas de classe RiskModel)
+_predire_risques_fn    = None
+_evaluer_previsions_fn = None
+
 def _charger_risk_model():
+    global _predire_risques_fn, _evaluer_previsions_fn
     try:
         import sys
         if ROOT not in sys.path:
             sys.path.insert(0, ROOT)
-        from inference.risk_model import RiskModel
-        modele = RiskModel(models_dir=MODELS_DIR)
-        modele.charger_modeles()
-        print("[API] ✅ Modèle ML chargé")
-        return modele
+        from inference.risk_model import predire_risques, evaluer_previsions
+        _predire_risques_fn    = predire_risques
+        _evaluer_previsions_fn = evaluer_previsions
+        print("[API] ✅ Modèle ML chargé (predire_risques / evaluer_previsions)")
+        return True
     except Exception as e:
         print(f"[API] ⚠️  Modèle ML non disponible ({e}) — fallback sur JSON")
         return None
@@ -186,38 +191,52 @@ def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 
 def _compute_risk_for_zone(zone_name: str, indicateurs: dict) -> dict:
     """
-    Calcule les scores ML J0/J+3/J+7 pour une zone.
-    Retourne un dict avec risque_actuel, risque_prevu_3j, risque_prevu_7j
-    et les stocke dans le JSON de collecte pour éviter de recalculer.
+    Calcule les scores ML J0/J+3/J+7 pour une zone via predire_risques().
+    Retourne un dict avec risque_actuel, risque_prevu_3j, risque_prevu_7j.
     """
-    if _risk_model is None:
+    if _predire_risques_fn is None:
         return {}
 
-    features = {
-        "mois":          datetime.now().month,
-        "pluie_7j":      indicateurs.get("pluie_cumulee_7j_mm", 0),
-        "pluie_30j":     indicateurs.get("pluie_cumulee_30j_mm",
-                             indicateurs.get("pluie_cumulee_7j_mm", 0) * 4),
-        "pluie_prev_7j": indicateurs.get("pluie_prevue_7j_mm", 0),
-        "temp_max":      indicateurs.get("temp_max", 29.0),
-        "temp_max_3j":   indicateurs.get("temp_max_3j", 29.0),
-        "sm_surface":    indicateurs.get("humidite_sol_sm_surface",
-                             indicateurs.get("sm_surface", 0.35)),
-        "sm_rootzone":   indicateurs.get("sm_rootzone", 0.30),
-        "ndvi":          indicateurs.get("ndvi_moyen", 0.60),
-        "ndwi":          indicateurs.get("ndwi_moyen", 0.15),
+    # Construire le dict au format attendu par predire_risques()
+    data = {
+        "meta":               {"zone": zone_name, "mois": datetime.now().month},
+        "indicateurs_risque": indicateurs,
+        "meteorologie":       {},
     }
 
-    pred_j0 = _risk_model.predire(features, horizon=None)
-    pred_j3 = _risk_model.predire(features, horizon=3)
-    pred_j7 = _risk_model.predire(features, horizon=7)
+    try:
+        pred_j0   = _predire_risques_fn(data, use_previsions=False, zone=zone_name)
+        scores_j0 = {
+            "score_inondation": pred_j0.get("inondation",   {}).get("score", 0.0),
+            "score_secheresse": pred_j0.get("secheresse",   {}).get("score", 0.0),
+            "score_chaleur":    pred_j0.get("chaleur_vent", {}).get("score", 0.0),
+        }
 
-    return {
-        "risque_actuel":   {"scores": pred_j0, "niveau_alerte": _niveau_alerte(**pred_j0)},
-        "risque_prevu_3j": {"scores": pred_j3, "niveau_alerte": _niveau_alerte(**pred_j3)},
-        "risque_prevu_7j": {"scores": pred_j7, "niveau_alerte": _niveau_alerte(**pred_j7)},
-        "methode_risque":  "ml_gradient_boosting",
-    }
+        if _evaluer_previsions_fn:
+            prevs     = _evaluer_previsions_fn(data, zone=zone_name)
+            scores_j3 = {
+                "score_inondation": prevs.get("j3", {}).get("inondation",   {}).get("score", 0.0),
+                "score_secheresse": prevs.get("j3", {}).get("secheresse",   {}).get("score", 0.0),
+                "score_chaleur":    prevs.get("j3", {}).get("chaleur_vent", {}).get("score", 0.0),
+            }
+            scores_j7 = {
+                "score_inondation": prevs.get("j7", {}).get("inondation",   {}).get("score", 0.0),
+                "score_secheresse": prevs.get("j7", {}).get("secheresse",   {}).get("score", 0.0),
+                "score_chaleur":    prevs.get("j7", {}).get("chaleur_vent", {}).get("score", 0.0),
+            }
+        else:
+            scores_j3 = scores_j0
+            scores_j7 = scores_j0
+
+        return {
+            "risque_actuel":   {"scores": scores_j0, "niveau_alerte": _niveau_alerte(**scores_j0)},
+            "risque_prevu_3j": {"scores": scores_j3, "niveau_alerte": _niveau_alerte(**scores_j3)},
+            "risque_prevu_7j": {"scores": scores_j7, "niveau_alerte": _niveau_alerte(**scores_j7)},
+            "methode_risque":  "ml_gradient_boosting",
+        }
+    except Exception as e:
+        print(f"[API] Erreur _compute_risk_for_zone ({zone_name}): {e}")
+        return {}
 
 
 # ─── ENDPOINTS ─────────────────────────────────────────────────────────────────
@@ -350,171 +369,145 @@ async def get_nearest_live(
     best_zone   = min(ZONES_META, key=lambda z: _haversine(lat, lon, z["lat"], z["lon"]))
     distance_km = _haversine(lat, lon, best_zone["lat"], best_zone["lon"])
     zone_name   = best_zone["name"]
-    hors_zone   = distance_km > MAX_ZONE_DISTANCE_KM
 
-    risque = None
     try:
-        data        = _load_zone_data(zone_name)
+        zone_data   = _load_zone_data(zone_name)
+        indicateurs = zone_data.get("indicateurs_risque", zone_data.get("indicateurs", {}))
+    except HTTPException:
+        indicateurs = {}
+
+    risk_scores = _compute_risk_for_zone(zone_name, indicateurs)
+
+    return {
+        "zone":             zone_name,
+        "distance_km":      round(distance_km, 1),
+        "meteo_live":       meteo_live,
+        "risque":           risk_scores,
+        "coordonnees":      {"lat": lat, "lon": lon},
+        "coordonnees_zone": {"lat": best_zone["lat"], "lon": best_zone["lon"]},
+    }
+
+
+@app.get("/api/risk", tags=["Risque"])
+def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua)")):
+    """
+    Retourne le niveau d'alerte + scores ML J0/J+3/J+7 pour la zone demandée.
+    """
+    _resolve_zone(zone)
+
+    try:
+        data        = _load_zone_data(zone)
         indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
-        risque      = _compute_risk_for_zone(zone_name, indicateurs)
-        if risque:
-            risque["zone_reference"] = zone_name
-            risque["distance_km"]    = round(distance_km, 1)
-    except Exception:
-        pass
+        meta        = data.get("meta", {})
+    except HTTPException as e:
+        raise e
+
+    risque = _compute_risk_for_zone(zone, indicateurs)
+
+    if not risque:
+        # Fallback règles physiques depuis indicateurs JSON
+        niveau = "VERT"
+        for k, v in indicateurs.items():
+            if isinstance(v, str) and v in ("modere", "eleve", "fort"):
+                niveau = "ORANGE" if v == "modere" else "ROUGE"
+                break
+        risque = {
+            "methode_risque": "regles_physiques",
+            "risque_actuel":  {
+                "scores": {
+                    "score_inondation": 0.0,
+                    "score_secheresse": 0.0,
+                    "score_chaleur":    0.0,
+                },
+                "niveau_alerte": niveau,
+            },
+            "risque_prevu_3j": {"scores": {}, "niveau_alerte": niveau},
+            "risque_prevu_7j": {"scores": {}, "niveau_alerte": niveau},
+        }
 
     return {
-        "position":          {"lat": lat, "lon": lon},
-        "zone_reference":    zone_name,
-        "distance_zone_km":  round(distance_km, 1),
-        "hors_zone":         hors_zone,
-        "meteo_live":        meteo_live,
-        "risque":            risque,
-    }
-
-
-@app.get("/api/risk", tags=["Risque climatique"])
-def get_risk(
-    zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua, Maroua)")
-):
-    _resolve_zone(zone)
-    data = _load_zone_data(zone)
-    indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
-    meta = data.get("meta", {})
-
-    if _risk_model is not None:
-        try:
-            risk = _compute_risk_for_zone(zone, indicateurs)
-            pred_j0 = risk["risque_actuel"]["scores"]
-            pred_j3 = risk["risque_prevu_3j"]["scores"]
-            pred_j7 = risk["risque_prevu_7j"]["scores"]
-            niveau  = risk["risque_actuel"]["niveau_alerte"]
-
-            return {
-                "date":            meta.get("date_collecte"),
-                "zone":            zone,
-                "zone_type":       meta.get("zone_type"),
-                "cultures":        meta.get("cultures", []),
-                "niveau_alerte":   niveau,
-                "methode_risque":  "ml_gradient_boosting",
-                "risque_actuel":   risk["risque_actuel"],
-                "risque_prevu_3j": risk["risque_prevu_3j"],
-                "risque_prevu_7j": risk["risque_prevu_7j"],
-                "indicateurs":          indicateurs,
-                "alerte_semis":         indicateurs.get("alerte_semis"),
-                "periode_semis_active": indicateurs.get("periode_semis_active", False),
-                "capteur":              meta.get("capteur_satellite", "Open-Meteo"),
-            }
-        except Exception as e:
-            print(f"[API] Erreur prédiction ML ({zone}) : {e} — fallback JSON")
-
-    # Fallback règles physiques
-    risque_ino  = indicateurs.get("risque_inondation_observe", "inconnu")
-    risque_sec  = indicateurs.get("risque_secheresse",         "inconnu")
-    score_ino   = 0.70 if risque_ino == "élevé" else (0.40 if risque_ino == "modéré" else 0.10)
-    score_sec   = 0.70 if risque_sec == "élevé" else (0.40 if risque_sec == "modéré" else 0.10)
-    niveau      = _niveau_alerte(score_inondation=score_ino, score_secheresse=score_sec)
-
-    return {
-        "date":           meta.get("date_collecte"),
         "zone":           zone,
-        "zone_type":      meta.get("zone_type"),
-        "cultures":       meta.get("cultures", []),
-        "niveau_alerte":  niveau,
-        "methode_risque": "regles_physiques",
-        "risque_actuel":  {
-            "scores":        {"inondation": score_ino, "secheresse": score_sec, "chaleur": 0.0},
-            "niveau_alerte": niveau,
-        },
-        "indicateurs":          indicateurs,
-        "alerte_semis":         indicateurs.get("alerte_semis"),
-        "periode_semis_active": indicateurs.get("periode_semis_active", False),
-        "capteur":              meta.get("capteur_satellite", "Open-Meteo"),
+        "date_collecte":  meta.get("date_collecte"),
+        "methode_risque": risque.get("methode_risque", "N/A"),
+        "risque_actuel":  risque.get("risque_actuel",  {}),
+        "risque_prevu_3j":risque.get("risque_prevu_3j",{}),
+        "risque_prevu_7j":risque.get("risque_prevu_7j",{}),
+        "indicateurs":    indicateurs,
     }
 
 
-@app.get("/api/meteo", tags=["Météorologie"])
-def get_meteo(
-    zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua)")
-):
+@app.get("/api/meteo", tags=["Météo"])
+def get_meteo(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone")):
+    """Retourne la météo actuelle + prévisions 7j pour la zone demandée."""
     _resolve_zone(zone)
-    data = _load_zone_data(zone)
+    data  = _load_zone_data(zone)
     meteo = data.get("meteorologie", {})
-    if not meteo:
-        raise HTTPException(status_code=404, detail=f"Données météo non disponibles pour '{zone}'.")
+    meta  = data.get("meta", {})
     return {
-        "zone":  zone,
-        "date":  data.get("meta", {}).get("date_collecte"),
-        "meteo": meteo,
+        "zone":          zone,
+        "date_collecte": meta.get("date_collecte"),
+        "meteo":         meteo,
     }
 
 
-@app.get("/api/report", tags=["Rapport complet"])
-def get_full_report(
-    zone: str = Query(default=DEFAULT_ZONE, description="Nom de la zone")
-):
+@app.get("/api/report", tags=["Rapport"])
+def get_report(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone")):
+    """Retourne le rapport complet (météo + risques + indicateurs) pour la zone."""
     _resolve_zone(zone)
-    return _load_zone_data(zone)
+    data        = _load_zone_data(zone)
+    indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+    risk        = _compute_risk_for_zone(zone, indicateurs)
+    if risk:
+        pred_j0 = risk["risque_actuel"]["scores"]
+        niveau  = risk["risque_actuel"]["niveau_alerte"]
+        data["indicateurs_risque"] = {
+            **indicateurs,
+            "methode_risque":  "ml_gradient_boosting",
+            "risque_actuel":   risk["risque_actuel"],
+            "risque_prevu_3j": risk["risque_prevu_3j"],
+            "risque_prevu_7j": risk["risque_prevu_7j"],
+            "niveau_alerte":   niveau,
+        }
+    else:
+        print(f"[API] Erreur prédiction ML ({zone}) — fallback JSON")
+
+    return data
 
 
 @app.get("/api/history", tags=["Historique"])
 def get_history(
-    zone:  str = Query(default=DEFAULT_ZONE, description="Nom de la zone"),
-    limit: int = Query(default=30, ge=1, le=90, description="Nombre de rapports (max 90)")
+    zone:  str = Query(DEFAULT_ZONE, description="Nom de la zone"),
+    limit: int = Query(7, ge=1, le=30, description="Nombre de rapports à retourner"),
 ):
+    """Retourne l'historique des N derniers rapports collectés pour la zone."""
     _resolve_zone(zone)
-    slug = _zone_slug(zone)
-
-    pattern_reports = os.path.join(REPORTS_DIR, f"rapport_{slug}_*.json")
-    pattern_data    = os.path.join(DATA_DIR,    f"{slug}_*.json")
-
-    fichiers = sorted(glob.glob(pattern_reports))
-    if not fichiers:
-        fichiers = sorted(glob.glob(pattern_data))
-
-    fichiers = fichiers[-limit:]
-    if not fichiers:
-        return {"zone": zone, "count": 0, "history": []}
+    slug     = _zone_slug(zone)
+    pattern  = os.path.join(DATA_DIR, f"{slug}_*.json")
+    fichiers = sorted(glob.glob(pattern))[-limit:]
 
     history = []
-    for path in reversed(fichiers):
+    for f in fichiers:
         try:
-            with open(path, encoding="utf-8") as f:
-                d = json.load(f)
-            meta        = d.get("meta", {})
+            with open(f, encoding="utf-8") as fp:
+                d = json.load(fp)
             indicateurs = d.get("indicateurs_risque", d.get("indicateurs", {}))
+            risk        = _compute_risk_for_zone(zone, indicateurs)
             history.append({
-                "date":           meta.get("date_collecte") or d.get("date"),
-                "zone":           zone,
-                "niveau_alerte":  d.get("niveau_alerte", "N/A"),
-                "methode_risque": d.get("methode_risque", "N/A"),
-                "indicateurs": {
-                    "pluie_cumulee_7j_mm":  indicateurs.get("pluie_cumulee_7j_mm"),
-                    "pluie_prevue_7j_mm":   indicateurs.get("pluie_prevue_7j_mm"),
-                    "bilan_hydrique_7j_mm": indicateurs.get("bilan_hydrique_7j_mm"),
-                    "ndvi_moyen":           indicateurs.get("ndvi_moyen"),
-                    "ndre_moyen":           indicateurs.get("ndre_moyen"),
-                    "stress_vegetal":       indicateurs.get("stress_vegetal"),
-                    "alerte_semis":         indicateurs.get("alerte_semis"),
-                },
-                "risque_actuel":   d.get("risque_actuel",   {}).get("scores", {}),
-                "risque_prevu_3j": d.get("risque_prevu_3j", {}).get("scores", {}),
-                "risque_prevu_7j": d.get("risque_prevu_7j", {}).get("scores", {}),
+                "date":            d.get("meta", {}).get("date_collecte"),
+                "methode_risque":  "ml_gradient_boosting" if risk else "N/A",
+                "risque_actuel":   risk.get("risque_actuel",   {}).get("scores", {}),
+                "niveau_alerte":   risk.get("risque_actuel",   {}).get("niveau_alerte", "N/A"),
+                "risque_prevu_3j": risk.get("risque_prevu_3j", {}),
+                "risque_prevu_7j": risk.get("risque_prevu_7j", {}),
             })
         except Exception:
             continue
 
-    return {"zone": zone, "count": len(history), "history": history}
+    return {"zone": zone, "history": history, "total": len(history)}
 
 
 # ─── STATIC FILES ──────────────────────────────────────────────────────────────
 
-if os.path.isdir(DASHBOARD_DIR):
-    app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR), name="dashboard")
-
-
-# ─── POINT D'ENTRÉE DIRECT ──────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("server.api:app", host="0.0.0.0", port=8000, reload=True)
+_dashboard_path = os.path.join(ROOT, "dashboard")
+if os.path.isdir(_dashboard_path):
+    app.mount("/dashboard", StaticFiles(directory=_dashboard_path, html=True), name="dashboard")
