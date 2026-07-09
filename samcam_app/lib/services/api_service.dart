@@ -206,6 +206,16 @@ class ApiService {
   }
 
   /// Convertit la réponse de /api/nearest (ou /api/risk) en RiskReport.
+  ///
+  /// Structure attendue de l'API :
+  ///   {
+  ///     "zone": "Kribi",
+  ///     "risque_actuel":   { "scores": { "score_inondation": 0.05, "score_secheresse": 0.30, "score_chaleur": 0.01 }, "niveau_alerte": "JAUNE" },
+  ///     "risque_prevu_3j": { "scores": { ... }, "niveau_alerte": "VERT" },
+  ///     "risque_prevu_7j": { "scores": { ... }, "niveau_alerte": "VERT" },
+  ///     "indicateurs":     { ... },
+  ///     "meteo":           { ... }
+  ///   }
   static RiskReport _nearestToRiskReport(
     Map<String, dynamic> json,
     GpsPosition? pos,
@@ -216,15 +226,29 @@ class ApiService {
     final indicateurs = (json['indicateurs'] as Map<String, dynamic>?) ?? {};
     final meteo       = (json['meteo']       as Map<String, dynamic>?) ?? {};
 
-    final scores   = (indicateurs['risque_actuel']   as Map<String, dynamic>?) ??
-                     (indicateurs['scores']           as Map<String, dynamic>?) ??
-                     {};
-    final scores3j = (indicateurs['risque_prevu_3j'] as Map<String, dynamic>?) ?? {};
-    final scores7j = (indicateurs['risque_prevu_7j'] as Map<String, dynamic>?) ?? {};
+    // ── Extraction des blocs de scores ──────────────────────────────────
+    // Les blocs risque_actuel / risque_prevu_3j / risque_prevu_7j sont à la
+    // RACINE du JSON (pas dans indicateurs). Chaque bloc a la forme :
+    //   { "scores": { "score_inondation": X, "score_secheresse": Y, "score_chaleur": Z },
+    //     "niveau_alerte": "VERT|JAUNE|ORANGE|ROUGE" }
+    Map<String, dynamic> extractScores(String key) {
+      final bloc = (json[key] as Map<String, dynamic>?) ??
+                   (indicateurs[key] as Map<String, dynamic>?) ?? {};
+      // Retourne le sous-objet "scores" s'il existe, sinon le bloc entier
+      return (bloc['scores'] as Map<String, dynamic>?) ?? bloc;
+    }
 
+    final scores   = extractScores('risque_actuel');
+    final scores3j = extractScores('risque_prevu_3j');
+    final scores7j = extractScores('risque_prevu_7j');
+
+    // ── Lecture d'une valeur numérique ──────────────────────────────────
+    // Accepte "score_X" (format API actuel) OU "X" (ancien format)
     double s(Map<String, dynamic> m, String k) =>
-        (m[k] as num?)?.toDouble() ?? 0.0;
+        (m['score_$k'] as num?)?.toDouble() ??
+        (m[k]          as num?)?.toDouble() ?? 0.0;
 
+    // ── Calcul du niveau d'alerte global ───────────────────────────────
     String niveau(Map<String, dynamic> m) {
       final best = [s(m, 'inondation'), s(m, 'secheresse'), s(m, 'chaleur')]
           .fold<double>(0.0, (a, b) => a > b ? a : b);
@@ -235,14 +259,20 @@ class ApiService {
     }
 
     final zoneLabel = hors_zone
-        ? '$zone (\${distanceKm.toStringAsFixed(0)} km)'
+        ? '$zone (${distanceKm.toStringAsFixed(0)} km)'
         : zone;
 
+    // date_collecte et methode_risque peuvent être à la racine ou dans indicateurs
+    final dateCollecte  = (json['date_collecte']  as String?) ??
+                          (indicateurs['date_collecte']  as String?) ?? '';
+    final methodeRisque = (json['methode_risque'] as String?) ??
+                          (indicateurs['methode_risque'] as String?) ?? 'ml_gradient_boosting';
+
     return RiskReport(
-      date:          indicateurs['date_collecte']   as String? ?? '',
+      date:          dateCollecte,
       zone:          zoneLabel,
       niveauAlerte:  niveau(scores),
-      methodeRisque: indicateurs['methode_risque']  as String? ?? 'ml_gradient_boosting',
+      methodeRisque: methodeRisque,
       actuel: RiskPeriod(
         niveauGlobal: niveau(scores),
         scores: RiskScores(
