@@ -71,12 +71,8 @@ class ApiService {
 
     if (zone != null) {
       // Mode zone explicite → endpoint dédié
-      final uri = Uri.parse('$base/api/nearest').replace(
-      queryParameters: {
-        'lat': pos.lat.toString(),
-        'lon': pos.lon.toString(),
-      },
-    );
+      final uri = Uri.parse(
+          '$base/api/risk?zone=\${Uri.encodeQueryComponent(zone)}');
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
           .timeout(Config.httpTimeout);
@@ -93,7 +89,12 @@ class ApiService {
 
     // Mode GPS automatique
     final pos = await getPosition();
-    final uri = Uri.parse('$base/api/nearest?lat=\${pos.lat}&lon=\${pos.lon}');
+    final uri = Uri.parse('$base/api/nearest').replace(
+      queryParameters: {
+        'lat': pos.lat.toString(),
+        'lon': pos.lon.toString(),
+      },
+    );
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
         .timeout(Config.httpTimeout);
