@@ -71,14 +71,13 @@ class ApiService {
 
     if (zone != null) {
       // Mode zone explicite → endpoint dédié
-      final uri = Uri.parse(
-          '$base/api/risk?zone=\${Uri.encodeQueryComponent(zone)}');
+      final uri = Uri.parse('$base/api/risk?zone=' + Uri.encodeQueryComponent(zone));
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
           .timeout(Config.httpTimeout);
 
       if (response.statusCode != 200) {
-        throw Exception('Erreur serveur : \${response.statusCode}');
+        throw Exception('Erreur serveur : ' + response.statusCode.toString());
       }
 
       final json =
@@ -100,7 +99,7 @@ class ApiService {
         .timeout(Config.httpTimeout);
 
     if (response.statusCode != 200) {
-      throw Exception('Erreur serveur : \${response.statusCode}');
+      throw Exception('Erreur serveur : ' + response.statusCode.toString());
     }
 
     final json =
@@ -137,7 +136,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getNearestLive() async {
     final base = await getServerUrl();
     final pos  = await getPosition();
-    final uri  = Uri.parse('$base/api/nearest-live?lat=\${pos.lat}&lon=\${pos.lon}');
+    final uri  = Uri.parse('$base/api/nearest-live').replace(queryParameters: {'lat': pos.lat.toString(), 'lon': pos.lon.toString()});
 
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
@@ -146,7 +145,7 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     }
-    throw Exception('Erreur serveur : \${response.statusCode}');
+    throw Exception('Erreur serveur : ' + response.statusCode.toString());
   }
 
   // ── GET /health ────────────────────────────────────────────────────────
@@ -173,7 +172,8 @@ class ApiService {
 
     final uri = Uri.parse('$base/api/history'
         '?limit=$limit'
-        '&zone=\${Uri.encodeQueryComponent(await _nearestZoneName(base, pos))}');
+        + '&zone=' + Uri.encodeQueryComponent(await _nearestZoneName(base, pos)));
+
 
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})

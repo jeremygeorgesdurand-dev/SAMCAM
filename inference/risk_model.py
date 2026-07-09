@@ -117,9 +117,77 @@ SM_ROOTZONE_NORMALE_KRIBI = {
     7: 0.26, 8: 0.28, 9: 0.43, 10: 0.48, 11: 0.44, 12: 0.32,
 }
 
-# ──────────────────────────────────────────────────────────────────────────────────
-# FEATURES — Jeux de features par horizon (V4.7.0)
-# ──────────────────────────────────────────────────────────────────────────────────
+# Seuil NDVI contextuel selon la saison — végétation tropicale Kribi
+NDVI_SEUIL_ALERTE = {
+    1: 0.38,
+    2: 0.42,
+    3: 0.48,
+    4: 0.52,
+    5: 0.52,
+    6: 0.50,
+    7: 0.35,
+    8: 0.35,
+    9: 0.48,
+    10: 0.52,
+    11: 0.50,
+    12: 0.40,
+}
+
+# Percentiles hebdomadaires recalibrés (pluie sur 7 jours)
+PERCENTILES_HEBDO = {
+    1:  {"p25": 0,  "p50": 8,  "p75": 20,  "p90": 40},
+    2:  {"p25": 2,  "p50": 15, "p75": 38,  "p90": 72},
+    3:  {"p25": 8,  "p50": 30, "p75": 65,  "p90": 120},
+    4:  {"p25": 18, "p50": 52, "p75": 100, "p90": 175},
+    5:  {"p25": 22, "p50": 58, "p75": 112, "p90": 190},
+    6:  {"p25": 15, "p50": 44, "p75": 88,  "p90": 150},
+    7:  {"p25": 0,  "p50": 4,  "p75": 12,  "p90": 28},
+    8:  {"p25": 0,  "p50": 6,  "p75": 18,  "p90": 38},
+    9:  {"p25": 18, "p50": 46, "p75": 95,  "p90": 165},
+    10: {"p25": 22, "p50": 62, "p75": 118, "p90": 210},
+    11: {"p25": 16, "p50": 44, "p75": 90,  "p90": 155},
+    12: {"p25": 2,  "p50": 12, "p75": 30,  "p90": 62},
+}
+
+BIAIS_CORRECTION_PLUIE = {
+    1: 1.00, 3: 1.08, 7: 1.15,
+}
+
+FIABILITE_HORIZON = {
+    1: 0.90,
+    3: 0.68,
+    7: 0.45,
+}
+
+GARDE_FOU_SECHERESSE = 0.30
+
+SCORE_VERS_NIVEAU = {
+    (0.75, 1.01): "ROUGE",
+    (0.50, 0.75): "ORANGE",
+    (0.25, 0.50): "JAUNE",
+    (0.00, 0.25): "VERT",
+}
+
+DESCRIPTIONS = {
+    "inondation": {
+        "ROUGE":  "Risque d'inondation critique — évacuations préventives recommandées.",
+        "ORANGE": "Risque d'inondation modéré — surveiller les zones basses.",
+        "JAUNE":  "Risque d'inondation faible — vigilance maintenue.",
+        "VERT":   "Pas de risque d'inondation en ce moment.",
+    },
+    "secheresse": {
+        "ROUGE":  "Sécheresse sévère — restriction d'eau et soutien aux cultures urgent.",
+        "ORANGE": "Sécheresse modérée — irrigation recommandée.",
+        "JAUNE":  "Légère tension hydrique — surveiller l'évolution.",
+        "VERT":   "Humidité du sol normale pour la saison.",
+    },
+    "chaleur": {
+        "ROUGE":  "Vague de chaleur extrême — risque sanitaire élevé.",
+        "ORANGE": "Chaleur intense — limiter les activités en plein air.",
+        "JAUNE":  "Températures élevées — hydratation conseillée.",
+        "VERT":   "Températures normales pour la saison.",
+    },
+}
 
 FEATURES_BASE = [
     "precipitation_24h", "temperature_max", "temperature_min",
