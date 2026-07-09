@@ -71,8 +71,12 @@ class ApiService {
 
     if (zone != null) {
       // Mode zone explicite → endpoint dédié
-      final uri = Uri.parse(
-          '$base/api/risk?zone=${Uri.encodeQueryComponent(zone)}');
+      final uri = Uri.parse('$base/api/nearest').replace(
+      queryParameters: {
+        'lat': pos.lat.toString(),
+        'lon': pos.lon.toString(),
+      },
+    );
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
           .timeout(Config.httpTimeout);
@@ -185,8 +189,13 @@ class ApiService {
 
   static Future<String> _nearestZoneName(String base, GpsPosition pos) async {
     try {
-      final uri = Uri.parse('$base/api/nearest?lat=\${pos.lat}&lon=\${pos.lon}');
-      final r = await http.get(uri).timeout(Config.httpTimeout);
+    final uri = Uri.parse('$base/api/nearest').replace(
+      queryParameters: {
+        'lat': pos.lat.toString(),
+        'lon': pos.lon.toString(),
+      },
+    );      
+    final r = await http.get(uri).timeout(Config.httpTimeout);
       if (r.statusCode == 200) {
         final j = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
         return (j['zone'] as String?) ?? 'Kribi';

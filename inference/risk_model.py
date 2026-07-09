@@ -483,7 +483,11 @@ def _charger_modele(nom: str, horizon: Optional[int] = None,
             import joblib
             obj = joblib.load(chemin)
             if isinstance(obj, dict):
-                clf      = obj["clf"]
+                clf = obj.get("clf") or obj.get("model") or (
+                    obj if hasattr(obj, "predict_proba") else None
+                )
+                if clf is None:
+                    raise KeyError(f"Aucune clé 'clf'/'model' trouvée dans {path}")
                 seuil    = obj.get("seuil",    0.5)
                 features = obj.get("features", FEATURES_BASE)
             else:

@@ -144,7 +144,10 @@ def load_model(zone: str, risk: str):
     elif "clf" in bundle and "model" not in bundle:
         logger.debug(f"[{zone}/{risk}] Bundle format legacy ('clf') — migration vers 'model'")
         bundle = {
-            "model":         bundle["clf"],
+            "model": bundle.get("clf") or bundle.get("model") or (
+            bundle if hasattr(bundle, "predict_proba") else None
+        ),
+
             "threshold":     float(bundle.get("threshold", 0.5)),
             "features_used": bundle.get("features", bundle.get("features_used", None)),
             "metadata":      bundle.get("metadata", bundle.get("metrics", {})),

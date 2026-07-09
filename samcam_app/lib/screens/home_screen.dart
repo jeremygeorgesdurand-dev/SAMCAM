@@ -84,9 +84,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onGpsSelected() {
-    setState(() => _selectedZone = null);
-    _fetchAll();
-  }
+  setState(() {
+    _selectedZone = null;
+    _report = null;    // vide l'affichage de l'ancienne zone
+    _error  = null;    // efface l'éventuel message d'erreur
+  });
+  _fetchAll();
+}
+
 
   // ── Helpers couleurs / labels ─────────────────────────────────────────────
 
