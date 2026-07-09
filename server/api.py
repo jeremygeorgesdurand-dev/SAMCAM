@@ -205,24 +205,24 @@ def _compute_risk_for_zone(zone_name: str, indicateurs: dict) -> dict:
     }
 
     try:
-        pred_j0   = _predire_risques_fn(data, use_previsions=False, zone=zone_name)
+        pred_j0   = _predire_risques_fn(donnees=data, zone=zone_name)
         scores_j0 = {
             "score_inondation": pred_j0.get("inondation",   {}).get("score", 0.0),
             "score_secheresse": pred_j0.get("secheresse",   {}).get("score", 0.0),
-            "score_chaleur":    pred_j0.get("chaleur_vent", {}).get("score", 0.0),
+            "score_chaleur":    pred_j0.get("chaleur", {}).get("score", 0.0),
         }
 
         if _evaluer_previsions_fn:
-            prevs     = _evaluer_previsions_fn(data, zone=zone_name)
+            prevs     = _evaluer_previsions_fn(zone=zone_name)
             scores_j3 = {
                 "score_inondation": prevs.get("j3", {}).get("inondation",   {}).get("score", 0.0),
                 "score_secheresse": prevs.get("j3", {}).get("secheresse",   {}).get("score", 0.0),
-                "score_chaleur":    prevs.get("j3", {}).get("chaleur_vent", {}).get("score", 0.0),
+                "score_chaleur":    prevs.get("j3", {}).get("chaleur", {}).get("score", 0.0),
             }
             scores_j7 = {
                 "score_inondation": prevs.get("j7", {}).get("inondation",   {}).get("score", 0.0),
                 "score_secheresse": prevs.get("j7", {}).get("secheresse",   {}).get("score", 0.0),
-                "score_chaleur":    prevs.get("j7", {}).get("chaleur_vent", {}).get("score", 0.0),
+                "score_chaleur":    prevs.get("j7", {}).get("chaleur", {}).get("score", 0.0),
             }
         else:
             scores_j3 = scores_j0
