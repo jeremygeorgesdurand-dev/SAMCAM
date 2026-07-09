@@ -113,7 +113,15 @@ def proba_to_level(proba: float) -> tuple:
 def load_model(zone: str, risk: str):
     """
     Charge le bundle {model, threshold, features_used, metadata} depuis le .pkl.
-    Compatible ancien format (modèle seul) et nouveau format (dict).
+
+    Gère trois formats de bundle pour assurer la rétro-compatibilité :
+      1. Objet sklearn brut (ancien format, pas un dict)
+         → wrappé en dict avec clé 'model'
+      2. Dict avec clé 'clf' (format legacy inference/train_model.py)
+         → clé renommée en 'model'
+      3. Dict avec clé 'model' (nouveau format training/train_zonal_models.py)
+         → utilisé tel quel
+
     Retourne None si le fichier n'existe pas.
     """
     model_path = MODELS_DIR / f"model_{risk}_{zone}.pkl"
@@ -122,9 +130,29 @@ def load_model(zone: str, risk: str):
         return None
     with open(model_path, "rb") as f:
         bundle = pickle.load(f)
+
+    # Format 1 : objet sklearn brut (pas un dict)
     if not isinstance(bundle, dict):
-        logger.debug(f"[{zone}/{risk}] Bundle ancien format — wrapping")
-        bundle = {"model": bundle, "threshold": 0.5, "features_used": None, "metadata": {}}
+        logger.debug(f"[{zone}/{risk}] Bundle format brut sklearn — wrapping")
+        bundle = {
+            "model":         bundle,
+            "threshold":     0.5,
+            "features_used": None,
+            "metadata":      {},
+        }
+    # Format 2 : dict avec clé 'clf' (legacy train_model.py)
+    elif "clf" in bundle and "model" not in bundle:
+        logger.debug(f"[{zone}/{risk}] Bundle format legacy ('clf') — migration vers 'model'")
+        bundle = {
+            "model":         bundle["clf"],
+            "threshold":     float(bundle.get("threshold", 0.5)),
+            "features_used": bundle.get("features", bundle.get("features_used", None)),
+            "metadata":      bundle.get("metadata", bundle.get("metrics", {})),
+            # conserve les autres clés au cas où
+            **{k: v for k, v in bundle.items() if k not in ("clf", "threshold", "features", "features_used", "metadata", "metrics")},
+        }
+    # Format 3 : dict avec clé 'model' (nouveau format train_zonal_models.py) → OK tel quel
+
     return bundle
 
 
