@@ -69,7 +69,6 @@ import os
 import json
 import datetime
 import math
-import random
 from typing import Optional, Dict, Any
 
 MODELS_DIR        = os.path.join(os.path.dirname(__file__), "..", "models", "zonal")
@@ -195,12 +194,6 @@ FEATURES_BASE = [
     "ndvi", "deficit_hydrique", "trend_sm",
 ]
 
-FEATURES_J1 = FEATURES_BASE + ["precipitation_prev_24h", "temp_max_prev"]
-FEATURES_J3 = FEATURES_BASE + ["precipitation_prev_72h", "trend_temp"]
-FEATURES_J7 = FEATURES_BASE + ["precipitation_prev_7j",  "anomalie_sm"]
-
-FEATURES_PAR_HORIZON = {1: FEATURES_J1, 3: FEATURES_J3, 7: FEATURES_J7}
-
 # ──────────────────────────────────────────────────────────────────────────────────
 # CACHE MODÈLES
 # ──────────────────────────────────────────────────────────────────────────────────
@@ -239,6 +232,129 @@ def _get_trend_sm_pur(sm_actuel: float, sm_reference: Optional[float]) -> float:
     if sm_reference is None:
         return 0.0
     return round(sm_actuel - sm_reference, 4)
+
+
+def _construire_donnees_horizon(
+    donnees_base: Dict[str, Any],
+    previsions_daily: Optional[Dict[str, Any]],
+    horizon_jours: int,
+) -> Dict[str, Any]:
+    """
+    Construit le vecteur de features pour un horizon futur (J+1/J+3/J+7) à partir
+    des PRÉVISIONS MÉTÉO RÉELLES Open-Meteo (previsions_daily), au lieu de dégrader
+    artificiellement les données du jour avec du bruit aléatoire.
+
+    previsions_daily : bloc brut Open-Meteo tel que collecté dans
+        meteorologie.previsions_daily du JSON de zone — dicts de listes indexées
+        par jour : {"time": [...], "temperature_2m_max": [...], "temperature_2m_min": [...],
+                    "precipitation_sum": [...], "et0_fao_evapotranspiration": [...]}
+        L'index 0 correspond généralement à aujourd'hui.
+
+    Limite connue : l'humidité du sol (sm_surface/sm_rootzone), le NDVI et le
+    déficit hydrique n'ont pas de prévision — on conserve la valeur du jour
+    (proxy persistance), ce qui est explicite plutôt que de simuler une évolution.
+    """
+    d = dict(donnees_base)
+
+    if not previsions_daily or "precipitation_sum" not in previsions_daily:
+        # Pas de prévision disponible → persistance pure (valeurs du jour, sans bruit)
+        return d
+
+    precip = previsions_daily.get("precipitation_sum") or []
+    tmax   = previsions_daily.get("temperature_2m_max") or []
+    tmin   = previsions_daily.get("temperature_2m_min") or []
+    n      = len(precip)
+
+    idx = min(horizon_jours, max(n - 1, 0))
+    if idx >= n or n == 0:
+        return d  # prévision trop courte pour cet horizon → persistance
+
+    # Cumuls de précipitations prévues jusqu'à l'horizon (bornes réelles, pas d'estimation)
+    cumul_jusqu_horizon = sum(v for v in precip[:idx + 1] if isinstance(v, (int, float)))
+
+    if horizon_jours >= 1:
+        d["precipitation_24h"] = float(precip[idx]) if isinstance(precip[idx], (int, float)) else d.get("precipitation_24h", 0.0)
+        d["precipitation_prev_24h"] = d["precipitation_24h"]
+    if horizon_jours >= 3:
+        d["precipitation_prev_72h"] = float(cumul_jusqu_horizon)
+    if horizon_jours >= 7:
+        d["precipitation_prev_7j"] = float(cumul_jusqu_horizon)
+
+    if idx < len(tmax) and isinstance(tmax[idx], (int, float)):
+        d["temperature_max"] = float(tmax[idx])
+        d["temp_max_prev"]   = float(tmax[idx])
+        d["trend_temp"]      = round(float(tmax[idx]) - donnees_base.get("temperature_max", tmax[idx]), 2)
+    if idx < len(tmin) and isinstance(tmin[idx], (int, float)):
+        d["temperature_min"] = float(tmin[idx])
+
+    # sm_surface, sm_rootzone, ndvi, deficit_hydrique, anomalie_sm : pas de prévision
+    # disponible → conservés tels quels (persistance explicite, documentée ci-dessus).
+
+    return d
+
+
+def construire_features_depuis_json(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convertit un JSON de zone SAMCAM (format collecteur V3.x — meteorologie +
+    indicateurs_risque, voir data_collection/collect_zone.py) vers le dict de
+    features PLAT attendu par PHYSIQUE_FN et les modèles ML (FEATURES_BASE).
+
+    BUG CRITIQUE corrigé ici : predire_risques()/evaluer_previsions() lisaient
+    auparavant donnees.get("precipitation_24h", 0.0) etc. directement sur le
+    wrapper {"meta":..., "indicateurs_risque":..., "meteorologie":...} construit
+    par l'API — ces clés n'existaient jamais à la racine, donc le modèle et les
+    règles physiques recevaient uniquement des valeurs par défaut, quelle que
+    soit la vraie météo de la zone. Cette fonction fait le VRAI mapping.
+    """
+    global _sm_surface_precedente
+
+    meteo = data.get("meteorologie", {}) or {}
+    ind   = data.get("indicateurs_risque", data.get("indicateurs", {})) or {}
+    hist  = meteo.get("historique_daily", {}) or {}
+    mois  = datetime.datetime.now().month
+
+    def _dernier(cle: str) -> Optional[float]:
+        for v in reversed(hist.get(cle) or []):
+            if isinstance(v, (int, float)):
+                return float(v)
+        return None
+
+    precip_today = _dernier("precipitation_sum")
+    tmax_today   = _dernier("temperature_2m_max")
+    tmin_today   = _dernier("temperature_2m_min")
+
+    sm_surface  = float(ind.get("humidite_sol_sm_surface",  SM_SURFACE_NORMALE_KRIBI.get(mois, 0.35)))
+    sm_rootzone = float(ind.get("humidite_sol_sm_rootzone", SM_ROOTZONE_NORMALE_KRIBI.get(mois, 0.38)))
+    rain_7j     = float(ind.get("pluie_cumulee_7j_mm", 0.0))
+    rain_30j    = float(ind.get("pluie_cumulee_30j_mm", 0.0))
+    etp_7j      = float(ind.get("etp_cumulee_7j_mm", 0.0))
+
+    trend_sm = _get_trend_sm_pur(sm_surface, _sm_surface_precedente)
+    _sm_surface_precedente = sm_surface
+
+    sm_norm = SM_SURFACE_NORMALE_KRIBI.get(mois, 0.35)
+
+    return {
+        "precipitation_24h":       precip_today if precip_today is not None else rain_7j / 7,
+        "precipitation_prev_24h":  precip_today if precip_today is not None else rain_7j / 7,
+        "precipitation_prev_72h":  rain_7j * 3 / 7,
+        "precipitation_prev_7j":   rain_7j,
+        "temperature_max":         tmax_today if tmax_today is not None else 32.0,
+        "temperature_min":         tmin_today if tmin_today is not None else 22.0,
+        "temp_max_prev":           tmax_today if tmax_today is not None else 32.0,
+        "humidity_relative":       float(ind.get("humidite_relative", 80.0)),
+        "wind_speed":              float(ind.get("vent_kmh_era5", 3.5)),
+        "sm_surface":              sm_surface,
+        "sm_rootzone":             sm_rootzone,
+        "ndvi":                    float(ind.get("ndvi_moyen", 0.52)),
+        # ETP - pluie sur 7j, borné à 0 (déficit hydrique) — calibration seuils à revoir (Phase 4)
+        "deficit_hydrique":        max(0.0, etp_7j - rain_7j),
+        "trend_sm":                trend_sm,
+        "trend_temp":              0.0,
+        "anomalie_sm":             round(sm_surface - sm_norm, 4),
+        "rain_7d":                 rain_7j,
+        "rain_30d":                rain_30j,
+    }
 
 
 def _lire_donnees(zone: Optional[str] = None) -> Dict[str, Any]:
@@ -546,9 +662,9 @@ def predire_risques(donnees: Optional[Dict[str, Any]] = None,
                 score_ml_brut = float(clf.predict_proba(X)[0][1])
 
                 # Garde-fou de cohérence physique (V4.7.4)
-                if score_ml_brut > score_physique + 0.30:
+                if score_ml_brut > score_physique + GARDE_FOU_SECHERESSE:
                     print(f"[RISK-DIAG] {risque} : score ML ({score_ml_brut:.2f}) "
-                          f"> physique ({score_physique:.2f}) + 0.30 → fallback physique")
+                          f"> physique ({score_physique:.2f}) + {GARDE_FOU_SECHERESSE:.2f} → fallback physique")
                     score_final = score_physique
                     source      = "physique (guard)"
                 else:
@@ -571,49 +687,61 @@ def predire_risques(donnees: Optional[Dict[str, Any]] = None,
     return resultats
 
 
-def evaluer_previsions(zone: Optional[str] = None) -> Dict[str, Any]:
+def evaluer_previsions(
+    zone: Optional[str] = None,
+    donnees_base: Optional[Dict[str, Any]] = None,
+    previsions_daily: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
     """
     Évalue les risques sur 4 horizons : J0, J+1, J+3, J+7.
+
+    Si [donnees_base] et [previsions_daily] sont fournis (données réelles de la
+    zone + prévisions Open-Meteo), chaque horizon est calculé à partir des
+    VRAIES valeurs météo prévues pour ce jour (voir _construire_donnees_horizon),
+    sans dégradation artificielle. Sinon, fallback sur _lire_donnees(zone) en
+    persistance pure (mêmes données pour tous les horizons, sans bruit).
+
     Retourne un dict structuré par horizon.
     """
-    donnees_base = _lire_donnees(zone=zone)
-    sm_ref = _sm_surface_precedente  # snapshot avant la boucle (trend_sm pur)
+    if donnees_base is None:
+        donnees_base = _lire_donnees(zone=zone)
 
     resultats = {}
 
-    for label, hor_key in [("j0", None), ("j1", 1), ("j3", 3), ("j7", 7)]:
+    for label, hor_key in [("j0", None), ("j1", 1), ("j3", 3), ("j7", 7), ("j10", 10), ("j14", 14)]:
         horizons_risques = {}
-
-        # Dégradation de fiabilité selon horizon
-        bruit = {None: 0.00, 1: 0.03, 3: 0.07, 7: 0.12}.get(hor_key, 0.05)
+        donnees_horizon = (
+            _construire_donnees_horizon(donnees_base, previsions_daily, hor_key)
+            if hor_key else donnees_base
+        )
 
         for risque in ("inondation", "secheresse", "chaleur"):
             clf, seuil, features_modele = _charger_modele(
                 risque, horizon=hor_key, zone=zone)
-            score_physique = PHYSIQUE_FN[risque](donnees_base)
+            score_physique = PHYSIQUE_FN[risque](donnees_horizon)
 
             if clf is not None:
                 try:
-                    features_horizon = FEATURES_PAR_HORIZON.get(
-                        hor_key, FEATURES_BASE) if hor_key else FEATURES_BASE
-                    X = [[donnees_base.get(f, 0.0) for f in features_horizon]]
+                    # IMPORTANT : utiliser features_modele (la vraie liste de features
+                    # sauvegardée dans le bundle .pkl), pas FEATURES_PAR_HORIZON — ce
+                    # dict legacy ne correspond plus aux modèles zonaux V5 et faisait
+                    # planter silencieusement toutes les prévisions J+1/J+3/J+7 (fallback
+                    # "physique" systématique, jamais de vrai score ML).
+                    X = [[donnees_horizon.get(f, 0.0) for f in features_modele]]
                     score_ml = float(clf.predict_proba(X)[0][1])
-                    score_ml = max(0.0, min(1.0,
-                        score_ml + random.gauss(0, bruit)))
 
-                    if score_ml > score_physique + 0.30:
+                    if score_ml > score_physique + GARDE_FOU_SECHERESSE:
                         score_final = score_physique
                         source      = "physique (guard)"
                     else:
                         score_final = score_ml
                         source      = "ML"
-                except Exception:
+                except Exception as ex:
+                    print(f"[RISK] ⚠️  Erreur inférence horizon {hor_key} {risque} : {ex}")
                     score_final = score_physique
                     source      = "physique (erreur)"
             else:
-                # Dégradation légère du score physique sur horizons lointains
-                bruit_phys = random.gauss(0, bruit * 0.5)
-                score_final = max(0.0, min(1.0, score_physique + bruit_phys))
+                score_final = score_physique
                 source      = "physique"
 
             horizons_risques[risque] = {
@@ -637,7 +765,7 @@ def generer_rapport(zone: Optional[str] = None) -> Dict[str, Any]:
     """
     donnees   = _lire_donnees(zone=zone)
     risques   = predire_risques(donnees=donnees, zone=zone)
-    previsions = evaluer_previsions(zone=zone)
+    previsions = evaluer_previsions(zone=zone, donnees_base=donnees)
 
     # Score de risque global (max des 3 risques)
     score_global = max(v["score"] for v in risques.values())

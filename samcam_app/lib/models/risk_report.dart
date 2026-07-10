@@ -247,6 +247,8 @@ class RiskReport {
   final RiskPeriod  actuel;
   final RiskPeriod  prevu3j;
   final RiskPeriod  prevu7j;
+  final RiskPeriod  prevu10j;
+  final RiskPeriod  prevu14j;
   final Indicateurs indicateurs;
   final MeteoCourante meteo;
 
@@ -258,9 +260,21 @@ class RiskReport {
     required this.actuel,
     required this.prevu3j,
     required this.prevu7j,
+    required this.prevu10j,
+    required this.prevu14j,
     required this.indicateurs,
     required this.meteo,
   });
+
+  /// Horizons de prévision disponibles, dans l'ordre chronologique.
+  /// Les entrées "vides" (backend legacy sans J+10/J+14) sont filtrées.
+  List<({String label, RiskPeriod periode})> get horizons => [
+        (label: 'Aujourd\'hui', periode: actuel),
+        (label: 'J+3',  periode: prevu3j),
+        (label: 'J+7',  periode: prevu7j),
+        (label: 'J+10', periode: prevu10j),
+        (label: 'J+14', periode: prevu14j),
+      ].where((h) => h.periode.niveauGlobal != 'INCONNU' || h.label == 'Aujourd\'hui').toList();
 
   factory RiskReport.fromJson(Map<String, dynamic> json) => RiskReport(
     date:          json['date']           ?? '',
@@ -273,6 +287,10 @@ class RiskReport {
         (json['risque_prevu_3j'] as Map<String, dynamic>?) ?? {}),
     prevu7j: RiskPeriod.fromJson(
         (json['risque_prevu_7j'] as Map<String, dynamic>?) ?? {}),
+    prevu10j: RiskPeriod.fromJson(
+        (json['risque_prevu_10j'] as Map<String, dynamic>?) ?? {}),
+    prevu14j: RiskPeriod.fromJson(
+        (json['risque_prevu_14j'] as Map<String, dynamic>?) ?? {}),
     indicateurs: Indicateurs.fromJson(
         (json['indicateurs'] as Map<String, dynamic>?) ?? {}),
     meteo: json['meteo'] != null

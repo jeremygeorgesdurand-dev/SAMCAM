@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
 import '../models/weather_forecast.dart';
+import '../models/custom_location.dart';
 import '../services/api_service.dart';
 import '../services/weather_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/weather_animation.dart';
 import '../widgets/zone_drawer.dart';
 import 'settings_screen.dart';
@@ -22,11 +26,14 @@ class _HomeScreenState extends State<HomeScreen> {
   bool         _loading = true;
   String?      _error;
   String       _cityName = '';
+  String       _gpsCity  = '';
   bool _hourlyExpanded = true;
   bool _dailyExpanded  = true;
 
   /// null = mode GPS automatique ; sinon = zone SAMCAM forcée
   String? _selectedZone;
+  /// endroit personnalisé sélectionné (prioritaire sur _selectedZone/GPS)
+  CustomLocation? _selectedCustom;
 
   final _scrollCtrl  = ScrollController();
   final _drawerKey   = GlobalKey<ScaffoldState>();
@@ -35,10 +42,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchAll();
+    _loadFavoriteZoneThenFetch();
     _scrollCtrl.addListener(() {
       setState(() => _scrollOffset = _scrollCtrl.offset);
     });
+  }
+
+  Future<void> _loadFavoriteZoneThenFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final favorite = prefs.getString(Config.prefFavoriteZone);
+    if (favorite != null) _selectedZone = favorite;
+    _fetchAll();
   }
 
   @override
@@ -51,27 +65,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchAll() async {
     setState(() { _loading = true; _error = null; });
-    final weatherFuture = WeatherService.getForecast(zone: _selectedZone);
-    final cityFuture = _selectedZone != null
-        ? Future.value(_selectedZone!)
-        : ApiService.getPosition().then(
-            (pos) => WeatherService.getCityName(pos.lat, pos.lon));
+    final custom = _selectedCustom;
+    final weatherFuture = custom != null
+        ? WeatherService.getForecast(lat: custom.lat, lon: custom.lon)
+        : WeatherService.getForecast(zone: _selectedZone);
+    final cityFuture = custom != null
+        ? Future.value(custom.name)
+        : _selectedZone != null
+            ? Future.value(_selectedZone!)
+            : ApiService.getPosition().then(
+                (pos) => WeatherService.getCityName(pos.lat, pos.lon));
     try {
-      final risk    = await ApiService.getRisk(zone: _selectedZone);
+      final risk    = custom != null
+          ? await ApiService.getRisk(lat: custom.lat, lon: custom.lon)
+          : await ApiService.getRisk(zone: _selectedZone);
       final weather = await weatherFuture;
       final city    = await cityFuture;
       setState(() {
         _report   = risk;
         _weather  = weather;
         _cityName = city;
+        if (_selectedZone == null && custom == null) _gpsCity = city;
         _loading  = false;
       });
+      NotificationService.checkAndNotify(risk.zone.split(' (').first, risk);
     } catch (e) {
       final weather = await weatherFuture.catchError((_) => WeatherService.getForecast());
-      final city    = await cityFuture.catchError((_) async => _selectedZone ?? '');
+      final city    = await cityFuture.catchError((_) async => custom?.name ?? _selectedZone ?? '');
       setState(() {
         _weather  = weather;
         _cityName = city;
+        if (_selectedZone == null && custom == null) _gpsCity = city;
         _error    = 'Serveur SAMCAM inaccessible';
         _loading  = false;
       });
@@ -79,18 +103,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onZoneSelected(String zoneName) {
-    setState(() => _selectedZone = zoneName);
+    setState(() {
+      _selectedZone   = zoneName;
+      _selectedCustom = null;
+    });
+    _fetchAll();
+  }
+
+  void _onCustomLocationSelected(CustomLocation location) {
+    setState(() {
+      _selectedZone   = null;
+      _selectedCustom = location;
+    });
     _fetchAll();
   }
 
   void _onGpsSelected() {
-  setState(() {
-    _selectedZone = null;
-    _report = null;    // vide l'affichage de l'ancienne zone
-    _error  = null;    // efface l'éventuel message d'erreur
-  });
-  _fetchAll();
-}
+    setState(() {
+      _selectedZone   = null;
+      _selectedCustom = null;
+      _report = null;    // vide l'affichage de l'ancienne zone
+      _error  = null;    // efface l'éventuel message d'erreur
+    });
+    _fetchAll();
+  }
 
 
   // ── Helpers couleurs / labels ─────────────────────────────────────────────
@@ -137,9 +173,17 @@ class _HomeScreenState extends State<HomeScreen> {
       extendBodyBehindAppBar: true,
       // ── Volet latéral gauche ─────────────────────────────────────────
       drawer: ZoneDrawer(
-        currentCity:               _cityName,
+        currentCity:               _gpsCity,
         selectedZone:              _selectedZone,
+        selectedCustomName:        _selectedCustom?.name,
+        currentTemp:               _selectedZone == null && _selectedCustom == null
+                                        ? _weather?.current?.temperature
+                                        : null,
+        currentWeatherCode:        _selectedZone == null && _selectedCustom == null
+                                        ? _weather?.current?.weatherCode
+                                        : null,
         onZoneSelected:            _onZoneSelected,
+        onCustomLocationSelected:  _onCustomLocationSelected,
         onCurrentLocationSelected: _onGpsSelected,
       ),
       appBar: _buildAppBar(),
@@ -245,7 +289,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       icon: const Icon(Icons.history, color: Colors.white70),
                       onPressed: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const HistoryScreen()))),
+                        MaterialPageRoute(builder: (_) => HistoryScreen(
+                          initialZone: _selectedZone ??
+                              _report?.zone.split(' (').first,
+                        )))),
                     IconButton(
                       icon: const Icon(Icons.settings_outlined, color: Colors.white70),
                       onPressed: () async {
@@ -914,11 +961,19 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       const SizedBox(height: 10),
       IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          _prevCard('Dans 3 jours', r.prevu3j.niveauGlobal),
-          const SizedBox(width: 10),
-          _prevCard('Dans 7 jours', r.prevu7j.niveauGlobal),
-        ]),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final h in r.horizons.where((h) => h.label != 'Aujourd\'hui'))
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: h.label == r.horizons.last.label ? 0 : 10),
+                  child: _prevCard('${h.label.replaceAll('J+', '')} jours', h.periode.niveauGlobal),
+                ),
+              ),
+          ],
+        ),
       ),
       const SizedBox(height: 10),
       _glassCard(
@@ -982,20 +1037,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'Comment les risques évoluent-ils dans les prochains jours ?',
                 style: TextStyle(color: Colors.white38, fontSize: 11)),
               const SizedBox(height: 14),
-              _riskEvolutionRow(
-                'Inondation', Icons.water_outlined,
-                r.actuel.scores.inondation, r.prevu3j.scores.inondation, r.prevu7j.scores.inondation,
-                _riskColor(r.actuel.scores.inondation)),
-              const SizedBox(height: 10),
-              _riskEvolutionRow(
-                'Sécheresse', Icons.grass_outlined,
-                r.actuel.scores.secheresse, r.prevu3j.scores.secheresse, r.prevu7j.scores.secheresse,
-                _riskColor(r.actuel.scores.secheresse)),
-              const SizedBox(height: 10),
-              _riskEvolutionRow(
-                'Chaleur', Icons.local_fire_department_outlined,
-                r.actuel.scores.chaleur, r.prevu3j.scores.chaleur, r.prevu7j.scores.chaleur,
-                _riskColor(r.actuel.scores.chaleur)),
+              _riskTrendChart(r),
             ],
           ),
         ),
@@ -1003,51 +1045,110 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
   }
 
-  Widget _riskEvolutionRow(String label, IconData icon,
-      double now, double j3, double j7, Color color) {
-    Widget dot(double v) => Column(children: [
-      Text('${(v * 100).toStringAsFixed(0)} %',
-        style: TextStyle(
-          color: v > 0.01 ? _riskColor(v) : Colors.white38,
-          fontSize: 13, fontWeight: FontWeight.w600)),
-      const SizedBox(height: 2),
-      Container(
-        width: 8, height: 8,
-        decoration: BoxDecoration(
-          color: v > 0.01 ? _riskColor(v) : Colors.white24,
-          shape: BoxShape.circle)),
-    ]);
+  static const _colorInondation = Color(0xFF5BAFE0);
+  static const _colorSecheresse = Color(0xFFFFB74D);
+  static const _colorChaleur    = Color(0xFFEF5350);
 
-    Widget col(String lbl, double v) => Column(children: [
-      dot(v),
-      const SizedBox(height: 4),
-      Text(lbl, style: const TextStyle(color: Colors.white38, fontSize: 10)),
-    ]);
+  /// Graphique en courbes de l'évolution des 3 risques sur les horizons
+  /// disponibles (aujourd'hui, J+3/J+7/J+10/J+14 selon ce que l'API expose).
+  Widget _riskTrendChart(RiskReport r) {
+    final horizons = r.horizons;
+    if (horizons.length < 2) return const SizedBox.shrink();
 
-    return Row(children: [
-      Icon(icon, color: Colors.white38, size: 15),
-      const SizedBox(width: 8),
-      SizedBox(width: 72,
-        child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13))),
-      Expanded(child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          col('Auj.', now),
-          _evolutionArrow(now, j3, color),
-          col('J+3', j3),
-          _evolutionArrow(j3, j7, color),
-          col('J+7', j7),
-        ],
-      )),
-    ]);
+    List<FlSpot> spotsFor(double Function(RiskScores) pick) => [
+      for (int i = 0; i < horizons.length; i++)
+        FlSpot(i.toDouble(), pick(horizons[i].periode.scores) * 100),
+    ];
+
+    LineChartBarData line(List<FlSpot> spots, Color color) => LineChartBarData(
+      spots: spots,
+      isCurved: true,
+      curveSmoothness: 0.2,
+      color: color,
+      barWidth: 2.5,
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, bar, index) =>
+          FlDotCirclePainter(radius: 3.5, color: color, strokeWidth: 0),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 170,
+          child: LineChart(
+            LineChartData(
+              minY: 0, maxY: 100,
+              gridData: FlGridData(
+                show: true, drawVerticalLine: false,
+                horizontalInterval: 25,
+                getDrawingHorizontalLine: (_) =>
+                  const FlLine(color: Colors.white10, strokeWidth: 1),
+              ),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                leftTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true, reservedSize: 34, interval: 25,
+                    getTitlesWidget: (v, meta) => Text('${v.toInt()}%',
+                      style: const TextStyle(color: Colors.white38, fontSize: 10)))),
+                bottomTitles: AxisTitles(
+                  sideTitles: SideTitles(
+                    showTitles: true, reservedSize: 24,
+                    getTitlesWidget: (v, meta) {
+                      final i = v.toInt();
+                      if (i < 0 || i >= horizons.length) return const SizedBox.shrink();
+                      final lbl = horizons[i].label == 'Aujourd\'hui' ? 'Auj.' : horizons[i].label;
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(lbl, style: const TextStyle(color: Colors.white38, fontSize: 10)));
+                    })),
+              ),
+              lineTouchData: LineTouchData(
+                touchTooltipData: LineTouchTooltipData(
+                  getTooltipColor: (_) => const Color(0xFF1C2530),
+                  getTooltipItems: (spots) => spots.map((s) => LineTooltipItem(
+                    '${s.y.toStringAsFixed(0)}%',
+                    const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11)),
+                  ).toList(),
+                ),
+              ),
+              lineBarsData: [
+                line(spotsFor((s) => s.inondation), _colorInondation),
+                line(spotsFor((s) => s.secheresse), _colorSecheresse),
+                line(spotsFor((s) => s.chaleur),    _colorChaleur),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _chartLegendItem(_colorInondation, 'Inondation'),
+            const SizedBox(width: 18),
+            _chartLegendItem(_colorSecheresse, 'Sécheresse'),
+            const SizedBox(width: 18),
+            _chartLegendItem(_colorChaleur, 'Chaleur'),
+          ],
+        ),
+      ],
+    );
   }
 
-  Widget _evolutionArrow(double from, double to, Color color) {
-    final diff = to - from;
-    if (diff.abs() < 0.02) return const Icon(Icons.remove, color: Colors.white24, size: 14);
-    if (diff > 0) return Icon(Icons.trending_up, color: color, size: 14);
-    return Icon(Icons.trending_down, color: Colors.greenAccent.shade200, size: 14);
-  }
+  Widget _chartLegendItem(Color color, String label) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(width: 8, height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+      const SizedBox(width: 5),
+      Text(label, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+    ],
+  );
 
   String _floodDetail(RiskReport r) {
     final p = r.indicateurs.pluie7j;
@@ -1195,33 +1296,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _prevCard(String horizon, String niveau) {
     final color = _alertColor(niveau);
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: Colors.white24, width: 0.8)),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(horizon,
-                style: const TextStyle(
-                  color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1)),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: color.withOpacity(0.5))),
-              child: Text(_alertShort(niveau), style: TextStyle(
-                color: color, fontWeight: FontWeight.bold,
-                fontSize: 12, letterSpacing: 0.3))),
-          ],
-        ),
+    // Empilé (libellé au-dessus du badge) plutôt qu'en ligne : évite toute
+    // troncature quel que soit le texte ("3 jours" à "14 jours"). Largeur
+    // fournie par le parent (Expanded) — les cartes se répartissent la
+    // largeur totale de l'écran au lieu d'être tassées dans un scroll.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white24, width: 0.8)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(horizon,
+            style: const TextStyle(
+              color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: color.withOpacity(0.5))),
+            child: Text(_alertShort(niveau), style: TextStyle(
+              color: color, fontWeight: FontWeight.bold,
+              fontSize: 12, letterSpacing: 0.3))),
+        ],
       ),
     );
   }

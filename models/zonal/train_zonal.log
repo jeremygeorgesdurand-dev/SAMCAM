@@ -738,3 +738,1073 @@
 2026-07-08 18:11:20,693 [INFO]   CV AUC → RF=0.889±0.097 | GB=0.787±0.149 (4 folds utiles)
 2026-07-08 18:11:20,795 [INFO]   ✅ RandomForest | CV AUC=0.889±0.097 | F1=0.429 | Thr=0.40 | SMOTE: 4/4 folds
 2026-07-08 18:11:20,800 [INFO]   Sauvegardé : models/zonal/model_chaleur_Yaounde_peri.pkl
+2026-07-10 13:17:11,797 [INFO] Entraînement : 1 zones × 1 risques = 1 modèles
+2026-07-10 13:17:11,798 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-10 13:17:11,827 [INFO] 
+[Maroua] 13162 jours (1990-01-01 → 2026-07-07)
+2026-07-10 13:17:11,828 [INFO] 
+==================================================
+2026-07-10 13:17:11,828 [INFO] Entraînement : Maroua / SECHERESSE
+2026-07-10 13:17:11,828 [INFO] ==================================================
+2026-07-10 13:17:11,828 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:17:11,832 [INFO] Dataset : 13162 jours | 4260 positifs (32.4%) | ratio 2.1:1
+2026-07-10 13:17:14,116 [INFO]   Fold  1 | RF=0.994 | GB=0.999 | pos=671
+2026-07-10 13:17:18,259 [INFO]   Fold  2 | RF=0.980 | GB=0.981 | pos=696
+2026-07-10 13:17:24,337 [INFO]   Fold  3 | RF=0.998 | GB=1.000 | pos=663
+2026-07-10 13:17:32,397 [INFO]   Fold  4 | RF=0.887 | GB=0.895 | pos=911
+2026-07-10 13:17:42,766 [INFO]   Fold  5 | RF=0.951 | GB=0.968 | pos=891
+2026-07-10 13:17:42,767 [INFO]   CV AUC → RF=0.962±0.041 | GB=0.968±0.039 (5 folds utiles)
+2026-07-10 13:17:42,786 [INFO]   ✅ GradientBoosting | CV AUC=0.968±0.039 | F1=0.935 | Thr=0.80 | SMOTE: 0/5 folds
+2026-07-10 13:17:42,789 [INFO]   Sauvegardé : models/zonal/model_secheresse_Maroua.pkl
+2026-07-10 13:18:29,403 [INFO] Entraînement : 8 zones × 3 risques = 24 modèles
+2026-07-10 13:18:29,403 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-10 13:18:29,436 [INFO] 
+[Bafoussam] 13162 jours (1990-01-01 → 2026-07-07)
+2026-07-10 13:18:29,436 [INFO] 
+==================================================
+2026-07-10 13:18:29,436 [INFO] Entraînement : Bafoussam / INONDATION
+2026-07-10 13:18:29,436 [INFO] ==================================================
+2026-07-10 13:18:29,436 [INFO] [Features] inondation: 23 features
+2026-07-10 13:18:29,439 [INFO] Dataset : 13162 jours | 227 positifs (1.7%) | ratio 57.0:1
+2026-07-10 13:18:31,827 [INFO]   Fold  4 | RF=0.702 | GB=0.674 | pos=93
+2026-07-10 13:18:43,793 [INFO]   Fold  5 | RF=0.936 | GB=0.927 | pos=131
+2026-07-10 13:18:43,794 [INFO]   CV AUC → RF=0.819±0.117 | GB=0.800±0.126 (2 folds utiles)
+2026-07-10 13:18:43,888 [INFO]   ✅ RandomForest | CV AUC=0.819±0.117 | F1=0.467 | Thr=0.40 | SMOTE: 1/2 folds
+2026-07-10 13:18:43,894 [INFO]   Sauvegardé : models/zonal/model_inondation_Bafoussam.pkl
+2026-07-10 13:18:43,895 [INFO] 
+==================================================
+2026-07-10 13:18:43,895 [INFO] Entraînement : Bafoussam / SECHERESSE
+2026-07-10 13:18:43,895 [INFO] ==================================================
+2026-07-10 13:18:43,895 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:18:43,897 [INFO] Dataset : 13162 jours | 6670 positifs (50.7%) | ratio 1.0:1
+2026-07-10 13:18:46,315 [INFO]   Fold  1 | RF=0.972 | GB=0.988 | pos=1105
+2026-07-10 13:18:51,471 [INFO]   Fold  2 | RF=0.996 | GB=0.999 | pos=1166
+2026-07-10 13:18:59,906 [INFO]   Fold  3 | RF=0.991 | GB=0.998 | pos=1177
+2026-07-10 13:19:09,485 [INFO]   Fold  4 | RF=0.993 | GB=0.997 | pos=1044
+2026-07-10 13:19:21,944 [INFO]   Fold  5 | RF=0.994 | GB=0.996 | pos=1188
+2026-07-10 13:19:21,946 [INFO]   CV AUC → RF=0.989±0.009 | GB=0.996±0.004 (5 folds utiles)
+2026-07-10 13:19:21,965 [INFO]   ✅ GradientBoosting | CV AUC=0.996±0.004 | F1=0.985 | Thr=0.70 | SMOTE: 0/5 folds
+2026-07-10 13:19:21,970 [INFO]   Sauvegardé : models/zonal/model_secheresse_Bafoussam.pkl
+2026-07-10 13:19:21,972 [INFO] 
+==================================================
+2026-07-10 13:19:21,973 [INFO] Entraînement : Bafoussam / CHALEUR
+2026-07-10 13:19:21,973 [INFO] ==================================================
+2026-07-10 13:19:21,973 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:19:21,987 [INFO] Dataset : 13162 jours | 2174 positifs (16.5%) | ratio 5.1:1
+2026-07-10 13:19:24,888 [INFO]   Fold  1 | RF=0.989 | GB=0.988 | pos=323
+2026-07-10 13:19:30,723 [INFO]   Fold  2 | RF=0.993 | GB=0.991 | pos=374
+2026-07-10 13:19:38,907 [INFO]   Fold  3 | RF=0.991 | GB=0.992 | pos=391
+2026-07-10 13:19:49,866 [INFO]   Fold  4 | RF=0.969 | GB=0.972 | pos=418
+2026-07-10 13:20:05,202 [INFO]   Fold  5 | RF=0.963 | GB=0.958 | pos=456
+2026-07-10 13:20:05,208 [INFO]   CV AUC → RF=0.981±0.013 | GB=0.980±0.013 (5 folds utiles)
+2026-07-10 13:20:05,356 [INFO]   ✅ RandomForest | CV AUC=0.981±0.013 | F1=0.843 | Thr=0.50 | SMOTE: 5/5 folds
+2026-07-10 13:20:05,363 [INFO]   Sauvegardé : models/zonal/model_chaleur_Bafoussam.pkl
+2026-07-10 13:20:05,435 [INFO] 
+[Ebolowa] 9510 jours (2000-01-01 → 2026-07-07)
+2026-07-10 13:20:05,435 [INFO] 
+==================================================
+2026-07-10 13:20:05,435 [INFO] Entraînement : Ebolowa / INONDATION
+2026-07-10 13:20:05,435 [INFO] ==================================================
+2026-07-10 13:20:05,435 [INFO] [Features] inondation: 23 features
+2026-07-10 13:20:05,446 [INFO] Dataset : 9510 jours | 182 positifs (1.9%) | ratio 51.3:1
+2026-07-10 13:20:05,448 [WARNING]   [Fold 4] Skip GB — une seule classe après sample_weight (zone=Ebolowa, risk=inondation, n_pos_train=0)
+2026-07-10 13:20:13,470 [INFO]   Fold  5 | RF=0.952 | GB=0.951 | pos=79
+2026-07-10 13:20:13,471 [INFO]   CV AUC → RF=0.952±0.000 | GB=0.951±0.000 (1 folds utiles)
+2026-07-10 13:20:13,627 [INFO]   ✅ RandomForest | CV AUC=0.952±0.000 | F1=0.466 | Thr=0.20 | SMOTE: 1/1 folds
+2026-07-10 13:20:13,633 [INFO]   Sauvegardé : models/zonal/model_inondation_Ebolowa.pkl
+2026-07-10 13:20:13,634 [INFO] 
+==================================================
+2026-07-10 13:20:13,634 [INFO] Entraînement : Ebolowa / SECHERESSE
+2026-07-10 13:20:13,634 [INFO] ==================================================
+2026-07-10 13:20:13,634 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:20:13,639 [INFO] Dataset : 9510 jours | 2865 positifs (30.1%) | ratio 2.3:1
+2026-07-10 13:20:15,662 [INFO]   Fold  1 | RF=0.995 | GB=0.998 | pos=419
+2026-07-10 13:20:19,102 [INFO]   Fold  2 | RF=0.998 | GB=0.999 | pos=391
+2026-07-10 13:20:24,412 [INFO]   Fold  3 | RF=0.995 | GB=0.999 | pos=430
+2026-07-10 13:20:35,522 [INFO]   Fold  4 | RF=0.783 | GB=0.773 | pos=628
+2026-07-10 13:20:46,034 [INFO]   Fold  5 | RF=0.942 | GB=0.965 | pos=589
+2026-07-10 13:20:46,037 [INFO]   CV AUC → RF=0.942±0.082 | GB=0.947±0.088 (5 folds utiles)
+2026-07-10 13:20:46,057 [INFO]   ✅ GradientBoosting | CV AUC=0.947±0.088 | F1=0.877 | Thr=0.30 | SMOTE: 0/5 folds
+2026-07-10 13:20:46,062 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ebolowa.pkl
+2026-07-10 13:20:46,064 [INFO] 
+==================================================
+2026-07-10 13:20:46,064 [INFO] Entraînement : Ebolowa / CHALEUR
+2026-07-10 13:20:46,064 [INFO] ==================================================
+2026-07-10 13:20:46,064 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:20:46,074 [INFO] Dataset : 9510 jours | 404 positifs (4.2%) | ratio 22.5:1
+2026-07-10 13:20:47,755 [INFO]   Fold  1 | RF=0.946 | GB=0.836 | pos=41
+2026-07-10 13:20:54,085 [INFO]   Fold  2 | RF=0.943 | GB=0.937 | pos=6
+2026-07-10 13:21:01,401 [INFO]   Fold  3 | RF=0.983 | GB=0.972 | pos=33
+2026-07-10 13:21:10,676 [INFO]   Fold  4 | RF=0.964 | GB=0.894 | pos=27
+2026-07-10 13:21:22,810 [INFO]   Fold  5 | RF=0.847 | GB=0.863 | pos=293
+2026-07-10 13:21:22,814 [INFO]   CV AUC → RF=0.937±0.047 | GB=0.900±0.049 (5 folds utiles)
+2026-07-10 13:21:22,954 [INFO]   ✅ RandomForest | CV AUC=0.937±0.047 | F1=0.659 | Thr=0.45 | SMOTE: 4/5 folds
+2026-07-10 13:21:22,962 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ebolowa.pkl
+2026-07-10 13:21:23,012 [INFO] 
+[Garoua] 13162 jours (1990-01-01 → 2026-07-07)
+2026-07-10 13:21:23,012 [INFO] 
+==================================================
+2026-07-10 13:21:23,012 [INFO] Entraînement : Garoua / INONDATION
+2026-07-10 13:21:23,012 [INFO] ==================================================
+2026-07-10 13:21:23,012 [INFO] [Features] inondation: 23 features
+2026-07-10 13:21:23,021 [INFO] Dataset : 13162 jours | 1506 positifs (11.4%) | ratio 7.7:1
+2026-07-10 13:21:25,052 [INFO]   Fold  1 | RF=0.997 | GB=0.998 | pos=414
+2026-07-10 13:21:28,556 [INFO]   Fold  2 | RF=0.999 | GB=0.999 | pos=383
+2026-07-10 13:21:33,930 [INFO]   Fold  3 | RF=0.352 | GB=0.200 | pos=46
+2026-07-10 13:21:41,481 [INFO]   Fold  5 | RF=0.923 | GB=0.934 | pos=222
+2026-07-10 13:21:41,483 [INFO]   CV AUC → RF=0.818±0.270 | GB=0.783±0.338 (4 folds utiles)
+2026-07-10 13:21:41,590 [INFO]   ✅ RandomForest | CV AUC=0.818±0.270 | F1=0.724 | Thr=0.55 | SMOTE: 1/4 folds
+2026-07-10 13:21:41,607 [INFO]   Sauvegardé : models/zonal/model_inondation_Garoua.pkl
+2026-07-10 13:21:41,609 [INFO] 
+==================================================
+2026-07-10 13:21:41,609 [INFO] Entraînement : Garoua / SECHERESSE
+2026-07-10 13:21:41,609 [INFO] ==================================================
+2026-07-10 13:21:41,609 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:21:41,623 [INFO] Dataset : 13162 jours | 6143 positifs (46.7%) | ratio 1.1:1
+2026-07-10 13:21:44,659 [INFO]   Fold  1 | RF=0.969 | GB=0.993 | pos=1276
+2026-07-10 13:21:49,589 [INFO]   Fold  2 | RF=0.993 | GB=0.998 | pos=1336
+2026-07-10 13:21:56,809 [INFO]   Fold  3 | RF=0.730 | GB=0.991 | pos=552
+2026-07-10 13:22:05,253 [INFO]   Fold  4 | RF=0.824 | GB=0.890 | pos=824
+2026-07-10 13:22:15,061 [INFO]   Fold  5 | RF=0.946 | GB=0.951 | pos=995
+2026-07-10 13:22:15,063 [INFO]   CV AUC → RF=0.892±0.100 | GB=0.965±0.041 (5 folds utiles)
+2026-07-10 13:22:15,083 [INFO]   ✅ GradientBoosting | CV AUC=0.965±0.041 | F1=0.895 | Thr=0.35 | SMOTE: 0/5 folds
+2026-07-10 13:22:15,089 [INFO]   Sauvegardé : models/zonal/model_secheresse_Garoua.pkl
+2026-07-10 13:22:15,090 [INFO] 
+==================================================
+2026-07-10 13:22:15,091 [INFO] Entraînement : Garoua / CHALEUR
+2026-07-10 13:22:15,091 [INFO] ==================================================
+2026-07-10 13:22:15,091 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:22:15,105 [INFO] Dataset : 13162 jours | 2214 positifs (16.8%) | ratio 4.9:1
+2026-07-10 13:22:17,925 [INFO]   Fold  1 | RF=0.957 | GB=0.966 | pos=472
+2026-07-10 13:22:22,818 [INFO]   Fold  2 | RF=0.964 | GB=0.970 | pos=683
+2026-07-10 13:22:30,616 [INFO]   Fold  4 | RF=0.297 | GB=0.304 | pos=92
+2026-07-10 13:22:39,400 [INFO]   Fold  5 | RF=0.949 | GB=0.956 | pos=377
+2026-07-10 13:22:39,400 [INFO]   CV AUC → RF=0.792±0.286 | GB=0.799±0.286 (4 folds utiles)
+2026-07-10 13:22:39,489 [INFO]   ✅ GradientBoosting | CV AUC=0.799±0.286 | F1=0.789 | Thr=0.60 | SMOTE: 0/4 folds
+2026-07-10 13:22:39,494 [INFO]   Sauvegardé : models/zonal/model_chaleur_Garoua.pkl
+2026-07-10 13:22:39,538 [INFO] 
+[Kribi] 9526 jours (2000-01-01 → 2026-07-07)
+2026-07-10 13:22:39,539 [INFO] 
+==================================================
+2026-07-10 13:22:39,539 [INFO] Entraînement : Kribi / INONDATION
+2026-07-10 13:22:39,539 [INFO] ==================================================
+2026-07-10 13:22:39,539 [INFO] [Features] inondation: 23 features
+2026-07-10 13:22:39,541 [INFO] Dataset : 9526 jours | 1745 positifs (18.3%) | ratio 4.5:1
+2026-07-10 13:22:41,166 [INFO]   Fold  1 | RF=0.992 | GB=0.997 | pos=270
+2026-07-10 13:22:44,470 [INFO]   Fold  2 | RF=0.995 | GB=0.999 | pos=219
+2026-07-10 13:22:49,503 [INFO]   Fold  3 | RF=0.995 | GB=0.999 | pos=201
+2026-07-10 13:22:56,764 [INFO]   Fold  4 | RF=0.929 | GB=0.921 | pos=499
+2026-07-10 13:23:03,932 [INFO]   Fold  5 | RF=0.949 | GB=0.962 | pos=293
+2026-07-10 13:23:03,937 [INFO]   CV AUC → RF=0.972±0.028 | GB=0.975±0.031 (5 folds utiles)
+2026-07-10 13:23:03,958 [INFO]   ✅ GradientBoosting | CV AUC=0.975±0.031 | F1=0.852 | Thr=0.80 | SMOTE: 3/5 folds
+2026-07-10 13:23:03,962 [INFO]   Sauvegardé : models/zonal/model_inondation_Kribi.pkl
+2026-07-10 13:23:03,965 [INFO] 
+==================================================
+2026-07-10 13:23:03,965 [INFO] Entraînement : Kribi / SECHERESSE
+2026-07-10 13:23:03,965 [INFO] ==================================================
+2026-07-10 13:23:03,965 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:23:03,972 [INFO] Dataset : 9526 jours | 2725 positifs (28.6%) | ratio 2.5:1
+2026-07-10 13:23:06,032 [INFO]   Fold  1 | RF=0.973 | GB=0.988 | pos=446
+2026-07-10 13:23:09,642 [INFO]   Fold  2 | RF=0.985 | GB=0.994 | pos=360
+2026-07-10 13:23:15,077 [INFO]   Fold  3 | RF=0.878 | GB=0.913 | pos=424
+2026-07-10 13:23:22,169 [INFO]   Fold  4 | RF=0.978 | GB=0.999 | pos=357
+2026-07-10 13:23:30,968 [INFO]   Fold  5 | RF=0.892 | GB=0.890 | pos=687
+2026-07-10 13:23:30,969 [INFO]   CV AUC → RF=0.941±0.046 | GB=0.957±0.046 (5 folds utiles)
+2026-07-10 13:23:30,987 [INFO]   ✅ GradientBoosting | CV AUC=0.957±0.046 | F1=0.835 | Thr=0.15 | SMOTE: 0/5 folds
+2026-07-10 13:23:30,990 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kribi.pkl
+2026-07-10 13:23:30,992 [INFO] 
+==================================================
+2026-07-10 13:23:30,992 [INFO] Entraînement : Kribi / CHALEUR
+2026-07-10 13:23:30,992 [INFO] ==================================================
+2026-07-10 13:23:30,992 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:23:30,997 [INFO] Dataset : 9526 jours | 17 positifs (0.2%) | ratio 559.4:1
+2026-07-10 13:23:34,762 [INFO]   Fold  4 | RF=0.495 | GB=0.500 | pos=5
+2026-07-10 13:23:45,897 [INFO]   Fold  5 | RF=0.717 | GB=0.616 | pos=10
+2026-07-10 13:23:45,897 [INFO]   CV AUC → RF=0.606±0.111 | GB=0.558±0.058 (2 folds utiles)
+2026-07-10 13:23:45,990 [INFO]   ✅ RandomForest | CV AUC=0.606±0.111 | F1=0.000 | Thr=0.50 | SMOTE: 1/2 folds
+2026-07-10 13:23:45,996 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kribi.pkl
+2026-07-10 13:23:46,048 [INFO] 
+[Kumba] 9510 jours (2000-01-01 → 2026-07-07)
+2026-07-10 13:23:46,048 [INFO] 
+==================================================
+2026-07-10 13:23:46,048 [INFO] Entraînement : Kumba / INONDATION
+2026-07-10 13:23:46,048 [INFO] ==================================================
+2026-07-10 13:23:46,048 [INFO] [Features] inondation: 23 features
+2026-07-10 13:23:46,050 [INFO] Dataset : 9510 jours | 199 positifs (2.1%) | ratio 46.8:1
+2026-07-10 13:23:46,052 [WARNING]   [Fold 3] Skip GB — une seule classe après sample_weight (zone=Kumba, risk=inondation, n_pos_train=0)
+2026-07-10 13:23:52,167 [INFO]   Fold  4 | RF=0.698 | GB=0.602 | pos=107
+2026-07-10 13:24:03,129 [INFO]   Fold  5 | RF=0.918 | GB=0.925 | pos=47
+2026-07-10 13:24:03,130 [INFO]   CV AUC → RF=0.808±0.110 | GB=0.764±0.162 (2 folds utiles)
+2026-07-10 13:24:03,275 [INFO]   ✅ RandomForest | CV AUC=0.808±0.110 | F1=0.280 | Thr=0.45 | SMOTE: 2/2 folds
+2026-07-10 13:24:03,286 [INFO]   Sauvegardé : models/zonal/model_inondation_Kumba.pkl
+2026-07-10 13:24:03,288 [INFO] 
+==================================================
+2026-07-10 13:24:03,288 [INFO] Entraînement : Kumba / SECHERESSE
+2026-07-10 13:24:03,288 [INFO] ==================================================
+2026-07-10 13:24:03,288 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:24:03,292 [INFO] Dataset : 9510 jours | 2532 positifs (26.6%) | ratio 2.8:1
+2026-07-10 13:24:05,479 [INFO]   Fold  1 | RF=0.953 | GB=0.963 | pos=191
+2026-07-10 13:24:10,663 [INFO]   Fold  2 | RF=0.938 | GB=0.986 | pos=211
+2026-07-10 13:24:17,682 [INFO]   Fold  3 | RF=0.954 | GB=0.950 | pos=265
+2026-07-10 13:24:26,318 [INFO]   Fold  4 | RF=0.945 | GB=0.979 | pos=817
+2026-07-10 13:24:35,493 [INFO]   Fold  5 | RF=0.974 | GB=0.995 | pos=775
+2026-07-10 13:24:35,498 [INFO]   CV AUC → RF=0.953±0.012 | GB=0.975±0.016 (5 folds utiles)
+2026-07-10 13:24:35,517 [INFO]   ✅ GradientBoosting | CV AUC=0.975±0.016 | F1=0.970 | Thr=0.80 | SMOTE: 3/5 folds
+2026-07-10 13:24:35,523 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kumba.pkl
+2026-07-10 13:24:35,524 [INFO] 
+==================================================
+2026-07-10 13:24:35,524 [INFO] Entraînement : Kumba / CHALEUR
+2026-07-10 13:24:35,524 [INFO] ==================================================
+2026-07-10 13:24:35,524 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:24:35,532 [INFO] Dataset : 9510 jours | 1637 positifs (17.2%) | ratio 4.8:1
+2026-07-10 13:24:38,228 [INFO]   Fold  1 | RF=0.996 | GB=0.997 | pos=144
+2026-07-10 13:24:42,757 [INFO]   Fold  2 | RF=0.977 | GB=0.980 | pos=132
+2026-07-10 13:24:49,289 [INFO]   Fold  3 | RF=0.990 | GB=0.991 | pos=219
+2026-07-10 13:24:57,567 [INFO]   Fold  4 | RF=0.950 | GB=0.953 | pos=365
+2026-07-10 13:25:08,043 [INFO]   Fold  5 | RF=0.945 | GB=0.938 | pos=611
+2026-07-10 13:25:08,046 [INFO]   CV AUC → RF=0.972±0.021 | GB=0.972±0.023 (5 folds utiles)
+2026-07-10 13:25:08,067 [INFO]   ✅ GradientBoosting | CV AUC=0.972±0.023 | F1=0.836 | Thr=0.40 | SMOTE: 5/5 folds
+2026-07-10 13:25:08,070 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kumba.pkl
+2026-07-10 13:25:08,114 [INFO] 
+[Maroua] 13162 jours (1990-01-01 → 2026-07-07)
+2026-07-10 13:25:08,114 [INFO] 
+==================================================
+2026-07-10 13:25:08,114 [INFO] Entraînement : Maroua / INONDATION
+2026-07-10 13:25:08,114 [INFO] ==================================================
+2026-07-10 13:25:08,114 [INFO] [Features] inondation: 23 features
+2026-07-10 13:25:08,117 [INFO] Dataset : 13162 jours | 3452 positifs (26.2%) | ratio 2.8:1
+2026-07-10 13:25:10,214 [INFO]   Fold  1 | RF=0.989 | GB=0.994 | pos=570
+2026-07-10 13:25:13,709 [INFO]   Fold  2 | RF=0.998 | GB=1.000 | pos=479
+2026-07-10 13:25:19,777 [INFO]   Fold  3 | RF=0.985 | GB=0.976 | pos=581
+2026-07-10 13:25:27,086 [INFO]   Fold  4 | RF=0.998 | GB=0.999 | pos=593
+2026-07-10 13:25:36,122 [INFO]   Fold  5 | RF=0.989 | GB=0.990 | pos=662
+2026-07-10 13:25:36,132 [INFO]   CV AUC → RF=0.992±0.005 | GB=0.992±0.009 (5 folds utiles)
+2026-07-10 13:25:36,153 [INFO]   ✅ GradientBoosting | CV AUC=0.992±0.009 | F1=0.950 | Thr=0.55 | SMOTE: 0/5 folds
+2026-07-10 13:25:36,158 [INFO]   Sauvegardé : models/zonal/model_inondation_Maroua.pkl
+2026-07-10 13:25:36,160 [INFO] 
+==================================================
+2026-07-10 13:25:36,160 [INFO] Entraînement : Maroua / SECHERESSE
+2026-07-10 13:25:36,160 [INFO] ==================================================
+2026-07-10 13:25:36,160 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:25:36,169 [INFO] Dataset : 13162 jours | 4260 positifs (32.4%) | ratio 2.1:1
+2026-07-10 13:25:38,898 [INFO]   Fold  1 | RF=0.994 | GB=0.999 | pos=671
+2026-07-10 13:25:43,928 [INFO]   Fold  2 | RF=0.980 | GB=0.981 | pos=696
+2026-07-10 13:25:51,187 [INFO]   Fold  3 | RF=0.998 | GB=1.000 | pos=663
+2026-07-10 13:26:00,758 [INFO]   Fold  4 | RF=0.887 | GB=0.895 | pos=911
+2026-07-10 13:26:12,048 [INFO]   Fold  5 | RF=0.951 | GB=0.968 | pos=891
+2026-07-10 13:26:12,049 [INFO]   CV AUC → RF=0.962±0.041 | GB=0.968±0.039 (5 folds utiles)
+2026-07-10 13:26:12,068 [INFO]   ✅ GradientBoosting | CV AUC=0.968±0.039 | F1=0.935 | Thr=0.80 | SMOTE: 0/5 folds
+2026-07-10 13:26:12,070 [INFO]   Sauvegardé : models/zonal/model_secheresse_Maroua.pkl
+2026-07-10 13:26:12,071 [INFO] 
+==================================================
+2026-07-10 13:26:12,071 [INFO] Entraînement : Maroua / CHALEUR
+2026-07-10 13:26:12,071 [INFO] ==================================================
+2026-07-10 13:26:12,071 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:26:12,073 [INFO] Dataset : 13162 jours | 1670 positifs (12.7%) | ratio 6.9:1
+2026-07-10 13:26:14,935 [INFO]   Fold  1 | RF=0.963 | GB=0.971 | pos=197
+2026-07-10 13:26:21,388 [INFO]   Fold  2 | RF=0.981 | GB=0.978 | pos=258
+2026-07-10 13:26:29,435 [INFO]   Fold  3 | RF=0.987 | GB=0.983 | pos=288
+2026-07-10 13:26:39,667 [INFO]   Fold  4 | RF=0.909 | GB=0.900 | pos=338
+2026-07-10 13:26:52,258 [INFO]   Fold  5 | RF=0.956 | GB=0.956 | pos=374
+2026-07-10 13:26:52,260 [INFO]   CV AUC → RF=0.959±0.027 | GB=0.958±0.030 (5 folds utiles)
+2026-07-10 13:26:52,375 [INFO]   ✅ RandomForest | CV AUC=0.959±0.027 | F1=0.759 | Thr=0.50 | SMOTE: 5/5 folds
+2026-07-10 13:26:52,392 [INFO]   Sauvegardé : models/zonal/model_chaleur_Maroua.pkl
+2026-07-10 13:26:52,442 [INFO] 
+[Ngaoundere] 13162 jours (1990-01-01 → 2026-07-07)
+2026-07-10 13:26:52,442 [INFO] 
+==================================================
+2026-07-10 13:26:52,443 [INFO] Entraînement : Ngaoundere / INONDATION
+2026-07-10 13:26:52,443 [INFO] ==================================================
+2026-07-10 13:26:52,443 [INFO] [Features] inondation: 23 features
+2026-07-10 13:26:52,446 [INFO] Dataset : 13162 jours | 722 positifs (5.5%) | ratio 17.2:1
+2026-07-10 13:26:54,923 [INFO]   Fold  1 | RF=0.991 | GB=0.995 | pos=81
+2026-07-10 13:26:59,267 [INFO]   Fold  2 | RF=0.995 | GB=0.997 | pos=105
+2026-07-10 13:27:06,125 [INFO]   Fold  3 | RF=0.997 | GB=0.999 | pos=114
+2026-07-10 13:27:15,293 [INFO]   Fold  4 | RF=0.915 | GB=0.864 | pos=131
+2026-07-10 13:27:26,837 [INFO]   Fold  5 | RF=0.824 | GB=0.830 | pos=104
+2026-07-10 13:27:26,837 [INFO]   CV AUC → RF=0.944±0.068 | GB=0.937±0.074 (5 folds utiles)
+2026-07-10 13:27:26,952 [INFO]   ✅ RandomForest | CV AUC=0.944±0.068 | F1=0.272 | Thr=0.40 | SMOTE: 5/5 folds
+2026-07-10 13:27:26,967 [INFO]   Sauvegardé : models/zonal/model_inondation_Ngaoundere.pkl
+2026-07-10 13:27:26,970 [INFO] 
+==================================================
+2026-07-10 13:27:26,971 [INFO] Entraînement : Ngaoundere / SECHERESSE
+2026-07-10 13:27:26,971 [INFO] ==================================================
+2026-07-10 13:27:26,971 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:27:26,977 [INFO] Dataset : 13162 jours | 6530 positifs (49.6%) | ratio 1.0:1
+2026-07-10 13:27:29,545 [INFO]   Fold  1 | RF=0.866 | GB=0.927 | pos=938
+2026-07-10 13:27:33,880 [INFO]   Fold  2 | RF=1.000 | GB=1.000 | pos=1152
+2026-07-10 13:27:40,538 [INFO]   Fold  3 | RF=1.000 | GB=1.000 | pos=1092
+2026-07-10 13:27:49,590 [INFO]   Fold  4 | RF=0.988 | GB=0.985 | pos=1091
+2026-07-10 13:28:01,633 [INFO]   Fold  5 | RF=0.952 | GB=0.955 | pos=1261
+2026-07-10 13:28:01,636 [INFO]   CV AUC → RF=0.961±0.051 | GB=0.973±0.028 (5 folds utiles)
+2026-07-10 13:28:01,656 [INFO]   ✅ GradientBoosting | CV AUC=0.973±0.028 | F1=0.916 | Thr=0.15 | SMOTE: 0/5 folds
+2026-07-10 13:28:01,659 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ngaoundere.pkl
+2026-07-10 13:28:01,662 [INFO] 
+==================================================
+2026-07-10 13:28:01,662 [INFO] Entraînement : Ngaoundere / CHALEUR
+2026-07-10 13:28:01,662 [INFO] ==================================================
+2026-07-10 13:28:01,662 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:28:01,666 [INFO] Dataset : 13162 jours | 2897 positifs (22.0%) | ratio 3.5:1
+2026-07-10 13:28:04,451 [INFO]   Fold  1 | RF=0.972 | GB=0.980 | pos=320
+2026-07-10 13:28:09,198 [INFO]   Fold  2 | RF=0.991 | GB=0.999 | pos=563
+2026-07-10 13:28:15,596 [INFO]   Fold  3 | RF=0.997 | GB=0.999 | pos=557
+2026-07-10 13:28:23,909 [INFO]   Fold  4 | RF=0.966 | GB=0.969 | pos=494
+2026-07-10 13:28:34,395 [INFO]   Fold  5 | RF=0.963 | GB=0.958 | pos=594
+2026-07-10 13:28:34,396 [INFO]   CV AUC → RF=0.978±0.014 | GB=0.981±0.016 (5 folds utiles)
+2026-07-10 13:28:34,415 [INFO]   ✅ GradientBoosting | CV AUC=0.981±0.016 | F1=0.863 | Thr=0.40 | SMOTE: 2/5 folds
+2026-07-10 13:28:34,417 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ngaoundere.pkl
+2026-07-10 13:28:34,459 [INFO] 
+[Yaounde_peri] 9510 jours (2000-01-01 → 2026-07-07)
+2026-07-10 13:28:34,460 [INFO] 
+==================================================
+2026-07-10 13:28:34,460 [INFO] Entraînement : Yaounde_peri / INONDATION
+2026-07-10 13:28:34,460 [INFO] ==================================================
+2026-07-10 13:28:34,460 [INFO] [Features] inondation: 23 features
+2026-07-10 13:28:34,462 [INFO] Dataset : 9510 jours | 632 positifs (6.6%) | ratio 14.0:1
+2026-07-10 13:28:36,471 [INFO]   Fold  1 | RF=0.969 | GB=0.970 | pos=82
+2026-07-10 13:28:40,121 [INFO]   Fold  2 | RF=0.998 | GB=1.000 | pos=51
+2026-07-10 13:28:45,269 [INFO]   Fold  3 | RF=0.740 | GB=0.763 | pos=112
+2026-07-10 13:28:52,234 [INFO]   Fold  4 | RF=0.900 | GB=0.844 | pos=210
+2026-07-10 13:29:01,165 [INFO]   Fold  5 | RF=0.824 | GB=0.762 | pos=93
+2026-07-10 13:29:01,168 [INFO]   CV AUC → RF=0.886±0.095 | GB=0.868±0.101 (5 folds utiles)
+2026-07-10 13:29:01,272 [INFO]   ✅ RandomForest | CV AUC=0.886±0.095 | F1=0.440 | Thr=0.60 | SMOTE: 5/5 folds
+2026-07-10 13:29:01,282 [INFO]   Sauvegardé : models/zonal/model_inondation_Yaounde_peri.pkl
+2026-07-10 13:29:01,284 [INFO] 
+==================================================
+2026-07-10 13:29:01,284 [INFO] Entraînement : Yaounde_peri / SECHERESSE
+2026-07-10 13:29:01,284 [INFO] ==================================================
+2026-07-10 13:29:01,284 [INFO] [Features] secheresse: 31 features
+2026-07-10 13:29:01,290 [INFO] Dataset : 9510 jours | 4385 positifs (46.1%) | ratio 1.2:1
+2026-07-10 13:29:03,274 [INFO]   Fold  1 | RF=0.978 | GB=0.987 | pos=641
+2026-07-10 13:29:07,398 [INFO]   Fold  2 | RF=0.955 | GB=0.946 | pos=644
+2026-07-10 13:29:12,515 [INFO]   Fold  3 | RF=0.990 | GB=0.995 | pos=765
+2026-07-10 13:29:19,119 [INFO]   Fold  4 | RF=0.995 | GB=1.000 | pos=637
+2026-07-10 13:29:27,549 [INFO]   Fold  5 | RF=0.969 | GB=0.974 | pos=1016
+2026-07-10 13:29:27,553 [INFO]   CV AUC → RF=0.978±0.014 | GB=0.980±0.019 (5 folds utiles)
+2026-07-10 13:29:27,572 [INFO]   ✅ GradientBoosting | CV AUC=0.980±0.019 | F1=0.938 | Thr=0.35 | SMOTE: 0/5 folds
+2026-07-10 13:29:27,574 [INFO]   Sauvegardé : models/zonal/model_secheresse_Yaounde_peri.pkl
+2026-07-10 13:29:27,575 [INFO] 
+==================================================
+2026-07-10 13:29:27,575 [INFO] Entraînement : Yaounde_peri / CHALEUR
+2026-07-10 13:29:27,575 [INFO] ==================================================
+2026-07-10 13:29:27,575 [INFO] [Features] chaleur: 28 features
+2026-07-10 13:29:27,579 [INFO] Dataset : 9510 jours | 371 positifs (3.9%) | ratio 24.6:1
+2026-07-10 13:29:29,848 [INFO]   Fold  1 | RF=0.981 | GB=0.950 | pos=44
+2026-07-10 13:29:36,391 [INFO]   Fold  3 | RF=0.983 | GB=0.902 | pos=58
+2026-07-10 13:29:46,427 [INFO]   Fold  4 | RF=0.751 | GB=0.650 | pos=118
+2026-07-10 13:29:57,972 [INFO]   Fold  5 | RF=0.863 | GB=0.754 | pos=139
+2026-07-10 13:29:57,974 [INFO]   CV AUC → RF=0.894±0.096 | GB=0.814±0.119 (4 folds utiles)
+2026-07-10 13:29:58,077 [INFO]   ✅ RandomForest | CV AUC=0.894±0.096 | F1=0.473 | Thr=0.55 | SMOTE: 4/4 folds
+2026-07-10 13:29:58,092 [INFO]   Sauvegardé : models/zonal/model_chaleur_Yaounde_peri.pkl
+2026-07-10 15:09:32,535 [INFO] Entraînement : 8 zones × 3 risques = 24 modèles
+2026-07-10 15:09:32,535 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-10 15:09:32,564 [INFO] 
+[Bafoussam] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:09:32,564 [INFO] 
+==================================================
+2026-07-10 15:09:32,564 [INFO] Entraînement : Bafoussam / INONDATION
+2026-07-10 15:09:32,564 [INFO] ==================================================
+2026-07-10 15:09:32,564 [INFO] [Features] inondation: 23 features
+2026-07-10 15:09:32,567 [INFO] Dataset : 13164 jours | 227 positifs (1.7%) | ratio 57.0:1
+2026-07-10 15:09:35,003 [INFO]   Fold  4 | RF=0.702 | GB=0.674 | pos=93
+2026-07-10 15:09:46,827 [INFO]   Fold  5 | RF=0.937 | GB=0.929 | pos=131
+2026-07-10 15:09:46,829 [INFO]   CV AUC → RF=0.819±0.117 | GB=0.802±0.128 (2 folds utiles)
+2026-07-10 15:09:46,919 [INFO]   ✅ RandomForest | CV AUC=0.819±0.117 | F1=0.467 | Thr=0.25 | SMOTE: 1/2 folds
+2026-07-10 15:09:46,924 [INFO]   Sauvegardé : models/zonal/model_inondation_Bafoussam.pkl
+2026-07-10 15:09:46,925 [INFO] 
+==================================================
+2026-07-10 15:09:46,925 [INFO] Entraînement : Bafoussam / SECHERESSE
+2026-07-10 15:09:46,925 [INFO] ==================================================
+2026-07-10 15:09:46,925 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:09:46,927 [INFO] Dataset : 13164 jours | 610 positifs (4.6%) | ratio 20.6:1
+2026-07-10 15:09:50,378 [INFO]   Fold  1 | RF=0.635 | GB=0.541 | pos=64
+2026-07-10 15:09:57,485 [INFO]   Fold  2 | RF=0.993 | GB=0.992 | pos=72
+2026-07-10 15:10:07,327 [INFO]   Fold  3 | RF=0.979 | GB=0.978 | pos=79
+2026-07-10 15:10:20,324 [INFO]   Fold  4 | RF=0.527 | GB=0.690 | pos=120
+2026-07-10 15:10:36,788 [INFO]   Fold  5 | RF=0.817 | GB=0.655 | pos=228
+2026-07-10 15:10:36,790 [INFO]   CV AUC → RF=0.790±0.185 | GB=0.771±0.181 (5 folds utiles)
+2026-07-10 15:10:36,896 [INFO]   ✅ RandomForest | CV AUC=0.790±0.185 | F1=0.491 | Thr=0.30 | SMOTE: 5/5 folds
+2026-07-10 15:10:36,904 [INFO]   Sauvegardé : models/zonal/model_secheresse_Bafoussam.pkl
+2026-07-10 15:10:36,906 [INFO] 
+==================================================
+2026-07-10 15:10:36,906 [INFO] Entraînement : Bafoussam / CHALEUR
+2026-07-10 15:10:36,906 [INFO] ==================================================
+2026-07-10 15:10:36,906 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:10:36,913 [INFO] Dataset : 13164 jours | 2174 positifs (16.5%) | ratio 5.1:1
+2026-07-10 15:10:39,903 [INFO]   Fold  1 | RF=0.989 | GB=0.988 | pos=325
+2026-07-10 15:10:45,179 [INFO]   Fold  2 | RF=0.993 | GB=0.989 | pos=374
+2026-07-10 15:10:52,672 [INFO]   Fold  3 | RF=0.991 | GB=0.991 | pos=391
+2026-07-10 15:11:02,663 [INFO]   Fold  4 | RF=0.970 | GB=0.972 | pos=419
+2026-07-10 15:11:15,069 [INFO]   Fold  5 | RF=0.961 | GB=0.959 | pos=455
+2026-07-10 15:11:15,072 [INFO]   CV AUC → RF=0.981±0.013 | GB=0.980±0.013 (5 folds utiles)
+2026-07-10 15:11:15,187 [INFO]   ✅ RandomForest | CV AUC=0.981±0.013 | F1=0.840 | Thr=0.55 | SMOTE: 5/5 folds
+2026-07-10 15:11:15,202 [INFO]   Sauvegardé : models/zonal/model_chaleur_Bafoussam.pkl
+2026-07-10 15:11:15,229 [INFO] 
+[Ebolowa] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:11:15,229 [INFO] 
+==================================================
+2026-07-10 15:11:15,229 [INFO] Entraînement : Ebolowa / INONDATION
+2026-07-10 15:11:15,229 [INFO] ==================================================
+2026-07-10 15:11:15,229 [INFO] [Features] inondation: 23 features
+2026-07-10 15:11:15,232 [INFO] Dataset : 9512 jours | 182 positifs (1.9%) | ratio 51.3:1
+2026-07-10 15:11:15,236 [WARNING]   [Fold 4] Skip GB — une seule classe après sample_weight (zone=Ebolowa, risk=inondation, n_pos_train=0)
+2026-07-10 15:11:22,256 [INFO]   Fold  5 | RF=0.955 | GB=0.951 | pos=77
+2026-07-10 15:11:22,256 [INFO]   CV AUC → RF=0.955±0.000 | GB=0.951±0.000 (1 folds utiles)
+2026-07-10 15:11:22,346 [INFO]   ✅ RandomForest | CV AUC=0.955±0.000 | F1=0.497 | Thr=0.35 | SMOTE: 1/1 folds
+2026-07-10 15:11:22,352 [INFO]   Sauvegardé : models/zonal/model_inondation_Ebolowa.pkl
+2026-07-10 15:11:22,352 [INFO] 
+==================================================
+2026-07-10 15:11:22,352 [INFO] Entraînement : Ebolowa / SECHERESSE
+2026-07-10 15:11:22,352 [INFO] ==================================================
+2026-07-10 15:11:22,353 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:11:22,357 [INFO] Dataset : 9512 jours | 750 positifs (7.9%) | ratio 11.7:1
+2026-07-10 15:11:24,956 [INFO]   Fold  1 | RF=0.970 | GB=0.933 | pos=64
+2026-07-10 15:11:29,858 [INFO]   Fold  2 | RF=0.977 | GB=0.982 | pos=29
+2026-07-10 15:11:37,373 [INFO]   Fold  3 | RF=0.872 | GB=0.731 | pos=105
+2026-07-10 15:11:46,992 [INFO]   Fold  4 | RF=0.735 | GB=0.425 | pos=408
+2026-07-10 15:11:56,966 [INFO]   Fold  5 | RF=0.872 | GB=0.877 | pos=128
+2026-07-10 15:11:56,967 [INFO]   CV AUC → RF=0.885±0.088 | GB=0.790±0.201 (5 folds utiles)
+2026-07-10 15:11:57,080 [INFO]   ✅ RandomForest | CV AUC=0.885±0.088 | F1=0.440 | Thr=0.35 | SMOTE: 5/5 folds
+2026-07-10 15:11:57,094 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ebolowa.pkl
+2026-07-10 15:11:57,096 [INFO] 
+==================================================
+2026-07-10 15:11:57,096 [INFO] Entraînement : Ebolowa / CHALEUR
+2026-07-10 15:11:57,096 [INFO] ==================================================
+2026-07-10 15:11:57,096 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:11:57,099 [INFO] Dataset : 9512 jours | 404 positifs (4.2%) | ratio 22.5:1
+2026-07-10 15:11:58,872 [INFO]   Fold  1 | RF=0.945 | GB=0.905 | pos=41
+2026-07-10 15:12:03,417 [INFO]   Fold  2 | RF=0.940 | GB=0.925 | pos=6
+2026-07-10 15:12:10,266 [INFO]   Fold  3 | RF=0.982 | GB=0.970 | pos=33
+2026-07-10 15:12:22,436 [INFO]   Fold  4 | RF=0.972 | GB=0.858 | pos=27
+2026-07-10 15:12:35,154 [INFO]   Fold  5 | RF=0.847 | GB=0.851 | pos=293
+2026-07-10 15:12:35,159 [INFO]   CV AUC → RF=0.937±0.048 | GB=0.902±0.044 (5 folds utiles)
+2026-07-10 15:12:35,264 [INFO]   ✅ RandomForest | CV AUC=0.937±0.048 | F1=0.663 | Thr=0.45 | SMOTE: 4/5 folds
+2026-07-10 15:12:35,277 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ebolowa.pkl
+2026-07-10 15:12:35,329 [INFO] 
+[Garoua] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:12:35,330 [INFO] 
+==================================================
+2026-07-10 15:12:35,330 [INFO] Entraînement : Garoua / INONDATION
+2026-07-10 15:12:35,330 [INFO] ==================================================
+2026-07-10 15:12:35,330 [INFO] [Features] inondation: 23 features
+2026-07-10 15:12:35,336 [INFO] Dataset : 13164 jours | 1506 positifs (11.4%) | ratio 7.7:1
+2026-07-10 15:12:37,275 [INFO]   Fold  1 | RF=0.997 | GB=0.998 | pos=415
+2026-07-10 15:12:40,681 [INFO]   Fold  2 | RF=0.999 | GB=1.000 | pos=385
+2026-07-10 15:12:45,586 [INFO]   Fold  3 | RF=0.507 | GB=0.214 | pos=46
+2026-07-10 15:12:52,825 [INFO]   Fold  5 | RF=0.921 | GB=0.942 | pos=222
+2026-07-10 15:12:52,825 [INFO]   CV AUC → RF=0.856±0.204 | GB=0.788±0.333 (4 folds utiles)
+2026-07-10 15:12:52,926 [INFO]   ✅ RandomForest | CV AUC=0.856±0.204 | F1=0.718 | Thr=0.55 | SMOTE: 1/4 folds
+2026-07-10 15:12:52,934 [INFO]   Sauvegardé : models/zonal/model_inondation_Garoua.pkl
+2026-07-10 15:12:52,935 [INFO] 
+==================================================
+2026-07-10 15:12:52,935 [INFO] Entraînement : Garoua / SECHERESSE
+2026-07-10 15:12:52,935 [INFO] ==================================================
+2026-07-10 15:12:52,935 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:12:52,941 [INFO] Dataset : 13164 jours | 2531 positifs (19.2%) | ratio 4.2:1
+2026-07-10 15:12:56,281 [INFO]   Fold  1 | RF=0.935 | GB=0.976 | pos=124
+2026-07-10 15:13:03,335 [INFO]   Fold  2 | RF=0.994 | GB=0.999 | pos=274
+2026-07-10 15:13:15,651 [INFO]   Fold  3 | RF=0.999 | GB=0.998 | pos=552
+2026-07-10 15:13:25,686 [INFO]   Fold  4 | RF=0.837 | GB=0.804 | pos=824
+2026-07-10 15:13:34,870 [INFO]   Fold  5 | RF=0.945 | GB=0.937 | pos=566
+2026-07-10 15:13:34,872 [INFO]   CV AUC → RF=0.942±0.058 | GB=0.943±0.073 (5 folds utiles)
+2026-07-10 15:13:34,892 [INFO]   ✅ GradientBoosting | CV AUC=0.943±0.073 | F1=0.811 | Thr=0.80 | SMOTE: 4/5 folds
+2026-07-10 15:13:34,898 [INFO]   Sauvegardé : models/zonal/model_secheresse_Garoua.pkl
+2026-07-10 15:13:34,900 [INFO] 
+==================================================
+2026-07-10 15:13:34,900 [INFO] Entraînement : Garoua / CHALEUR
+2026-07-10 15:13:34,900 [INFO] ==================================================
+2026-07-10 15:13:34,900 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:13:34,908 [INFO] Dataset : 13164 jours | 2216 positifs (16.8%) | ratio 4.9:1
+2026-07-10 15:13:37,565 [INFO]   Fold  1 | RF=0.956 | GB=0.966 | pos=475
+2026-07-10 15:13:42,359 [INFO]   Fold  2 | RF=0.965 | GB=0.971 | pos=683
+2026-07-10 15:13:50,710 [INFO]   Fold  4 | RF=0.488 | GB=0.303 | pos=92
+2026-07-10 15:13:59,707 [INFO]   Fold  5 | RF=0.949 | GB=0.957 | pos=379
+2026-07-10 15:13:59,714 [INFO]   CV AUC → RF=0.840±0.203 | GB=0.799±0.287 (4 folds utiles)
+2026-07-10 15:13:59,833 [INFO]   ✅ RandomForest | CV AUC=0.840±0.203 | F1=0.772 | Thr=0.45 | SMOTE: 0/4 folds
+2026-07-10 15:13:59,847 [INFO]   Sauvegardé : models/zonal/model_chaleur_Garoua.pkl
+2026-07-10 15:13:59,877 [INFO] 
+[Kribi] 9528 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:13:59,878 [INFO] 
+==================================================
+2026-07-10 15:13:59,878 [INFO] Entraînement : Kribi / INONDATION
+2026-07-10 15:13:59,878 [INFO] ==================================================
+2026-07-10 15:13:59,878 [INFO] [Features] inondation: 23 features
+2026-07-10 15:13:59,880 [INFO] Dataset : 9528 jours | 1746 positifs (18.3%) | ratio 4.5:1
+2026-07-10 15:14:01,930 [INFO]   Fold  1 | RF=0.992 | GB=0.997 | pos=270
+2026-07-10 15:14:07,024 [INFO]   Fold  2 | RF=0.995 | GB=0.999 | pos=219
+2026-07-10 15:14:12,254 [INFO]   Fold  3 | RF=0.994 | GB=0.999 | pos=201
+2026-07-10 15:14:19,207 [INFO]   Fold  4 | RF=0.929 | GB=0.921 | pos=499
+2026-07-10 15:14:25,957 [INFO]   Fold  5 | RF=0.948 | GB=0.960 | pos=294
+2026-07-10 15:14:25,959 [INFO]   CV AUC → RF=0.972±0.028 | GB=0.975±0.031 (5 folds utiles)
+2026-07-10 15:14:25,982 [INFO]   ✅ GradientBoosting | CV AUC=0.975±0.031 | F1=0.855 | Thr=0.80 | SMOTE: 3/5 folds
+2026-07-10 15:14:25,988 [INFO]   Sauvegardé : models/zonal/model_inondation_Kribi.pkl
+2026-07-10 15:14:25,992 [INFO] 
+==================================================
+2026-07-10 15:14:25,992 [INFO] Entraînement : Kribi / SECHERESSE
+2026-07-10 15:14:25,992 [INFO] ==================================================
+2026-07-10 15:14:25,992 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:14:25,997 [INFO] Dataset : 9528 jours | 692 positifs (7.3%) | ratio 12.8:1
+2026-07-10 15:14:28,747 [INFO]   Fold  1 | RF=0.938 | GB=0.951 | pos=132
+2026-07-10 15:14:34,306 [INFO]   Fold  2 | RF=0.972 | GB=0.973 | pos=81
+2026-07-10 15:14:41,914 [INFO]   Fold  3 | RF=0.702 | GB=0.762 | pos=164
+2026-07-10 15:14:52,471 [INFO]   Fold  4 | RF=0.994 | GB=0.996 | pos=61
+2026-07-10 15:15:09,119 [INFO]   Fold  5 | RF=0.951 | GB=0.951 | pos=156
+2026-07-10 15:15:09,124 [INFO]   CV AUC → RF=0.911±0.106 | GB=0.926±0.084 (5 folds utiles)
+2026-07-10 15:15:09,149 [INFO]   ✅ GradientBoosting | CV AUC=0.926±0.084 | F1=0.700 | Thr=0.60 | SMOTE: 5/5 folds
+2026-07-10 15:15:09,154 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kribi.pkl
+2026-07-10 15:15:09,157 [INFO] 
+==================================================
+2026-07-10 15:15:09,157 [INFO] Entraînement : Kribi / CHALEUR
+2026-07-10 15:15:09,157 [INFO] ==================================================
+2026-07-10 15:15:09,157 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:15:09,163 [INFO] Dataset : 9528 jours | 17 positifs (0.2%) | ratio 559.5:1
+2026-07-10 15:15:13,511 [INFO]   Fold  4 | RF=0.495 | GB=0.500 | pos=5
+2026-07-10 15:15:24,678 [INFO]   Fold  5 | RF=0.730 | GB=0.598 | pos=10
+2026-07-10 15:15:24,679 [INFO]   CV AUC → RF=0.613±0.117 | GB=0.549±0.049 (2 folds utiles)
+2026-07-10 15:15:24,769 [INFO]   ✅ RandomForest | CV AUC=0.613±0.117 | F1=0.000 | Thr=0.50 | SMOTE: 1/2 folds
+2026-07-10 15:15:24,774 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kribi.pkl
+2026-07-10 15:15:24,814 [INFO] 
+[Kumba] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:15:24,815 [INFO] 
+==================================================
+2026-07-10 15:15:24,815 [INFO] Entraînement : Kumba / INONDATION
+2026-07-10 15:15:24,815 [INFO] ==================================================
+2026-07-10 15:15:24,815 [INFO] [Features] inondation: 23 features
+2026-07-10 15:15:24,817 [INFO] Dataset : 9512 jours | 199 positifs (2.1%) | ratio 46.8:1
+2026-07-10 15:15:24,818 [WARNING]   [Fold 3] Skip GB — une seule classe après sample_weight (zone=Kumba, risk=inondation, n_pos_train=0)
+2026-07-10 15:15:30,839 [INFO]   Fold  4 | RF=0.708 | GB=0.403 | pos=107
+2026-07-10 15:15:40,009 [INFO]   Fold  5 | RF=0.916 | GB=0.928 | pos=47
+2026-07-10 15:15:40,010 [INFO]   CV AUC → RF=0.812±0.104 | GB=0.665±0.262 (2 folds utiles)
+2026-07-10 15:15:40,101 [INFO]   ✅ RandomForest | CV AUC=0.812±0.104 | F1=0.284 | Thr=0.35 | SMOTE: 2/2 folds
+2026-07-10 15:15:40,111 [INFO]   Sauvegardé : models/zonal/model_inondation_Kumba.pkl
+2026-07-10 15:15:40,112 [INFO] 
+==================================================
+2026-07-10 15:15:40,112 [INFO] Entraînement : Kumba / SECHERESSE
+2026-07-10 15:15:40,112 [INFO] ==================================================
+2026-07-10 15:15:40,112 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:15:40,114 [INFO] Dataset : 9512 jours | 590 positifs (6.2%) | ratio 15.1:1
+2026-07-10 15:15:42,775 [INFO]   Fold  1 | RF=0.913 | GB=0.876 | pos=28
+2026-07-10 15:15:48,230 [INFO]   Fold  2 | RF=0.981 | GB=0.974 | pos=14
+2026-07-10 15:15:55,856 [INFO]   Fold  3 | RF=0.926 | GB=0.809 | pos=99
+2026-07-10 15:16:05,937 [INFO]   Fold  4 | RF=0.849 | GB=0.878 | pos=163
+2026-07-10 15:16:18,851 [INFO]   Fold  5 | RF=0.922 | GB=0.955 | pos=253
+2026-07-10 15:16:18,855 [INFO]   CV AUC → RF=0.918±0.042 | GB=0.898±0.060 (5 folds utiles)
+2026-07-10 15:16:18,971 [INFO]   ✅ RandomForest | CV AUC=0.918±0.042 | F1=0.660 | Thr=0.70 | SMOTE: 5/5 folds
+2026-07-10 15:16:18,981 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kumba.pkl
+2026-07-10 15:16:18,985 [INFO] 
+==================================================
+2026-07-10 15:16:18,985 [INFO] Entraînement : Kumba / CHALEUR
+2026-07-10 15:16:18,985 [INFO] ==================================================
+2026-07-10 15:16:18,985 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:16:18,988 [INFO] Dataset : 9512 jours | 1637 positifs (17.2%) | ratio 4.8:1
+2026-07-10 15:16:21,361 [INFO]   Fold  1 | RF=0.997 | GB=0.997 | pos=144
+2026-07-10 15:16:25,470 [INFO]   Fold  2 | RF=0.969 | GB=0.985 | pos=132
+2026-07-10 15:16:31,759 [INFO]   Fold  3 | RF=0.989 | GB=0.990 | pos=219
+2026-07-10 15:16:39,977 [INFO]   Fold  4 | RF=0.948 | GB=0.956 | pos=365
+2026-07-10 15:16:49,949 [INFO]   Fold  5 | RF=0.945 | GB=0.940 | pos=611
+2026-07-10 15:16:49,950 [INFO]   CV AUC → RF=0.970±0.021 | GB=0.973±0.022 (5 folds utiles)
+2026-07-10 15:16:49,971 [INFO]   ✅ GradientBoosting | CV AUC=0.973±0.022 | F1=0.841 | Thr=0.30 | SMOTE: 5/5 folds
+2026-07-10 15:16:49,975 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kumba.pkl
+2026-07-10 15:16:50,005 [INFO] 
+[Maroua] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:16:50,005 [INFO] 
+==================================================
+2026-07-10 15:16:50,005 [INFO] Entraînement : Maroua / INONDATION
+2026-07-10 15:16:50,005 [INFO] ==================================================
+2026-07-10 15:16:50,005 [INFO] [Features] inondation: 23 features
+2026-07-10 15:16:50,007 [INFO] Dataset : 13164 jours | 3452 positifs (26.2%) | ratio 2.8:1
+2026-07-10 15:16:51,969 [INFO]   Fold  1 | RF=0.989 | GB=0.995 | pos=571
+2026-07-10 15:16:55,408 [INFO]   Fold  2 | RF=0.997 | GB=1.000 | pos=480
+2026-07-10 15:17:00,538 [INFO]   Fold  3 | RF=0.985 | GB=0.976 | pos=582
+2026-07-10 15:17:06,909 [INFO]   Fold  4 | RF=0.998 | GB=0.999 | pos=594
+2026-07-10 15:17:14,825 [INFO]   Fold  5 | RF=0.989 | GB=0.990 | pos=661
+2026-07-10 15:17:14,826 [INFO]   CV AUC → RF=0.992±0.005 | GB=0.992±0.009 (5 folds utiles)
+2026-07-10 15:17:14,849 [INFO]   ✅ GradientBoosting | CV AUC=0.992±0.009 | F1=0.950 | Thr=0.55 | SMOTE: 0/5 folds
+2026-07-10 15:17:14,851 [INFO]   Sauvegardé : models/zonal/model_inondation_Maroua.pkl
+2026-07-10 15:17:14,856 [INFO] 
+==================================================
+2026-07-10 15:17:14,856 [INFO] Entraînement : Maroua / SECHERESSE
+2026-07-10 15:17:14,856 [INFO] ==================================================
+2026-07-10 15:17:14,856 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:17:14,859 [INFO] Dataset : 13164 jours | 550 positifs (4.2%) | ratio 22.9:1
+2026-07-10 15:17:14,862 [WARNING]   [Fold 4] Skip GB — une seule classe après sample_weight (zone=Maroua, risk=secheresse, n_pos_train=0)
+2026-07-10 15:17:34,822 [INFO]   Fold  5 | RF=0.629 | GB=0.506 | pos=186
+2026-07-10 15:17:34,823 [INFO]   CV AUC → RF=0.629±0.000 | GB=0.506±0.000 (1 folds utiles)
+2026-07-10 15:17:34,941 [INFO]   ✅ RandomForest | CV AUC=0.629±0.000 | F1=0.171 | Thr=0.15 | SMOTE: 1/1 folds
+2026-07-10 15:17:34,954 [INFO]   Sauvegardé : models/zonal/model_secheresse_Maroua.pkl
+2026-07-10 15:17:34,964 [INFO] 
+==================================================
+2026-07-10 15:17:34,965 [INFO] Entraînement : Maroua / CHALEUR
+2026-07-10 15:17:34,965 [INFO] ==================================================
+2026-07-10 15:17:34,965 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:17:34,983 [INFO] Dataset : 13164 jours | 1670 positifs (12.7%) | ratio 6.9:1
+2026-07-10 15:17:38,051 [INFO]   Fold  1 | RF=0.965 | GB=0.973 | pos=197
+2026-07-10 15:17:44,263 [INFO]   Fold  2 | RF=0.981 | GB=0.979 | pos=257
+2026-07-10 15:17:52,332 [INFO]   Fold  3 | RF=0.987 | GB=0.983 | pos=289
+2026-07-10 15:18:04,675 [INFO]   Fold  4 | RF=0.909 | GB=0.900 | pos=339
+2026-07-10 15:18:18,066 [INFO]   Fold  5 | RF=0.955 | GB=0.956 | pos=373
+2026-07-10 15:18:18,072 [INFO]   CV AUC → RF=0.959±0.028 | GB=0.958±0.030 (5 folds utiles)
+2026-07-10 15:18:18,201 [INFO]   ✅ RandomForest | CV AUC=0.959±0.028 | F1=0.758 | Thr=0.50 | SMOTE: 5/5 folds
+2026-07-10 15:18:18,237 [INFO]   Sauvegardé : models/zonal/model_chaleur_Maroua.pkl
+2026-07-10 15:18:18,301 [INFO] 
+[Ngaoundere] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:18:18,302 [INFO] 
+==================================================
+2026-07-10 15:18:18,302 [INFO] Entraînement : Ngaoundere / INONDATION
+2026-07-10 15:18:18,302 [INFO] ==================================================
+2026-07-10 15:18:18,302 [INFO] [Features] inondation: 23 features
+2026-07-10 15:18:18,307 [INFO] Dataset : 13164 jours | 722 positifs (5.5%) | ratio 17.2:1
+2026-07-10 15:18:20,785 [INFO]   Fold  1 | RF=0.991 | GB=0.994 | pos=81
+2026-07-10 15:18:25,304 [INFO]   Fold  2 | RF=0.995 | GB=0.997 | pos=105
+2026-07-10 15:18:32,127 [INFO]   Fold  3 | RF=0.998 | GB=0.999 | pos=114
+2026-07-10 15:18:41,224 [INFO]   Fold  4 | RF=0.915 | GB=0.864 | pos=131
+2026-07-10 15:18:53,397 [INFO]   Fold  5 | RF=0.830 | GB=0.826 | pos=104
+2026-07-10 15:18:53,400 [INFO]   CV AUC → RF=0.946±0.065 | GB=0.936±0.075 (5 folds utiles)
+2026-07-10 15:18:53,511 [INFO]   ✅ RandomForest | CV AUC=0.946±0.065 | F1=0.285 | Thr=0.40 | SMOTE: 5/5 folds
+2026-07-10 15:18:53,521 [INFO]   Sauvegardé : models/zonal/model_inondation_Ngaoundere.pkl
+2026-07-10 15:18:53,523 [INFO] 
+==================================================
+2026-07-10 15:18:53,523 [INFO] Entraînement : Ngaoundere / SECHERESSE
+2026-07-10 15:18:53,523 [INFO] ==================================================
+2026-07-10 15:18:53,523 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:18:53,532 [INFO] Dataset : 13164 jours | 725 positifs (5.5%) | ratio 17.2:1
+2026-07-10 15:18:55,844 [INFO]   Fold  1 | RF=0.783 | GB=0.405 | pos=204
+2026-07-10 15:19:01,064 [INFO]   Fold  2 | RF=0.996 | GB=0.997 | pos=21
+2026-07-10 15:19:09,935 [INFO]   Fold  3 | RF=0.994 | GB=0.994 | pos=43
+2026-07-10 15:19:21,649 [INFO]   Fold  4 | RF=0.700 | GB=0.724 | pos=264
+2026-07-10 15:19:37,657 [INFO]   Fold  5 | RF=0.810 | GB=0.769 | pos=173
+2026-07-10 15:19:37,659 [INFO]   CV AUC → RF=0.856±0.119 | GB=0.778±0.218 (5 folds utiles)
+2026-07-10 15:19:37,763 [INFO]   ✅ RandomForest | CV AUC=0.856±0.119 | F1=0.309 | Thr=0.15 | SMOTE: 5/5 folds
+2026-07-10 15:19:37,775 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ngaoundere.pkl
+2026-07-10 15:19:37,777 [INFO] 
+==================================================
+2026-07-10 15:19:37,777 [INFO] Entraînement : Ngaoundere / CHALEUR
+2026-07-10 15:19:37,777 [INFO] ==================================================
+2026-07-10 15:19:37,777 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:19:37,786 [INFO] Dataset : 13164 jours | 2897 positifs (22.0%) | ratio 3.5:1
+2026-07-10 15:19:40,447 [INFO]   Fold  1 | RF=0.972 | GB=0.982 | pos=318
+2026-07-10 15:19:46,858 [INFO]   Fold  2 | RF=0.992 | GB=0.999 | pos=564
+2026-07-10 15:19:54,424 [INFO]   Fold  3 | RF=0.998 | GB=0.999 | pos=558
+2026-07-10 15:20:03,498 [INFO]   Fold  4 | RF=0.966 | GB=0.969 | pos=495
+2026-07-10 15:20:15,742 [INFO]   Fold  5 | RF=0.962 | GB=0.962 | pos=593
+2026-07-10 15:20:15,751 [INFO]   CV AUC → RF=0.978±0.014 | GB=0.982±0.015 (5 folds utiles)
+2026-07-10 15:20:15,773 [INFO]   ✅ GradientBoosting | CV AUC=0.982±0.015 | F1=0.861 | Thr=0.45 | SMOTE: 2/5 folds
+2026-07-10 15:20:15,778 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ngaoundere.pkl
+2026-07-10 15:20:15,831 [INFO] 
+[Yaounde_peri] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:20:15,831 [INFO] 
+==================================================
+2026-07-10 15:20:15,831 [INFO] Entraînement : Yaounde_peri / INONDATION
+2026-07-10 15:20:15,831 [INFO] ==================================================
+2026-07-10 15:20:15,831 [INFO] [Features] inondation: 23 features
+2026-07-10 15:20:15,836 [INFO] Dataset : 9512 jours | 634 positifs (6.7%) | ratio 14.0:1
+2026-07-10 15:20:17,916 [INFO]   Fold  1 | RF=0.970 | GB=0.974 | pos=82
+2026-07-10 15:20:21,641 [INFO]   Fold  2 | RF=0.998 | GB=1.000 | pos=51
+2026-07-10 15:20:27,391 [INFO]   Fold  3 | RF=0.738 | GB=0.755 | pos=112
+2026-07-10 15:20:34,464 [INFO]   Fold  4 | RF=0.900 | GB=0.848 | pos=210
+2026-07-10 15:20:43,275 [INFO]   Fold  5 | RF=0.823 | GB=0.759 | pos=95
+2026-07-10 15:20:43,284 [INFO]   CV AUC → RF=0.886±0.095 | GB=0.867±0.104 (5 folds utiles)
+2026-07-10 15:20:43,397 [INFO]   ✅ RandomForest | CV AUC=0.886±0.095 | F1=0.440 | Thr=0.60 | SMOTE: 5/5 folds
+2026-07-10 15:20:43,417 [INFO]   Sauvegardé : models/zonal/model_inondation_Yaounde_peri.pkl
+2026-07-10 15:20:43,418 [INFO] 
+==================================================
+2026-07-10 15:20:43,418 [INFO] Entraînement : Yaounde_peri / SECHERESSE
+2026-07-10 15:20:43,418 [INFO] ==================================================
+2026-07-10 15:20:43,419 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:20:43,423 [INFO] Dataset : 9512 jours | 1181 positifs (12.4%) | ratio 7.1:1
+2026-07-10 15:20:46,067 [INFO]   Fold  1 | RF=0.922 | GB=0.942 | pos=127
+2026-07-10 15:20:51,099 [INFO]   Fold  2 | RF=0.910 | GB=0.915 | pos=412
+2026-07-10 15:20:57,064 [INFO]   Fold  3 | RF=0.881 | GB=0.836 | pos=195
+2026-07-10 15:21:05,377 [INFO]   Fold  4 | RF=0.962 | GB=0.964 | pos=90
+2026-07-10 15:21:16,640 [INFO]   Fold  5 | RF=0.848 | GB=0.873 | pos=273
+2026-07-10 15:21:16,647 [INFO]   CV AUC → RF=0.904±0.038 | GB=0.906±0.046 (5 folds utiles)
+2026-07-10 15:21:16,666 [INFO]   ✅ GradientBoosting | CV AUC=0.906±0.046 | F1=0.628 | Thr=0.35 | SMOTE: 5/5 folds
+2026-07-10 15:21:16,670 [INFO]   Sauvegardé : models/zonal/model_secheresse_Yaounde_peri.pkl
+2026-07-10 15:21:16,672 [INFO] 
+==================================================
+2026-07-10 15:21:16,672 [INFO] Entraînement : Yaounde_peri / CHALEUR
+2026-07-10 15:21:16,672 [INFO] ==================================================
+2026-07-10 15:21:16,672 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:21:16,678 [INFO] Dataset : 9512 jours | 371 positifs (3.9%) | ratio 24.6:1
+2026-07-10 15:21:18,778 [INFO]   Fold  1 | RF=0.981 | GB=0.958 | pos=44
+2026-07-10 15:21:25,370 [INFO]   Fold  3 | RF=0.982 | GB=0.964 | pos=58
+2026-07-10 15:21:34,268 [INFO]   Fold  4 | RF=0.815 | GB=0.602 | pos=118
+2026-07-10 15:21:46,633 [INFO]   Fold  5 | RF=0.854 | GB=0.784 | pos=139
+2026-07-10 15:21:46,634 [INFO]   CV AUC → RF=0.908±0.075 | GB=0.827±0.149 (4 folds utiles)
+2026-07-10 15:21:46,726 [INFO]   ✅ RandomForest | CV AUC=0.908±0.075 | F1=0.473 | Thr=0.55 | SMOTE: 4/4 folds
+2026-07-10 15:21:46,758 [INFO]   Sauvegardé : models/zonal/model_chaleur_Yaounde_peri.pkl
+2026-07-10 15:23:36,383 [INFO] Entraînement : 1 zones × 3 risques = 3 modèles
+2026-07-10 15:23:36,383 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-10 15:23:36,413 [INFO] 
+[Garoua] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:23:36,413 [INFO] 
+==================================================
+2026-07-10 15:23:36,413 [INFO] Entraînement : Garoua / INONDATION
+2026-07-10 15:23:36,413 [INFO] ==================================================
+2026-07-10 15:23:36,413 [INFO] [Features] inondation: 23 features
+2026-07-10 15:23:36,421 [INFO] Dataset : 13164 jours | 1574 positifs (12.0%) | ratio 7.4:1
+2026-07-10 15:23:38,164 [INFO]   Fold  1 | RF=0.996 | GB=0.997 | pos=447
+2026-07-10 15:23:41,376 [INFO]   Fold  2 | RF=0.999 | GB=0.999 | pos=392
+2026-07-10 15:23:46,052 [INFO]   Fold  3 | RF=0.577 | GB=0.136 | pos=46
+2026-07-10 15:23:53,152 [INFO]   Fold  5 | RF=0.924 | GB=0.930 | pos=228
+2026-07-10 15:23:53,153 [INFO]   CV AUC → RF=0.874±0.174 | GB=0.766±0.364 (4 folds utiles)
+2026-07-10 15:23:53,245 [INFO]   ✅ RandomForest | CV AUC=0.874±0.174 | F1=0.740 | Thr=0.55 | SMOTE: 1/4 folds
+2026-07-10 15:23:53,256 [INFO]   Sauvegardé : models/zonal/model_inondation_Garoua.pkl
+2026-07-10 15:23:53,257 [INFO] 
+==================================================
+2026-07-10 15:23:53,257 [INFO] Entraînement : Garoua / SECHERESSE
+2026-07-10 15:23:53,257 [INFO] ==================================================
+2026-07-10 15:23:53,257 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:23:53,260 [INFO] Dataset : 13164 jours | 519 positifs (3.9%) | ratio 24.4:1
+2026-07-10 15:24:01,422 [INFO]   Fold  4 | RF=0.499 | GB=0.496 | pos=364
+2026-07-10 15:24:12,259 [INFO]   Fold  5 | RF=0.829 | GB=0.765 | pos=151
+2026-07-10 15:24:12,260 [INFO]   CV AUC → RF=0.664±0.165 | GB=0.630±0.135 (2 folds utiles)
+2026-07-10 15:24:12,390 [INFO]   ✅ RandomForest | CV AUC=0.664±0.165 | F1=0.310 | Thr=0.60 | SMOTE: 1/2 folds
+2026-07-10 15:24:12,398 [INFO]   Sauvegardé : models/zonal/model_secheresse_Garoua.pkl
+2026-07-10 15:24:12,400 [INFO] 
+==================================================
+2026-07-10 15:24:12,400 [INFO] Entraînement : Garoua / CHALEUR
+2026-07-10 15:24:12,400 [INFO] ==================================================
+2026-07-10 15:24:12,400 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:24:12,412 [INFO] Dataset : 13164 jours | 2216 positifs (16.8%) | ratio 4.9:1
+2026-07-10 15:24:14,982 [INFO]   Fold  1 | RF=0.956 | GB=0.966 | pos=475
+2026-07-10 15:24:19,382 [INFO]   Fold  2 | RF=0.965 | GB=0.971 | pos=683
+2026-07-10 15:24:26,933 [INFO]   Fold  4 | RF=0.488 | GB=0.303 | pos=92
+2026-07-10 15:24:35,995 [INFO]   Fold  5 | RF=0.949 | GB=0.957 | pos=379
+2026-07-10 15:24:35,996 [INFO]   CV AUC → RF=0.840±0.203 | GB=0.799±0.287 (4 folds utiles)
+2026-07-10 15:24:36,136 [INFO]   ✅ RandomForest | CV AUC=0.840±0.203 | F1=0.772 | Thr=0.45 | SMOTE: 0/4 folds
+2026-07-10 15:24:36,146 [INFO]   Sauvegardé : models/zonal/model_chaleur_Garoua.pkl
+2026-07-10 15:44:33,582 [INFO] Entraînement : 8 zones × 3 risques = 24 modèles
+2026-07-10 15:44:33,582 [INFO] Walk-forward : 5 folds, gap=30j, SMOTE trigger=5:1
+2026-07-10 15:44:33,627 [INFO] 
+[Bafoussam] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:44:33,628 [INFO] 
+==================================================
+2026-07-10 15:44:33,628 [INFO] Entraînement : Bafoussam / INONDATION
+2026-07-10 15:44:33,628 [INFO] ==================================================
+2026-07-10 15:44:33,628 [INFO] [Features] inondation: 23 features
+2026-07-10 15:44:33,633 [INFO] Dataset : 13164 jours | 269 positifs (2.0%) | ratio 47.9:1
+2026-07-10 15:44:41,103 [INFO]   Fold  4 | RF=0.742 | GB=0.645 | pos=97
+2026-07-10 15:44:54,311 [INFO]   Fold  5 | RF=0.931 | GB=0.932 | pos=165
+2026-07-10 15:44:54,313 [INFO]   CV AUC → RF=0.837±0.095 | GB=0.789±0.143 (2 folds utiles)
+2026-07-10 15:44:54,415 [INFO]   ✅ RandomForest | CV AUC=0.837±0.095 | F1=0.516 | Thr=0.40 | SMOTE: 2/2 folds
+2026-07-10 15:44:54,423 [INFO]   Sauvegardé : models/zonal/model_inondation_Bafoussam.pkl
+2026-07-10 15:44:54,425 [INFO] 
+==================================================
+2026-07-10 15:44:54,425 [INFO] Entraînement : Bafoussam / SECHERESSE
+2026-07-10 15:44:54,425 [INFO] ==================================================
+2026-07-10 15:44:54,425 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:44:54,428 [INFO] Dataset : 13164 jours | 423 positifs (3.2%) | ratio 30.1:1
+2026-07-10 15:44:57,719 [INFO]   Fold  1 | RF=0.823 | GB=0.594 | pos=47
+2026-07-10 15:45:04,468 [INFO]   Fold  2 | RF=0.698 | GB=0.660 | pos=37
+2026-07-10 15:45:16,814 [INFO]   Fold  3 | RF=0.957 | GB=0.963 | pos=32
+2026-07-10 15:45:30,425 [INFO]   Fold  4 | RF=0.422 | GB=0.525 | pos=101
+2026-07-10 15:45:47,511 [INFO]   Fold  5 | RF=0.720 | GB=0.507 | pos=178
+2026-07-10 15:45:47,513 [INFO]   CV AUC → RF=0.724±0.177 | GB=0.650±0.166 (5 folds utiles)
+2026-07-10 15:45:47,618 [INFO]   ✅ RandomForest | CV AUC=0.724±0.177 | F1=0.408 | Thr=0.25 | SMOTE: 5/5 folds
+2026-07-10 15:45:47,626 [INFO]   Sauvegardé : models/zonal/model_secheresse_Bafoussam.pkl
+2026-07-10 15:45:47,632 [INFO] 
+==================================================
+2026-07-10 15:45:47,632 [INFO] Entraînement : Bafoussam / CHALEUR
+2026-07-10 15:45:47,632 [INFO] ==================================================
+2026-07-10 15:45:47,632 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:45:47,634 [INFO] Dataset : 13164 jours | 2174 positifs (16.5%) | ratio 5.1:1
+2026-07-10 15:45:50,691 [INFO]   Fold  1 | RF=0.989 | GB=0.988 | pos=325
+2026-07-10 15:45:56,296 [INFO]   Fold  2 | RF=0.993 | GB=0.989 | pos=374
+2026-07-10 15:46:04,024 [INFO]   Fold  3 | RF=0.991 | GB=0.991 | pos=391
+2026-07-10 15:46:14,039 [INFO]   Fold  4 | RF=0.970 | GB=0.972 | pos=419
+2026-07-10 15:46:26,514 [INFO]   Fold  5 | RF=0.961 | GB=0.959 | pos=455
+2026-07-10 15:46:26,517 [INFO]   CV AUC → RF=0.981±0.013 | GB=0.980±0.013 (5 folds utiles)
+2026-07-10 15:46:26,619 [INFO]   ✅ RandomForest | CV AUC=0.981±0.013 | F1=0.840 | Thr=0.55 | SMOTE: 5/5 folds
+2026-07-10 15:46:26,633 [INFO]   Sauvegardé : models/zonal/model_chaleur_Bafoussam.pkl
+2026-07-10 15:46:26,676 [INFO] 
+[Ebolowa] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:46:26,677 [INFO] 
+==================================================
+2026-07-10 15:46:26,677 [INFO] Entraînement : Ebolowa / INONDATION
+2026-07-10 15:46:26,677 [INFO] ==================================================
+2026-07-10 15:46:26,677 [INFO] [Features] inondation: 23 features
+2026-07-10 15:46:26,681 [INFO] Dataset : 9512 jours | 182 positifs (1.9%) | ratio 51.3:1
+2026-07-10 15:46:26,683 [WARNING]   [Fold 4] Skip GB — une seule classe après sample_weight (zone=Ebolowa, risk=inondation, n_pos_train=0)
+2026-07-10 15:46:33,994 [INFO]   Fold  5 | RF=0.955 | GB=0.951 | pos=77
+2026-07-10 15:46:33,994 [INFO]   CV AUC → RF=0.955±0.000 | GB=0.951±0.000 (1 folds utiles)
+2026-07-10 15:46:34,100 [INFO]   ✅ RandomForest | CV AUC=0.955±0.000 | F1=0.497 | Thr=0.35 | SMOTE: 1/1 folds
+2026-07-10 15:46:34,105 [INFO]   Sauvegardé : models/zonal/model_inondation_Ebolowa.pkl
+2026-07-10 15:46:34,106 [INFO] 
+==================================================
+2026-07-10 15:46:34,106 [INFO] Entraînement : Ebolowa / SECHERESSE
+2026-07-10 15:46:34,106 [INFO] ==================================================
+2026-07-10 15:46:34,107 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:46:34,117 [INFO] Dataset : 9512 jours | 885 positifs (9.3%) | ratio 9.7:1
+2026-07-10 15:46:36,791 [INFO]   Fold  1 | RF=0.975 | GB=0.957 | pos=71
+2026-07-10 15:46:41,753 [INFO]   Fold  2 | RF=0.972 | GB=0.979 | pos=36
+2026-07-10 15:46:49,186 [INFO]   Fold  3 | RF=0.887 | GB=0.805 | pos=121
+2026-07-10 15:46:59,215 [INFO]   Fold  4 | RF=0.719 | GB=0.488 | pos=438
+2026-07-10 15:47:09,441 [INFO]   Fold  5 | RF=0.885 | GB=0.899 | pos=186
+2026-07-10 15:47:09,448 [INFO]   CV AUC → RF=0.888±0.093 | GB=0.826±0.179 (5 folds utiles)
+2026-07-10 15:47:09,549 [INFO]   ✅ RandomForest | CV AUC=0.888±0.093 | F1=0.516 | Thr=0.40 | SMOTE: 5/5 folds
+2026-07-10 15:47:09,558 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ebolowa.pkl
+2026-07-10 15:47:09,564 [INFO] 
+==================================================
+2026-07-10 15:47:09,564 [INFO] Entraînement : Ebolowa / CHALEUR
+2026-07-10 15:47:09,564 [INFO] ==================================================
+2026-07-10 15:47:09,564 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:47:09,568 [INFO] Dataset : 9512 jours | 404 positifs (4.2%) | ratio 22.5:1
+2026-07-10 15:47:11,355 [INFO]   Fold  1 | RF=0.945 | GB=0.905 | pos=41
+2026-07-10 15:47:15,808 [INFO]   Fold  2 | RF=0.940 | GB=0.925 | pos=6
+2026-07-10 15:47:22,620 [INFO]   Fold  3 | RF=0.982 | GB=0.970 | pos=33
+2026-07-10 15:47:32,106 [INFO]   Fold  4 | RF=0.972 | GB=0.858 | pos=27
+2026-07-10 15:47:44,126 [INFO]   Fold  5 | RF=0.847 | GB=0.851 | pos=293
+2026-07-10 15:47:44,130 [INFO]   CV AUC → RF=0.937±0.048 | GB=0.902±0.044 (5 folds utiles)
+2026-07-10 15:47:44,223 [INFO]   ✅ RandomForest | CV AUC=0.937±0.048 | F1=0.663 | Thr=0.45 | SMOTE: 4/5 folds
+2026-07-10 15:47:44,229 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ebolowa.pkl
+2026-07-10 15:47:44,273 [INFO] 
+[Garoua] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:47:44,274 [INFO] 
+==================================================
+2026-07-10 15:47:44,274 [INFO] Entraînement : Garoua / INONDATION
+2026-07-10 15:47:44,274 [INFO] ==================================================
+2026-07-10 15:47:44,274 [INFO] [Features] inondation: 23 features
+2026-07-10 15:47:44,278 [INFO] Dataset : 13164 jours | 523 positifs (4.0%) | ratio 24.2:1
+2026-07-10 15:47:46,734 [INFO]   Fold  1 | RF=0.979 | GB=0.981 | pos=142
+2026-07-10 15:47:51,562 [INFO]   Fold  2 | RF=0.989 | GB=0.988 | pos=59
+2026-07-10 15:47:59,066 [INFO]   Fold  3 | RF=0.360 | GB=0.103 | pos=46
+2026-07-10 15:48:08,316 [INFO]   Fold  5 | RF=0.901 | GB=0.909 | pos=123
+2026-07-10 15:48:08,319 [INFO]   CV AUC → RF=0.807±0.260 | GB=0.745±0.372 (4 folds utiles)
+2026-07-10 15:48:08,425 [INFO]   ✅ RandomForest | CV AUC=0.807±0.260 | F1=0.334 | Thr=0.35 | SMOTE: 4/4 folds
+2026-07-10 15:48:08,433 [INFO]   Sauvegardé : models/zonal/model_inondation_Garoua.pkl
+2026-07-10 15:48:08,435 [INFO] 
+==================================================
+2026-07-10 15:48:08,435 [INFO] Entraînement : Garoua / SECHERESSE
+2026-07-10 15:48:08,435 [INFO] ==================================================
+2026-07-10 15:48:08,435 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:48:08,440 [INFO] Dataset : 13164 jours | 519 positifs (3.9%) | ratio 24.4:1
+2026-07-10 15:48:16,391 [INFO]   Fold  4 | RF=0.499 | GB=0.496 | pos=364
+2026-07-10 15:48:27,050 [INFO]   Fold  5 | RF=0.829 | GB=0.765 | pos=151
+2026-07-10 15:48:27,051 [INFO]   CV AUC → RF=0.664±0.165 | GB=0.630±0.135 (2 folds utiles)
+2026-07-10 15:48:27,156 [INFO]   ✅ RandomForest | CV AUC=0.664±0.165 | F1=0.310 | Thr=0.60 | SMOTE: 1/2 folds
+2026-07-10 15:48:27,161 [INFO]   Sauvegardé : models/zonal/model_secheresse_Garoua.pkl
+2026-07-10 15:48:27,165 [INFO] 
+==================================================
+2026-07-10 15:48:27,165 [INFO] Entraînement : Garoua / CHALEUR
+2026-07-10 15:48:27,165 [INFO] ==================================================
+2026-07-10 15:48:27,166 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:48:27,172 [INFO] Dataset : 13164 jours | 2216 positifs (16.8%) | ratio 4.9:1
+2026-07-10 15:48:29,596 [INFO]   Fold  1 | RF=0.956 | GB=0.966 | pos=475
+2026-07-10 15:48:36,383 [INFO]   Fold  2 | RF=0.965 | GB=0.971 | pos=683
+2026-07-10 15:48:44,276 [INFO]   Fold  4 | RF=0.488 | GB=0.303 | pos=92
+2026-07-10 15:48:53,084 [INFO]   Fold  5 | RF=0.949 | GB=0.957 | pos=379
+2026-07-10 15:48:53,086 [INFO]   CV AUC → RF=0.840±0.203 | GB=0.799±0.287 (4 folds utiles)
+2026-07-10 15:48:53,203 [INFO]   ✅ RandomForest | CV AUC=0.840±0.203 | F1=0.772 | Thr=0.45 | SMOTE: 0/4 folds
+2026-07-10 15:48:53,219 [INFO]   Sauvegardé : models/zonal/model_chaleur_Garoua.pkl
+2026-07-10 15:48:53,267 [INFO] 
+[Kribi] 9528 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:48:53,269 [INFO] 
+==================================================
+2026-07-10 15:48:53,269 [INFO] Entraînement : Kribi / INONDATION
+2026-07-10 15:48:53,269 [INFO] ==================================================
+2026-07-10 15:48:53,269 [INFO] [Features] inondation: 23 features
+2026-07-10 15:48:53,270 [INFO] Dataset : 9528 jours | 1062 positifs (11.1%) | ratio 8.0:1
+2026-07-10 15:48:55,183 [INFO]   Fold  1 | RF=0.985 | GB=0.989 | pos=105
+2026-07-10 15:48:58,789 [INFO]   Fold  2 | RF=0.993 | GB=0.998 | pos=92
+2026-07-10 15:49:04,801 [INFO]   Fold  3 | RF=0.990 | GB=0.998 | pos=115
+2026-07-10 15:49:12,390 [INFO]   Fold  4 | RF=0.805 | GB=0.798 | pos=401
+2026-07-10 15:49:21,060 [INFO]   Fold  5 | RF=0.920 | GB=0.937 | pos=213
+2026-07-10 15:49:21,063 [INFO]   CV AUC → RF=0.938±0.072 | GB=0.944±0.076 (5 folds utiles)
+2026-07-10 15:49:21,082 [INFO]   ✅ GradientBoosting | CV AUC=0.944±0.076 | F1=0.800 | Thr=0.80 | SMOTE: 5/5 folds
+2026-07-10 15:49:21,086 [INFO]   Sauvegardé : models/zonal/model_inondation_Kribi.pkl
+2026-07-10 15:49:21,087 [INFO] 
+==================================================
+2026-07-10 15:49:21,087 [INFO] Entraînement : Kribi / SECHERESSE
+2026-07-10 15:49:21,087 [INFO] ==================================================
+2026-07-10 15:49:21,087 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:49:21,091 [INFO] Dataset : 9528 jours | 972 positifs (10.2%) | ratio 8.8:1
+2026-07-10 15:49:23,615 [INFO]   Fold  1 | RF=0.916 | GB=0.940 | pos=189
+2026-07-10 15:49:28,323 [INFO]   Fold  2 | RF=0.946 | GB=0.947 | pos=145
+2026-07-10 15:49:35,321 [INFO]   Fold  3 | RF=0.855 | GB=0.915 | pos=214
+2026-07-10 15:49:46,044 [INFO]   Fold  4 | RF=0.994 | GB=0.997 | pos=68
+2026-07-10 15:49:58,356 [INFO]   Fold  5 | RF=0.898 | GB=0.922 | pos=226
+2026-07-10 15:49:58,359 [INFO]   CV AUC → RF=0.922±0.047 | GB=0.944±0.029 (5 folds utiles)
+2026-07-10 15:49:58,380 [INFO]   ✅ GradientBoosting | CV AUC=0.944±0.029 | F1=0.681 | Thr=0.35 | SMOTE: 5/5 folds
+2026-07-10 15:49:58,383 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kribi.pkl
+2026-07-10 15:49:58,385 [INFO] 
+==================================================
+2026-07-10 15:49:58,385 [INFO] Entraînement : Kribi / CHALEUR
+2026-07-10 15:49:58,385 [INFO] ==================================================
+2026-07-10 15:49:58,385 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:49:58,387 [INFO] Dataset : 9528 jours | 17 positifs (0.2%) | ratio 559.5:1
+2026-07-10 15:50:02,269 [INFO]   Fold  4 | RF=0.495 | GB=0.500 | pos=5
+2026-07-10 15:50:13,673 [INFO]   Fold  5 | RF=0.730 | GB=0.598 | pos=10
+2026-07-10 15:50:13,676 [INFO]   CV AUC → RF=0.613±0.117 | GB=0.549±0.049 (2 folds utiles)
+2026-07-10 15:50:13,791 [INFO]   ✅ RandomForest | CV AUC=0.613±0.117 | F1=0.000 | Thr=0.50 | SMOTE: 1/2 folds
+2026-07-10 15:50:13,795 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kribi.pkl
+2026-07-10 15:50:13,832 [INFO] 
+[Kumba] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:50:13,832 [INFO] 
+==================================================
+2026-07-10 15:50:13,832 [INFO] Entraînement : Kumba / INONDATION
+2026-07-10 15:50:13,832 [INFO] ==================================================
+2026-07-10 15:50:13,832 [INFO] [Features] inondation: 23 features
+2026-07-10 15:50:13,834 [INFO] Dataset : 9512 jours | 199 positifs (2.1%) | ratio 46.8:1
+2026-07-10 15:50:13,836 [WARNING]   [Fold 3] Skip GB — une seule classe après sample_weight (zone=Kumba, risk=inondation, n_pos_train=0)
+2026-07-10 15:50:19,749 [INFO]   Fold  4 | RF=0.708 | GB=0.403 | pos=107
+2026-07-10 15:50:30,525 [INFO]   Fold  5 | RF=0.916 | GB=0.928 | pos=47
+2026-07-10 15:50:30,526 [INFO]   CV AUC → RF=0.812±0.104 | GB=0.665±0.262 (2 folds utiles)
+2026-07-10 15:50:30,630 [INFO]   ✅ RandomForest | CV AUC=0.812±0.104 | F1=0.284 | Thr=0.35 | SMOTE: 2/2 folds
+2026-07-10 15:50:30,635 [INFO]   Sauvegardé : models/zonal/model_inondation_Kumba.pkl
+2026-07-10 15:50:30,637 [INFO] 
+==================================================
+2026-07-10 15:50:30,637 [INFO] Entraînement : Kumba / SECHERESSE
+2026-07-10 15:50:30,637 [INFO] ==================================================
+2026-07-10 15:50:30,637 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:50:30,646 [INFO] Dataset : 9512 jours | 372 positifs (3.9%) | ratio 24.6:1
+2026-07-10 15:50:33,489 [INFO]   Fold  1 | RF=0.961 | GB=0.920 | pos=22
+2026-07-10 15:50:38,584 [INFO]   Fold  2 | RF=0.992 | GB=0.996 | pos=6
+2026-07-10 15:50:46,447 [INFO]   Fold  3 | RF=0.920 | GB=0.839 | pos=81
+2026-07-10 15:50:57,423 [INFO]   Fold  4 | RF=0.796 | GB=0.854 | pos=80
+2026-07-10 15:51:12,910 [INFO]   Fold  5 | RF=0.864 | GB=0.873 | pos=155
+2026-07-10 15:51:12,912 [INFO]   CV AUC → RF=0.907±0.070 | GB=0.896±0.057 (5 folds utiles)
+2026-07-10 15:51:13,032 [INFO]   ✅ RandomForest | CV AUC=0.907±0.070 | F1=0.463 | Thr=0.60 | SMOTE: 5/5 folds
+2026-07-10 15:51:13,040 [INFO]   Sauvegardé : models/zonal/model_secheresse_Kumba.pkl
+2026-07-10 15:51:13,040 [INFO] 
+==================================================
+2026-07-10 15:51:13,041 [INFO] Entraînement : Kumba / CHALEUR
+2026-07-10 15:51:13,041 [INFO] ==================================================
+2026-07-10 15:51:13,041 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:51:13,049 [INFO] Dataset : 9512 jours | 1637 positifs (17.2%) | ratio 4.8:1
+2026-07-10 15:51:15,530 [INFO]   Fold  1 | RF=0.997 | GB=0.997 | pos=144
+2026-07-10 15:51:20,388 [INFO]   Fold  2 | RF=0.969 | GB=0.985 | pos=132
+2026-07-10 15:51:27,015 [INFO]   Fold  3 | RF=0.989 | GB=0.990 | pos=219
+2026-07-10 15:51:35,820 [INFO]   Fold  4 | RF=0.948 | GB=0.956 | pos=365
+2026-07-10 15:51:46,173 [INFO]   Fold  5 | RF=0.945 | GB=0.940 | pos=611
+2026-07-10 15:51:46,175 [INFO]   CV AUC → RF=0.970±0.021 | GB=0.973±0.022 (5 folds utiles)
+2026-07-10 15:51:46,197 [INFO]   ✅ GradientBoosting | CV AUC=0.973±0.022 | F1=0.841 | Thr=0.30 | SMOTE: 5/5 folds
+2026-07-10 15:51:46,202 [INFO]   Sauvegardé : models/zonal/model_chaleur_Kumba.pkl
+2026-07-10 15:51:46,246 [INFO] 
+[Maroua] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:51:46,246 [INFO] 
+==================================================
+2026-07-10 15:51:46,246 [INFO] Entraînement : Maroua / INONDATION
+2026-07-10 15:51:46,246 [INFO] ==================================================
+2026-07-10 15:51:46,247 [INFO] [Features] inondation: 23 features
+2026-07-10 15:51:46,250 [INFO] Dataset : 13164 jours | 1664 positifs (12.6%) | ratio 6.9:1
+2026-07-10 15:51:49,568 [INFO]   Fold  1 | RF=0.985 | GB=0.989 | pos=278
+2026-07-10 15:51:53,938 [INFO]   Fold  2 | RF=0.993 | GB=0.998 | pos=165
+2026-07-10 15:52:01,277 [INFO]   Fold  3 | RF=0.981 | GB=0.971 | pos=300
+2026-07-10 15:52:14,442 [INFO]   Fold  4 | RF=0.997 | GB=0.999 | pos=299
+2026-07-10 15:52:29,356 [INFO]   Fold  5 | RF=0.990 | GB=0.988 | pos=353
+2026-07-10 15:52:29,359 [INFO]   CV AUC → RF=0.989±0.006 | GB=0.989±0.010 (5 folds utiles)
+2026-07-10 15:52:29,489 [INFO]   ✅ RandomForest | CV AUC=0.989±0.006 | F1=0.886 | Thr=0.55 | SMOTE: 5/5 folds
+2026-07-10 15:52:29,507 [INFO]   Sauvegardé : models/zonal/model_inondation_Maroua.pkl
+2026-07-10 15:52:29,511 [INFO] 
+==================================================
+2026-07-10 15:52:29,511 [INFO] Entraînement : Maroua / SECHERESSE
+2026-07-10 15:52:29,511 [INFO] ==================================================
+2026-07-10 15:52:29,511 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:52:29,538 [INFO] Dataset : 13164 jours | 547 positifs (4.2%) | ratio 23.1:1
+2026-07-10 15:52:29,553 [WARNING]   [Fold 4] Skip GB — une seule classe après sample_weight (zone=Maroua, risk=secheresse, n_pos_train=0)
+2026-07-10 15:52:46,420 [INFO]   Fold  5 | RF=0.631 | GB=0.510 | pos=183
+2026-07-10 15:52:46,420 [INFO]   CV AUC → RF=0.631±0.000 | GB=0.510±0.000 (1 folds utiles)
+2026-07-10 15:52:46,580 [INFO]   ✅ RandomForest | CV AUC=0.631±0.000 | F1=0.172 | Thr=0.15 | SMOTE: 1/1 folds
+2026-07-10 15:52:46,592 [INFO]   Sauvegardé : models/zonal/model_secheresse_Maroua.pkl
+2026-07-10 15:52:46,595 [INFO] 
+==================================================
+2026-07-10 15:52:46,595 [INFO] Entraînement : Maroua / CHALEUR
+2026-07-10 15:52:46,595 [INFO] ==================================================
+2026-07-10 15:52:46,595 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:52:46,605 [INFO] Dataset : 13164 jours | 1670 positifs (12.7%) | ratio 6.9:1
+2026-07-10 15:52:49,811 [INFO]   Fold  1 | RF=0.965 | GB=0.973 | pos=197
+2026-07-10 15:52:58,954 [INFO]   Fold  2 | RF=0.981 | GB=0.979 | pos=257
+2026-07-10 15:53:07,329 [INFO]   Fold  3 | RF=0.987 | GB=0.983 | pos=289
+2026-07-10 15:53:17,895 [INFO]   Fold  4 | RF=0.909 | GB=0.900 | pos=339
+2026-07-10 15:53:32,712 [INFO]   Fold  5 | RF=0.955 | GB=0.956 | pos=373
+2026-07-10 15:53:32,716 [INFO]   CV AUC → RF=0.959±0.028 | GB=0.958±0.030 (5 folds utiles)
+2026-07-10 15:53:32,834 [INFO]   ✅ RandomForest | CV AUC=0.959±0.028 | F1=0.758 | Thr=0.50 | SMOTE: 5/5 folds
+2026-07-10 15:53:32,856 [INFO]   Sauvegardé : models/zonal/model_chaleur_Maroua.pkl
+2026-07-10 15:53:32,919 [INFO] 
+[Ngaoundere] 13164 jours (1990-01-01 → 2026-07-09)
+2026-07-10 15:53:32,920 [INFO] 
+==================================================
+2026-07-10 15:53:32,920 [INFO] Entraînement : Ngaoundere / INONDATION
+2026-07-10 15:53:32,920 [INFO] ==================================================
+2026-07-10 15:53:32,920 [INFO] [Features] inondation: 23 features
+2026-07-10 15:53:32,924 [INFO] Dataset : 13164 jours | 779 positifs (5.9%) | ratio 15.9:1
+2026-07-10 15:53:35,467 [INFO]   Fold  1 | RF=0.992 | GB=0.995 | pos=93
+2026-07-10 15:53:40,021 [INFO]   Fold  2 | RF=0.990 | GB=0.995 | pos=114
+2026-07-10 15:53:46,961 [INFO]   Fold  3 | RF=0.996 | GB=0.999 | pos=107
+2026-07-10 15:53:56,624 [INFO]   Fold  4 | RF=0.888 | GB=0.853 | pos=136
+2026-07-10 15:54:13,059 [INFO]   Fold  5 | RF=0.808 | GB=0.799 | pos=98
+2026-07-10 15:54:13,062 [INFO]   CV AUC → RF=0.935±0.075 | GB=0.928±0.085 (5 folds utiles)
+2026-07-10 15:54:13,186 [INFO]   ✅ RandomForest | CV AUC=0.935±0.075 | F1=0.262 | Thr=0.35 | SMOTE: 5/5 folds
+2026-07-10 15:54:13,196 [INFO]   Sauvegardé : models/zonal/model_inondation_Ngaoundere.pkl
+2026-07-10 15:54:13,200 [INFO] 
+==================================================
+2026-07-10 15:54:13,200 [INFO] Entraînement : Ngaoundere / SECHERESSE
+2026-07-10 15:54:13,200 [INFO] ==================================================
+2026-07-10 15:54:13,200 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:54:13,219 [INFO] Dataset : 13164 jours | 743 positifs (5.6%) | ratio 16.7:1
+2026-07-10 15:54:16,863 [INFO]   Fold  1 | RF=0.818 | GB=0.628 | pos=203
+2026-07-10 15:54:22,299 [INFO]   Fold  2 | RF=0.988 | GB=0.979 | pos=14
+2026-07-10 15:54:30,560 [INFO]   Fold  3 | RF=0.998 | GB=1.000 | pos=31
+2026-07-10 15:54:42,328 [INFO]   Fold  4 | RF=0.686 | GB=0.662 | pos=259
+2026-07-10 15:54:57,783 [INFO]   Fold  5 | RF=0.711 | GB=0.707 | pos=224
+2026-07-10 15:54:57,784 [INFO]   CV AUC → RF=0.840±0.133 | GB=0.795±0.161 (5 folds utiles)
+2026-07-10 15:54:57,911 [INFO]   ✅ RandomForest | CV AUC=0.840±0.133 | F1=0.277 | Thr=0.20 | SMOTE: 5/5 folds
+2026-07-10 15:54:57,922 [INFO]   Sauvegardé : models/zonal/model_secheresse_Ngaoundere.pkl
+2026-07-10 15:54:57,924 [INFO] 
+==================================================
+2026-07-10 15:54:57,924 [INFO] Entraînement : Ngaoundere / CHALEUR
+2026-07-10 15:54:57,924 [INFO] ==================================================
+2026-07-10 15:54:57,924 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:54:57,928 [INFO] Dataset : 13164 jours | 2897 positifs (22.0%) | ratio 3.5:1
+2026-07-10 15:55:01,033 [INFO]   Fold  1 | RF=0.972 | GB=0.982 | pos=318
+2026-07-10 15:55:06,152 [INFO]   Fold  2 | RF=0.992 | GB=0.999 | pos=564
+2026-07-10 15:55:12,512 [INFO]   Fold  3 | RF=0.998 | GB=0.999 | pos=558
+2026-07-10 15:55:21,041 [INFO]   Fold  4 | RF=0.966 | GB=0.969 | pos=495
+2026-07-10 15:55:31,596 [INFO]   Fold  5 | RF=0.962 | GB=0.962 | pos=593
+2026-07-10 15:55:31,598 [INFO]   CV AUC → RF=0.978±0.014 | GB=0.982±0.015 (5 folds utiles)
+2026-07-10 15:55:31,619 [INFO]   ✅ GradientBoosting | CV AUC=0.982±0.015 | F1=0.861 | Thr=0.45 | SMOTE: 2/5 folds
+2026-07-10 15:55:31,624 [INFO]   Sauvegardé : models/zonal/model_chaleur_Ngaoundere.pkl
+2026-07-10 15:55:31,665 [INFO] 
+[Yaounde_peri] 9512 jours (2000-01-01 → 2026-07-09)
+2026-07-10 15:55:31,666 [INFO] 
+==================================================
+2026-07-10 15:55:31,666 [INFO] Entraînement : Yaounde_peri / INONDATION
+2026-07-10 15:55:31,666 [INFO] ==================================================
+2026-07-10 15:55:31,666 [INFO] [Features] inondation: 23 features
+2026-07-10 15:55:31,671 [INFO] Dataset : 9512 jours | 921 positifs (9.7%) | ratio 9.3:1
+2026-07-10 15:55:33,760 [INFO]   Fold  1 | RF=0.980 | GB=0.992 | pos=141
+2026-07-10 15:55:37,473 [INFO]   Fold  2 | RF=0.996 | GB=0.998 | pos=74
+2026-07-10 15:55:42,381 [INFO]   Fold  3 | RF=0.814 | GB=0.825 | pos=163
+2026-07-10 15:55:49,178 [INFO]   Fold  4 | RF=0.923 | GB=0.897 | pos=265
+2026-07-10 15:55:57,449 [INFO]   Fold  5 | RF=0.887 | GB=0.850 | pos=138
+2026-07-10 15:55:57,452 [INFO]   CV AUC → RF=0.920±0.066 | GB=0.912±0.071 (5 folds utiles)
+2026-07-10 15:55:57,557 [INFO]   ✅ RandomForest | CV AUC=0.920±0.066 | F1=0.667 | Thr=0.50 | SMOTE: 5/5 folds
+2026-07-10 15:55:57,571 [INFO]   Sauvegardé : models/zonal/model_inondation_Yaounde_peri.pkl
+2026-07-10 15:55:57,574 [INFO] 
+==================================================
+2026-07-10 15:55:57,574 [INFO] Entraînement : Yaounde_peri / SECHERESSE
+2026-07-10 15:55:57,574 [INFO] ==================================================
+2026-07-10 15:55:57,574 [INFO] [Features] secheresse: 31 features
+2026-07-10 15:55:57,582 [INFO] Dataset : 9512 jours | 1120 positifs (11.8%) | ratio 7.5:1
+2026-07-10 15:56:00,504 [INFO]   Fold  1 | RF=0.932 | GB=0.938 | pos=96
+2026-07-10 15:56:05,459 [INFO]   Fold  2 | RF=0.837 | GB=0.893 | pos=400
+2026-07-10 15:56:11,253 [INFO]   Fold  3 | RF=0.883 | GB=0.849 | pos=191
+2026-07-10 15:56:20,028 [INFO]   Fold  4 | RF=0.959 | GB=0.969 | pos=86
+2026-07-10 15:56:30,712 [INFO]   Fold  5 | RF=0.841 | GB=0.876 | pos=273
+2026-07-10 15:56:30,713 [INFO]   CV AUC → RF=0.890±0.049 | GB=0.905±0.043 (5 folds utiles)
+2026-07-10 15:56:30,733 [INFO]   ✅ GradientBoosting | CV AUC=0.905±0.043 | F1=0.649 | Thr=0.30 | SMOTE: 5/5 folds
+2026-07-10 15:56:30,737 [INFO]   Sauvegardé : models/zonal/model_secheresse_Yaounde_peri.pkl
+2026-07-10 15:56:30,741 [INFO] 
+==================================================
+2026-07-10 15:56:30,741 [INFO] Entraînement : Yaounde_peri / CHALEUR
+2026-07-10 15:56:30,741 [INFO] ==================================================
+2026-07-10 15:56:30,741 [INFO] [Features] chaleur: 28 features
+2026-07-10 15:56:30,744 [INFO] Dataset : 9512 jours | 371 positifs (3.9%) | ratio 24.6:1
+2026-07-10 15:56:32,893 [INFO]   Fold  1 | RF=0.981 | GB=0.958 | pos=44
+2026-07-10 15:56:39,372 [INFO]   Fold  3 | RF=0.982 | GB=0.964 | pos=58
+2026-07-10 15:56:48,234 [INFO]   Fold  4 | RF=0.815 | GB=0.602 | pos=118
+2026-07-10 15:56:59,548 [INFO]   Fold  5 | RF=0.854 | GB=0.784 | pos=139
+2026-07-10 15:56:59,550 [INFO]   CV AUC → RF=0.908±0.075 | GB=0.827±0.149 (4 folds utiles)
+2026-07-10 15:56:59,654 [INFO]   ✅ RandomForest | CV AUC=0.908±0.075 | F1=0.473 | Thr=0.55 | SMOTE: 4/4 folds
+2026-07-10 15:56:59,669 [INFO]   Sauvegardé : models/zonal/model_chaleur_Yaounde_peri.pkl

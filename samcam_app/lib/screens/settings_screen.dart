@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
+import '../widgets/zone_drawer.dart' show kSamcamZones;
 import 'demo_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,15 +19,63 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _testResult;
   bool   _testOk   = false;
 
+  String? _favoriteZone;
+  bool    _notificationsEnabled = false;
+  final Map<String, double> _thresholds = {
+    'inondation': Config.defaultAlertThreshold,
+    'secheresse': Config.defaultAlertThreshold,
+    'chaleur':    Config.defaultAlertThreshold,
+  };
+
   @override
   void initState() {
     super.initState();
     _loadUrl();
+    _loadFavoriteZone();
+    _loadNotificationSettings();
   }
 
   Future<void> _loadUrl() async {
     final url = await ApiService.getServerUrl();
     _controller.text = url;
+  }
+
+  Future<void> _loadFavoriteZone() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() => _favoriteZone = prefs.getString(Config.prefFavoriteZone));
+  }
+
+  Future<void> _setFavoriteZone(String? zone) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (zone == null) {
+      await prefs.remove(Config.prefFavoriteZone);
+    } else {
+      await prefs.setString(Config.prefFavoriteZone, zone);
+    }
+    setState(() => _favoriteZone = zone);
+  }
+
+  Future<void> _loadNotificationSettings() async {
+    final enabled = await NotificationService.isEnabled();
+    final vals = <String, double>{};
+    for (final risk in _thresholds.keys) {
+      vals[risk] = await NotificationService.getThreshold(risk);
+    }
+    setState(() {
+      _notificationsEnabled = enabled;
+      _thresholds.addAll(vals);
+    });
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    if (value) await NotificationService.init();
+    await NotificationService.setEnabled(value);
+    setState(() => _notificationsEnabled = value);
+  }
+
+  Future<void> _setThreshold(String risk, double value) async {
+    setState(() => _thresholds[risk] = value);
+    await NotificationService.setThreshold(risk, value);
   }
 
   Future<void> _saveUrl() async {
@@ -99,6 +150,76 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 32),
+
+            // ══ Section : Zone favorite ══════════════════════════════════════
+            _SectionHeader(icon: Icons.star_outline_rounded, label: 'Zone par défaut'),
+            const SizedBox(height: 12),
+            const Text(
+              "Zone affichée au démarrage de l'app, à la place du mode GPS automatique.",
+              style: TextStyle(color: Colors.white54, fontSize: 12)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8, runSpacing: 8,
+              children: [
+                _FavoriteChip(
+                  label: 'Position GPS',
+                  selected: _favoriteZone == null,
+                  onTap: () => _setFavoriteZone(null),
+                ),
+                for (final z in kSamcamZones)
+                  _FavoriteChip(
+                    label: (z['name'] as String) == 'Yaounde_peri'
+                        ? 'Yaoundé (péri.)' : z['name'] as String,
+                    selected: _favoriteZone == z['name'],
+                    onTap: () => _setFavoriteZone(z['name'] as String),
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 32),
+
+            // ══ Section : Alertes ════════════════════════════════════════════
+            _SectionHeader(icon: Icons.notifications_active_outlined, label: 'Alertes personnalisées'),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _notificationsEnabled
+                        ? 'Notifications activées'
+                        : 'Recevoir une notification quand un risque dépasse votre seuil',
+                    style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                ),
+                Switch(
+                  value: _notificationsEnabled,
+                  activeThumbColor: const Color(0xFF01696F),
+                  onChanged: _toggleNotifications,
+                ),
+              ],
+            ),
+            if (_notificationsEnabled) ...[
+              const SizedBox(height: 8),
+              const Text(
+                "Vérifiées à chaque ouverture/rafraîchissement de l'app (pas en tâche de fond).",
+                style: TextStyle(color: Colors.white38, fontSize: 11)),
+              const SizedBox(height: 16),
+              _ThresholdSlider(
+                icon: Icons.water_outlined, label: 'Inondation',
+                value: _thresholds['inondation']!,
+                onChanged: (v) => _setThreshold('inondation', v)),
+              const SizedBox(height: 12),
+              _ThresholdSlider(
+                icon: Icons.grass_outlined, label: 'Sécheresse',
+                value: _thresholds['secheresse']!,
+                onChanged: (v) => _setThreshold('secheresse', v)),
+              const SizedBox(height: 12),
+              _ThresholdSlider(
+                icon: Icons.local_fire_department_outlined, label: 'Chaleur',
+                value: _thresholds['chaleur']!,
+                onChanged: (v) => _setThreshold('chaleur', v)),
+            ],
 
             const SizedBox(height: 32),
 
@@ -230,6 +351,92 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Divider(
             color: Colors.white.withOpacity(0.08), height: 1)),
+      ],
+    );
+  }
+}
+
+class _FavoriteChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _FavoriteChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFF01696F) : const Color(0xFF161B22),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: selected ? const Color(0xFF01696F) : Colors.white12),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected) ...[
+                const Icon(Icons.check, color: Colors.white, size: 14),
+                const SizedBox(width: 5),
+              ],
+              Text(label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white60,
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w400)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThresholdSlider extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+  const _ThresholdSlider({
+    required this.icon, required this.label,
+    required this.value, required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white38, size: 16),
+        const SizedBox(width: 8),
+        SizedBox(width: 84,
+          child: Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12))),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              activeTrackColor: const Color(0xFF01696F),
+              inactiveTrackColor: Colors.white12,
+              thumbColor: const Color(0xFF4F98A3),
+              overlayColor: const Color(0xFF01696F).withOpacity(0.2),
+              trackHeight: 3,
+            ),
+            child: Slider(
+              value: value,
+              min: 0.1, max: 0.9, divisions: 16,
+              onChanged: onChanged,
+            ),
+          ),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text('${(value * 100).toStringAsFixed(0)}%',
+            textAlign: TextAlign.right,
+            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+        ),
       ],
     );
   }

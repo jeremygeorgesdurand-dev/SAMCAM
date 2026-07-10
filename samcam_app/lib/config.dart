@@ -13,6 +13,18 @@ class Config {
   // Timeout des requêtes HTTP
   static const Duration httpTimeout = Duration(seconds: 10);
 
+  // Zone favorite affichée par défaut au démarrage (null = mode GPS)
+  static const String prefFavoriteZone = 'samcam_favorite_zone';
+
+  // Seuils d'alerte personnalisés par risque (0.0-1.0). Clés : inondation/secheresse/chaleur.
+  static const String prefThresholdPrefix = 'samcam_threshold_';
+  static const double defaultAlertThreshold = 0.45; // aligné sur le seuil ORANGE par défaut
+
+  // Notifications locales activées/désactivées
+  static const String prefNotificationsEnabled = 'samcam_notifications_enabled';
+  // Dernier niveau notifié par zone+risque, pour éviter de renotifier en boucle
+  static const String prefLastNotifiedPrefix = 'samcam_last_notified_';
+
   // Couleurs des niveaux d'alerte
   static const Map<String, int> alertColors = {
     'VERT':   0xFF2E7D32,

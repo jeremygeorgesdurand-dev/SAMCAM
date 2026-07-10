@@ -54,6 +54,7 @@ REPORTS_DIR   = os.path.join(ROOT, "reports")
 DATA_DIR      = os.path.join(ROOT, "data")
 MODELS_DIR    = os.path.join(ROOT, "models")
 LATEST_JSON   = os.path.join(DASHBOARD_DIR, "latest_report.json")  # fallback V3
+PRED_CACHE_PATH = os.path.join(ROOT, "data", "predictions", "latest.json")
 
 DEFAULT_ZONE  = "Kribi"
 
@@ -90,7 +91,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -99,18 +100,39 @@ app.add_middleware(
 # ─── CHARGEMENT DU MODÈLE ML ───────────────────────────────────────────────────
 
 # risk_model.py V5 expose des fonctions directement (pas de classe RiskModel)
-_predire_risques_fn    = None
-_evaluer_previsions_fn = None
+_predire_risques_fn              = None
+_evaluer_previsions_fn           = None
+_construire_features_fn          = None
+# infer_zonal.py — moteur d'inférence PRIORITAIRE : calcule les vraies features
+# d'entraînement (rolling 7/14/30/90j, SPI, etc.) depuis l'historique zonal, au
+# lieu du snapshot quotidien à 8 jours (insuffisant pour les modèles zonaux V5).
+_infer_zone_risk_fn              = None
+_infer_zone_risk_horizon_fn      = None
+_infer_zone_risk_series_fn       = None
 
 def _charger_risk_model():
-    global _predire_risques_fn, _evaluer_previsions_fn
+    global _predire_risques_fn, _evaluer_previsions_fn, _construire_features_fn
+    global _infer_zone_risk_fn, _infer_zone_risk_horizon_fn, _infer_zone_risk_series_fn
     try:
         import sys
         if ROOT not in sys.path:
             sys.path.insert(0, ROOT)
-        from inference.risk_model import predire_risques, evaluer_previsions
-        _predire_risques_fn    = predire_risques
-        _evaluer_previsions_fn = evaluer_previsions
+        from inference.risk_model import (
+            predire_risques, evaluer_previsions, construire_features_depuis_json,
+        )
+        _predire_risques_fn     = predire_risques
+        _evaluer_previsions_fn  = evaluer_previsions
+        _construire_features_fn = construire_features_depuis_json
+        try:
+            from inference.infer_zonal import (
+                infer_zone_risk, infer_zone_risk_horizon, infer_zone_risk_series,
+            )
+            _infer_zone_risk_fn         = infer_zone_risk
+            _infer_zone_risk_horizon_fn = infer_zone_risk_horizon
+            _infer_zone_risk_series_fn  = infer_zone_risk_series
+            print("[API] ✅ Moteur zonal chargé (infer_zonal.py, prioritaire)")
+        except Exception as e:
+            print(f"[API] ⚠️  infer_zonal.py indisponible ({e}) — utilisation de risk_model.py seul")
         print("[API] ✅ Modèle ML chargé (predire_risques / evaluer_previsions)")
         return True
     except Exception as e:
@@ -189,51 +211,194 @@ def _haversine(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def _compute_risk_for_zone(zone_name: str, indicateurs: dict) -> dict:
+_RISQUES = ("inondation", "secheresse", "chaleur")
+
+# Cache mémoire du fichier de prédictions précalculées (voir
+# inference/compute_daily_predictions.py) — évite de relire le JSON à chaque requête.
+_pred_cache_data  = None
+_pred_cache_mtime = None
+
+
+def _lire_cache_predictions() -> dict:
     """
-    Calcule les scores ML J0/J+3/J+7 pour une zone via predire_risques().
-    Retourne un dict avec risque_actuel, risque_prevu_3j, risque_prevu_7j.
+    Charge data/predictions/latest.json (précalculé par
+    inference/compute_daily_predictions.py, lancé après la collecte quotidienne).
+    Recharge automatiquement si le fichier a changé depuis le dernier appel.
+    Retourne {} si absent (le calcul live prend le relais).
     """
-    if _predire_risques_fn is None:
+    global _pred_cache_data, _pred_cache_mtime
+    try:
+        mtime = os.path.getmtime(PRED_CACHE_PATH)
+    except OSError:
         return {}
 
-    # Construire le dict au format attendu par predire_risques()
+    if _pred_cache_data is None or mtime != _pred_cache_mtime:
+        try:
+            with open(PRED_CACHE_PATH, encoding="utf-8") as f:
+                _pred_cache_data = json.load(f)
+            _pred_cache_mtime = mtime
+        except Exception as e:
+            print(f"[API] ⚠️  Cache prédictions illisible ({e})")
+            return {}
+
+    return _pred_cache_data or {}
+
+
+# Horizons exposés par l'API — clé interne (jX) → nom du champ JSON exposé.
+# J+10/J+14 restent dans la fenêtre de fiabilité des prévisions Open-Meteo (16j).
+_HORIZONS = (3, 7, 10, 14)
+_HORIZON_FIELD = {3: "risque_prevu_3j", 7: "risque_prevu_7j",
+                  10: "risque_prevu_10j", 14: "risque_prevu_14j"}
+
+
+def _build_risque_response(scores_par_horizon: dict, methode: str, extra: Optional[dict] = None) -> dict:
+    """
+    scores_par_horizon : {"j0": {...}, "j3": {...}, "j7": {...}, "j10": {...}, "j14": {...}}
+    Construit la réponse standard {risque_actuel, risque_prevu_3j/7j/10j/14j, methode_risque}.
+    """
+    out = {"risque_actuel": {
+        "scores": scores_par_horizon["j0"],
+        "niveau_alerte": _niveau_alerte(**scores_par_horizon["j0"]),
+    }}
+    for h in _HORIZONS:
+        scores = scores_par_horizon.get(f"j{h}")
+        if scores is None:
+            continue
+        out[_HORIZON_FIELD[h]] = {"scores": scores, "niveau_alerte": _niveau_alerte(**scores)}
+    out["methode_risque"] = methode
+    if extra:
+        out.update(extra)
+    return out
+
+
+def _scores_depuis_cache(zone_name: str) -> Optional[dict]:
+    """Construit risque_actuel/prevu_3j/7j/10j/14j depuis le cache précalculé, si complet."""
+    cache = _lire_cache_predictions()
+    zone_pred = cache.get(zone_name)
+    if not zone_pred or "risques" not in zone_pred:
+        return None
+
+    scores_par_horizon = {"j0": {}}
+    for h in _HORIZONS:
+        scores_par_horizon[f"j{h}"] = {}
+
+    for risque in _RISQUES:
+        r = zone_pred["risques"].get(risque)
+        if not r or r.get("j0", {}).get("status") != "OK":
+            return None
+        scores_par_horizon["j0"][f"score_{risque}"] = r["j0"]["score"]
+        for h in _HORIZONS:
+            scores_par_horizon[f"j{h}"][f"score_{risque}"] = r.get(f"j{h}", r["j0"])["score"]
+
+    return _build_risque_response(
+        scores_par_horizon, "ml_zonal_infer (cache)",
+        extra={"date_calcul_cache": zone_pred.get("date_calcul")},
+    )
+
+
+def _compute_risk_for_zone_zonal(zone_name: str, meteo: Optional[dict] = None) -> dict:
+    """
+    Calcule les scores J0/J+3/J+7/J+10/J+14 via inference/infer_zonal.py — le moteur
+    qui calcule les VRAIES features d'entraînement (rolling 7/14/30/90j, SPI-3,
+    anomalies) depuis l'historique zonal complet (data/historical/<Zone>_historical.csv),
+    au lieu du snapshot quotidien à 8 jours utilisé par risk_model.py (insuffisant
+    pour les modèles zonaux V5 qui attendent 23-31 features).
+
+    Essaie d'abord le cache précalculé (data/predictions/latest.json, rapide),
+    puis calcule en direct si absent/incomplet pour cette zone.
+
+    Retourne {} si un seul des 3 risques échoue (NO_MODEL/NO_DATA/...), pour
+    déclencher le fallback vers _compute_risk_for_zone_legacy côté appelant.
+    """
+    cached = _scores_depuis_cache(zone_name)
+    if cached:
+        return cached
+
+    if _infer_zone_risk_fn is None or _infer_zone_risk_horizon_fn is None:
+        return {}
+
+    previsions_daily = (meteo or {}).get("previsions_daily")
+    scores_par_horizon = {"j0": {}}
+    for h in _HORIZONS:
+        scores_par_horizon[f"j{h}"] = {}
+
+    for risque in _RISQUES:
+        r0 = _infer_zone_risk_fn(zone_name, risque, days=30)
+        if r0.get("status") != "OK":
+            return {}
+        score_j0 = r0.get("proba_last", 0.0)
+        scores_par_horizon["j0"][f"score_{risque}"] = score_j0
+
+        for h in _HORIZONS:
+            if previsions_daily:
+                rh = _infer_zone_risk_horizon_fn(zone_name, risque, previsions_daily, h, days=30)
+                scores_par_horizon[f"j{h}"][f"score_{risque}"] = \
+                    rh.get("proba", score_j0) if rh.get("status") == "OK" else score_j0
+            else:
+                scores_par_horizon[f"j{h}"][f"score_{risque}"] = score_j0
+
+    return _build_risque_response(scores_par_horizon, "ml_zonal_infer")
+
+
+def _compute_risk_for_zone(zone_name: str, indicateurs: dict, meteo: Optional[dict] = None) -> dict:
+    """
+    Calcule les scores ML J0/J+3/J+7 pour une zone. Essaie d'abord le moteur
+    zonal (infer_zonal.py, features complètes depuis l'historique), puis
+    retombe sur risk_model.py (legacy, features limitées au snapshot du jour)
+    si le premier échoue pour cette zone (données/modèle indisponibles).
+    """
+    try:
+        zonal = _compute_risk_for_zone_zonal(zone_name, meteo)
+        if zonal:
+            return zonal
+    except Exception as e:
+        print(f"[API] infer_zonal indisponible pour {zone_name} ({e}) — fallback risk_model.py")
+
+    return _compute_risk_for_zone_legacy(zone_name, indicateurs, meteo)
+
+
+def _compute_risk_for_zone_legacy(zone_name: str, indicateurs: dict, meteo: Optional[dict] = None) -> dict:
+    """
+    Ancien chemin (risk_model.py) — conservé comme repli si infer_zonal.py
+    n'a pas de modèle/données pour la zone.
+    """
+    if _predire_risques_fn is None or _construire_features_fn is None:
+        return {}
+
+    # Construire le dict brut au format JSON de zone, puis le convertir en
+    # features PLATES (précipitation_24h, sm_surface, ndvi, ...) — predire_risques()
+    # attend des features directement à la racine, pas le JSON imbriqué.
     data = {
         "meta":               {"zone": zone_name, "mois": datetime.now().month},
         "indicateurs_risque": indicateurs,
-        "meteorologie":       {},
+        "meteorologie":       meteo or {},
     }
+    features          = _construire_features_fn(data)
+    previsions_daily  = (meteo or {}).get("previsions_daily")
 
     try:
-        pred_j0   = _predire_risques_fn(donnees=data, zone=zone_name)
-        scores_j0 = {
+        pred_j0   = _predire_risques_fn(donnees=features, zone=zone_name)
+        scores_par_horizon = {"j0": {
             "score_inondation": pred_j0.get("inondation",   {}).get("score", 0.0),
             "score_secheresse": pred_j0.get("secheresse",   {}).get("score", 0.0),
             "score_chaleur":    pred_j0.get("chaleur", {}).get("score", 0.0),
-        }
+        }}
 
         if _evaluer_previsions_fn:
-            prevs     = _evaluer_previsions_fn(zone=zone_name)
-            scores_j3 = {
-                "score_inondation": prevs.get("j3", {}).get("inondation",   {}).get("score", 0.0),
-                "score_secheresse": prevs.get("j3", {}).get("secheresse",   {}).get("score", 0.0),
-                "score_chaleur":    prevs.get("j3", {}).get("chaleur", {}).get("score", 0.0),
-            }
-            scores_j7 = {
-                "score_inondation": prevs.get("j7", {}).get("inondation",   {}).get("score", 0.0),
-                "score_secheresse": prevs.get("j7", {}).get("secheresse",   {}).get("score", 0.0),
-                "score_chaleur":    prevs.get("j7", {}).get("chaleur", {}).get("score", 0.0),
-            }
+            prevs = _evaluer_previsions_fn(
+                zone=zone_name, donnees_base=features, previsions_daily=previsions_daily)
+            for h in _HORIZONS:
+                bloc = prevs.get(f"j{h}", {})
+                scores_par_horizon[f"j{h}"] = {
+                    "score_inondation": bloc.get("inondation", {}).get("score", 0.0),
+                    "score_secheresse": bloc.get("secheresse", {}).get("score", 0.0),
+                    "score_chaleur":    bloc.get("chaleur",    {}).get("score", 0.0),
+                }
         else:
-            scores_j3 = scores_j0
-            scores_j7 = scores_j0
+            for h in _HORIZONS:
+                scores_par_horizon[f"j{h}"] = scores_par_horizon["j0"]
 
-        return {
-            "risque_actuel":   {"scores": scores_j0, "niveau_alerte": _niveau_alerte(**scores_j0)},
-            "risque_prevu_3j": {"scores": scores_j3, "niveau_alerte": _niveau_alerte(**scores_j3)},
-            "risque_prevu_7j": {"scores": scores_j7, "niveau_alerte": _niveau_alerte(**scores_j7)},
-            "methode_risque":  "ml_gradient_boosting",
-        }
+        return _build_risque_response(scores_par_horizon, "ml_gradient_boosting")
     except Exception as e:
         print(f"[API] Erreur _compute_risk_for_zone ({zone_name}): {e}")
         return {}
@@ -310,7 +475,7 @@ def get_nearest_zone(
 
     # Calcule les scores ML et les injecte directement dans indicateurs
     # pour que Flutter puisse les lire sans second appel
-    risk_scores = _compute_risk_for_zone(zone_name, indicateurs)
+    risk_scores = _compute_risk_for_zone(zone_name, indicateurs, meteo)
     if risk_scores:
         indicateurs = {
             **indicateurs,
@@ -373,10 +538,12 @@ async def get_nearest_live(
     try:
         zone_data   = _load_zone_data(zone_name)
         indicateurs = zone_data.get("indicateurs_risque", zone_data.get("indicateurs", {}))
+        meteo       = zone_data.get("meteorologie", {})
     except HTTPException:
         indicateurs = {}
+        meteo       = {}
 
-    risk_scores = _compute_risk_for_zone(zone_name, indicateurs)
+    risk_scores = _compute_risk_for_zone(zone_name, indicateurs, meteo)
 
     return {
         "zone":             zone_name,
@@ -398,11 +565,12 @@ def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kr
     try:
         data        = _load_zone_data(zone)
         indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+        meteo       = data.get("meteorologie", {})
         meta        = data.get("meta", {})
     except HTTPException as e:
         raise e
 
-    risque = _compute_risk_for_zone(zone, indicateurs)
+    risque = _compute_risk_for_zone(zone, indicateurs, meteo)
 
     if not risque:
         # Fallback règles physiques depuis indicateurs JSON
@@ -421,18 +589,22 @@ def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kr
                 },
                 "niveau_alerte": niveau,
             },
-            "risque_prevu_3j": {"scores": {}, "niveau_alerte": niveau},
-            "risque_prevu_7j": {"scores": {}, "niveau_alerte": niveau},
+            "risque_prevu_3j":  {"scores": {}, "niveau_alerte": niveau},
+            "risque_prevu_7j":  {"scores": {}, "niveau_alerte": niveau},
+            "risque_prevu_10j": {"scores": {}, "niveau_alerte": niveau},
+            "risque_prevu_14j": {"scores": {}, "niveau_alerte": niveau},
         }
 
     return {
-        "zone":           zone,
-        "date_collecte":  meta.get("date_collecte"),
-        "methode_risque": risque.get("methode_risque", "N/A"),
-        "risque_actuel":  risque.get("risque_actuel",  {}),
-        "risque_prevu_3j":risque.get("risque_prevu_3j",{}),
-        "risque_prevu_7j":risque.get("risque_prevu_7j",{}),
-        "indicateurs":    indicateurs,
+        "zone":             zone,
+        "date_collecte":    meta.get("date_collecte"),
+        "methode_risque":   risque.get("methode_risque", "N/A"),
+        "risque_actuel":    risque.get("risque_actuel",    {}),
+        "risque_prevu_3j":  risque.get("risque_prevu_3j",  {}),
+        "risque_prevu_7j":  risque.get("risque_prevu_7j",  {}),
+        "risque_prevu_10j": risque.get("risque_prevu_10j", {}),
+        "risque_prevu_14j": risque.get("risque_prevu_14j", {}),
+        "indicateurs":      indicateurs,
     }
 
 
@@ -440,68 +612,94 @@ def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kr
 def get_meteo(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone")):
     """Retourne la météo actuelle + prévisions 7j pour la zone demandée."""
     _resolve_zone(zone)
-    data  = _load_zone_data(zone)
-    meteo = data.get("meteorologie", {})
-    meta  = data.get("meta", {})
-    return {
-        "zone":          zone,
-        "date_collecte": meta.get("date_collecte"),
-        "meteo":         meteo,
-    }
+    try:
+        data  = _load_zone_data(zone)
+        meteo = data.get("meteorologie", {})
+        meta  = data.get("meta", {})
+        return {
+            "zone":          zone,
+            "date_collecte": meta.get("date_collecte"),
+            "meteo":         meteo,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] Erreur /api/meteo ({zone}) : {e}")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de la lecture des données météo")
 
 
 @app.get("/api/report", tags=["Rapport"])
 def get_report(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone")):
     """Retourne le rapport complet (météo + risques + indicateurs) pour la zone."""
     _resolve_zone(zone)
-    data        = _load_zone_data(zone)
-    indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
-    risk        = _compute_risk_for_zone(zone, indicateurs)
-    if risk:
-        pred_j0 = risk["risque_actuel"]["scores"]
-        niveau  = risk["risque_actuel"]["niveau_alerte"]
-        data["indicateurs_risque"] = {
-            **indicateurs,
-            "methode_risque":  "ml_gradient_boosting",
-            "risque_actuel":   risk["risque_actuel"],
-            "risque_prevu_3j": risk["risque_prevu_3j"],
-            "risque_prevu_7j": risk["risque_prevu_7j"],
-            "niveau_alerte":   niveau,
-        }
-    else:
-        print(f"[API] Erreur prédiction ML ({zone}) — fallback JSON")
+    try:
+        data        = _load_zone_data(zone)
+        indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+        meteo       = data.get("meteorologie", {})
+        risk        = _compute_risk_for_zone(zone, indicateurs, meteo)
+        if risk:
+            niveau  = risk["risque_actuel"]["niveau_alerte"]
+            data["indicateurs_risque"] = {
+                **indicateurs,
+                "methode_risque":   risk.get("methode_risque", "ml_gradient_boosting"),
+                "risque_actuel":    risk["risque_actuel"],
+                "risque_prevu_3j":  risk.get("risque_prevu_3j", {}),
+                "risque_prevu_7j":  risk.get("risque_prevu_7j", {}),
+                "risque_prevu_10j": risk.get("risque_prevu_10j", {}),
+                "risque_prevu_14j": risk.get("risque_prevu_14j", {}),
+                "niveau_alerte":    niveau,
+            }
+        else:
+            print(f"[API] Erreur prédiction ML ({zone}) — fallback JSON")
 
-    return data
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] Erreur /api/report ({zone}) : {e}")
+        raise HTTPException(status_code=500, detail="Erreur interne lors de la génération du rapport")
 
 
 @app.get("/api/history", tags=["Historique"])
 def get_history(
-    zone:  str = Query(DEFAULT_ZONE, description="Nom de la zone"),
-    limit: int = Query(7, ge=1, le=30, description="Nombre de rapports à retourner"),
+    zone: str = Query(DEFAULT_ZONE, description="Nom de la zone"),
+    days: int = Query(14, ge=1, le=90, description="Nombre de jours d'historique"),
 ):
-    """Retourne l'historique des N derniers rapports collectés pour la zone."""
+    """
+    Retourne l'évolution RÉELLE jour par jour des scores de risque pour la zone,
+    calculée directement depuis les modèles zonaux (infer_zonal.py) sur les `days`
+    derniers jours.
+
+    Ancien comportement (abandonné) : relisait chaque snapshot JSON quotidien et
+    recalculait le risque via _compute_risk_for_zone(), qui passe désormais par le
+    cache de prédictions (data/predictions/latest.json) — celui-ci ne contient que
+    la valeur du jour courant, donc chaque jour de l'historique affichait la même
+    valeur figée. Ici on lit la série jour par jour que le modèle calcule déjà en
+    interne (une probabilité par jour de la fenêtre d'inférence), donc chaque jour
+    a sa propre valeur et l'historique évolue réellement.
+    """
     _resolve_zone(zone)
-    slug     = _zone_slug(zone)
-    pattern  = os.path.join(DATA_DIR, f"{slug}_*.json")
-    fichiers = sorted(glob.glob(pattern))[-limit:]
+
+    if _infer_zone_risk_series_fn is None:
+        raise HTTPException(status_code=503, detail="Moteur d'inférence indisponible")
+
+    series = {}
+    for risque in _RISQUES:
+        r = _infer_zone_risk_series_fn(zone, risque, days=days)
+        series[risque] = {e["date"]: e["proba"] for e in r.get("serie", [])} \
+            if r.get("status") == "OK" else {}
+
+    toutes_dates = sorted(set().union(*[s.keys() for s in series.values()])) if any(series.values()) else []
 
     history = []
-    for f in fichiers:
-        try:
-            with open(f, encoding="utf-8") as fp:
-                d = json.load(fp)
-            indicateurs = d.get("indicateurs_risque", d.get("indicateurs", {}))
-            risk        = _compute_risk_for_zone(zone, indicateurs)
-            history.append({
-                "date":            d.get("meta", {}).get("date_collecte"),
-                "methode_risque":  "ml_gradient_boosting" if risk else "N/A",
-                "risque_actuel":   risk.get("risque_actuel",   {}).get("scores", {}),
-                "niveau_alerte":   risk.get("risque_actuel",   {}).get("niveau_alerte", "N/A"),
-                "risque_prevu_3j": risk.get("risque_prevu_3j", {}),
-                "risque_prevu_7j": risk.get("risque_prevu_7j", {}),
-            })
-        except Exception:
-            continue
+    for d in toutes_dates:
+        scores = {f"score_{r}": series[r].get(d, 0.0) for r in _RISQUES}
+        history.append({
+            "date":           d,
+            "risque_actuel":  scores,
+            "niveau_alerte":  _niveau_alerte(**scores),
+            "methode_risque": "ml_zonal_infer",
+        })
 
     return {"zone": zone, "history": history, "total": len(history)}
 

@@ -6,7 +6,9 @@
     "regime": "tropical_adamaoua_unimodal",
     "description": "Plateau de l'Adamaoua — altitude 1100m, régime unimodal (mai-oct), élevage/maïs, transition sahel/équatorial, nuits fraîches",
     "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
-    "calibration_note": "v1.1 — plateau Adamaoua: régime intermédiaire unique entre Maroua (sahélien) et Bafoussam (hautes terres). 1500mm/an, sol ferrugineux tropical. Flood score=2, sécheresse score=1 saison sèche longue (nov-avr). Chaleur modérée par altitude."
+    "calibration_note": "v1.1 — plateau Adamaoua: régime intermédiaire unique entre Maroua (sahélien) et Bafoussam (hautes terres). 1500mm/an, sol ferrugineux tropical. Flood score=2, sécheresse score=1 saison sèche longue (nov-avr). Chaleur modérée par altitude.",
+    "calibration_note_et0": "CORRIGÉ (audit 2026-07-10) — les anciennes normales ET0 etaient ~4-5x trop basses (ex: mois 7 ancien=22mm, reel~91.8mm), rendant le critere de stress ET0 du label secheresse quasi-toujours vrai, toute l'annee, dans les 8 zones. Nouvelles valeurs = moyenne mensuelle reelle observee sur l'historique 1990-2025.",
+    "calibration_note_pluie": "CORRIGE (audit 2026-07-10) v3 - normales pluie et percentiles hebdo recalcules depuis l'historique reel (ancien juillet=245mm -> nouveau=319.6mm). L'ancienne sous-estimation rendait le critere 'exces de pluie' du label inondation quasi-toujours vrai en saison humide."
   },
   "coordonnees": {
     "lat": 7.3167,
@@ -15,51 +17,190 @@
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 5,   "2": 10,  "3": 35,  "4": 80,
-    "5": 150, "6": 205, "7": 245, "8": 255,
-    "9": 215, "10": 130, "11": 30, "12": 5
+    "1": 0.0,
+    "2": 1.6,
+    "3": 21.1,
+    "4": 146.5,
+    "5": 247.7,
+    "6": 305.1,
+    "7": 319.6,
+    "8": 351.3,
+    "9": 327.5,
+    "10": 175.0,
+    "11": 18.4,
+    "12": 0.5
   },
   "et0_normales_mensuelles_mm": {
-    "1": 40, "2": 42, "3": 44, "4": 38, "5": 32, "6": 26,
-    "7": 22, "8": 20, "9": 22, "10": 26, "11": 34, "12": 38
+    "1": 191.3,
+    "2": 207.4,
+    "3": 186.4,
+    "4": 135.6,
+    "5": 114.0,
+    "6": 103.8,
+    "7": 91.8,
+    "8": 88.7,
+    "9": 101.4,
+    "10": 114.7,
+    "11": 149.8,
+    "12": 176.8
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 28.0, "2": 30.0, "3": 32.5, "4": 31.5, "5": 28.5, "6": 26.0,
-    "7": 24.5, "8": 24.0, "9": 25.0, "10": 27.0, "11": 28.5, "12": 27.5
+    "1": 28.0,
+    "2": 30.0,
+    "3": 32.5,
+    "4": 31.5,
+    "5": 28.5,
+    "6": 26.0,
+    "7": 24.5,
+    "8": 24.0,
+    "9": 25.0,
+    "10": 27.0,
+    "11": 28.5,
+    "12": 27.5
   },
   "temp_max_std_mensuelles_c": {
-    "1": 2.8, "2": 2.8, "3": 2.5, "4": 2.2, "5": 1.8, "6": 1.5,
-    "7": 1.3, "8": 1.2, "9": 1.4, "10": 1.8, "11": 2.2, "12": 2.5
+    "1": 2.8,
+    "2": 2.8,
+    "3": 2.5,
+    "4": 2.2,
+    "5": 1.8,
+    "6": 1.5,
+    "7": 1.3,
+    "8": 1.2,
+    "9": 1.4,
+    "10": 1.8,
+    "11": 2.2,
+    "12": 2.5
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 13.5, "2": 14.5, "3": 17.0, "4": 18.5, "5": 18.5, "6": 18.0,
-    "7": 17.5, "8": 17.5, "9": 17.5, "10": 17.5, "11": 15.0, "12": 13.5
+    "1": 13.5,
+    "2": 14.5,
+    "3": 17.0,
+    "4": 18.5,
+    "5": 18.5,
+    "6": 18.0,
+    "7": 17.5,
+    "8": 17.5,
+    "9": 17.5,
+    "10": 17.5,
+    "11": 15.0,
+    "12": 13.5
   },
   "sm_surface_normales": {
-    "1": 0.10, "2": 0.11, "3": 0.14, "4": 0.22, "5": 0.34, "6": 0.44,
-    "7": 0.50, "8": 0.52, "9": 0.48, "10": 0.36, "11": 0.18, "12": 0.11
+    "1": 0.1,
+    "2": 0.11,
+    "3": 0.14,
+    "4": 0.22,
+    "5": 0.34,
+    "6": 0.44,
+    "7": 0.5,
+    "8": 0.52,
+    "9": 0.48,
+    "10": 0.36,
+    "11": 0.18,
+    "12": 0.11
   },
   "sm_rootzone_normales": {
-    "1": 0.12, "2": 0.13, "3": 0.16, "4": 0.24, "5": 0.35, "6": 0.44,
-    "7": 0.50, "8": 0.52, "9": 0.48, "10": 0.38, "11": 0.22, "12": 0.13
+    "1": 0.12,
+    "2": 0.13,
+    "3": 0.16,
+    "4": 0.24,
+    "5": 0.35,
+    "6": 0.44,
+    "7": 0.5,
+    "8": 0.52,
+    "9": 0.48,
+    "10": 0.38,
+    "11": 0.22,
+    "12": 0.13
   },
   "ndvi_seuil_alerte": {
-    "1": 0.15, "2": 0.16, "3": 0.22, "4": 0.34, "5": 0.48, "6": 0.58,
-    "7": 0.64, "8": 0.65, "9": 0.60, "10": 0.50, "11": 0.28, "12": 0.16
+    "1": 0.15,
+    "2": 0.16,
+    "3": 0.22,
+    "4": 0.34,
+    "5": 0.48,
+    "6": 0.58,
+    "7": 0.64,
+    "8": 0.65,
+    "9": 0.6,
+    "10": 0.5,
+    "11": 0.28,
+    "12": 0.16
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 0,  "p50": 0,  "p75": 2,  "p90": 6},
-    "2":  {"p25": 0,  "p50": 0,  "p75": 4,  "p90": 10},
-    "3":  {"p25": 0,  "p50": 4,  "p75": 14, "p90": 32},
-    "4":  {"p25": 2,  "p50": 16, "p75": 38, "p90": 70},
-    "5":  {"p25": 8,  "p50": 30, "p75": 66, "p90": 118},
-    "6":  {"p25": 14, "p50": 44, "p75": 92, "p90": 162},
-    "7":  {"p25": 18, "p50": 54, "p75": 112,"p90": 195},
-    "8":  {"p25": 18, "p50": 56, "p75": 116,"p90": 202},
-    "9":  {"p25": 14, "p50": 44, "p75": 92, "p90": 165},
-    "10": {"p25": 6,  "p50": 24, "p75": 54, "p90": 98},
-    "11": {"p25": 0,  "p50": 4,  "p75": 12, "p90": 26},
-    "12": {"p25": 0,  "p50": 0,  "p75": 2,  "p90": 6}
+    "1": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "3": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 3.0,
+      "p90": 14.0
+    },
+    "4": {
+      "p25": 5.2,
+      "p50": 18.3,
+      "p75": 42.3,
+      "p90": 70.1
+    },
+    "5": {
+      "p25": 30.1,
+      "p50": 53.2,
+      "p75": 74.7,
+      "p90": 92.3
+    },
+    "6": {
+      "p25": 52.0,
+      "p50": 71.0,
+      "p75": 85.0,
+      "p90": 97.8
+    },
+    "7": {
+      "p25": 55.4,
+      "p50": 74.3,
+      "p75": 88.6,
+      "p90": 102.2
+    },
+    "8": {
+      "p25": 60.3,
+      "p50": 80.3,
+      "p75": 96.9,
+      "p90": 114.4
+    },
+    "9": {
+      "p25": 56.9,
+      "p50": 73.2,
+      "p75": 90.3,
+      "p90": 108.2
+    },
+    "10": {
+      "p25": 20.5,
+      "p50": 43.2,
+      "p75": 65.7,
+      "p90": 82.9
+    },
+    "11": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 4.6,
+      "p90": 17.8
+    },
+    "12": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    }
   },
   "seuils_inondation": {
     "pluie_7j_facteur_normale": 1.45,
@@ -73,20 +214,34 @@
     "sm_rootzone_delta_seuil": -0.09,
     "ndvi_seuil_critique": 0.18,
     "et0_facteur_stress": 1.55,
-    "score_min_label_1": 1,
-    "commentaire": "Longue saison sèche nov-avr (6 mois). ET0 élevée en saison sèche (34-44mm/mois). score_min=1 car tout déficit en saison sèche est significatif pour l'élevage et les cultures de décru. ndvi_critique=0.18 calibré sur savane arbustive adamaoua."
+    "score_min_label_1": 2,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=1 donnait 94.9% de jours positifs (12479/13149), label quasi-constant sans pouvoir discriminant. Passé à 2 (sur 4 critères) pour cibler les vraies anomalies plutôt que la longue saison sèche ordinaire."
   },
   "seuils_chaleur": {
     "temp_max_anomalie_sigma": 0.8,
     "temp_max_3j_anomalie_sigma": 0.4,
-    "et0_facteur_stress": 1.60,
+    "et0_facteur_stress": 1.6,
     "pluie_7j_max_sec": 6.0,
-    "score_min_label_1": 2,
-    "commentaire": "Altitude 1100m atténue la chaleur vs fond de vallée. Tmax normales 24-32°C. Vagues de chaleur fév-avr (harmattan + vent continental sec). sigma=0.8 calibré entre Maroua (0.7) et Bafoussam (1.0)."
+    "score_min_label_1": 3,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=2 donnait encore 49.4% de jours positifs (6500/13149). Passé à 3 (les 3 critères requis : anomalie journalière + anomalie glissante 3j + période sèche concomitante) pour ne signaler que les vraies vagues de chaleur."
   },
   "saisons": {
-    "saison_pluies": [4, 5, 6, 7, 8, 9, 10],
-    "saison_seche": [11, 12, 1, 2, 3],
+    "saison_pluies": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "saison_seche": [
+      11,
+      12,
+      1,
+      2,
+      3
+    ],
     "commentaire": "Régime adamaoua unimodal — saison pluies avr-oct avec pic juil-août, plus longue que Maroua mais moins que zones équatoriales"
   },
   "fichiers_historiques": {

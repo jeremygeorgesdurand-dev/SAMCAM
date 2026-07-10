@@ -280,7 +280,7 @@ def infer_zone_risk(
 
     model         = bundle["model"]
     threshold     = float(bundle.get("threshold", 0.5))
-    features_used = bundle.get("features_used", None)
+    features_used = bundle.get("features_used") or bundle.get("features")
     meta          = bundle.get("metadata", {})
     metrics       = load_metrics(zone, risk)
 
@@ -346,6 +346,243 @@ def infer_zone_risk(
         "model_type":    meta.get("model", "Unknown"),
         "cv_auc":        metrics.get("cv_auc_mean", None),
         "cv_auc_std":    metrics.get("cv_auc_std",  None),
+    })
+    return result
+
+
+def infer_zone_risk_series(zone: str, risk: str, days: int = 14) -> dict:
+    """
+    Comme infer_zone_risk(), mais retourne la série JOUR PAR JOUR (date, proba, niveau)
+    sur les `days` derniers jours au lieu d'un seul agrégat (last/mean/max).
+
+    Le modèle calcule déjà predict_proba() sur toute la fenêtre de `days` jours en
+    interne (infer_zone_risk ne renvoie que last/mean/max) — cette fonction expose
+    cette série complète, pour un historique qui reflète l'évolution réelle du risque
+    jour après jour au lieu d'être figé sur la valeur du jour courant.
+    """
+    result = {"zone": zone, "risk": risk, "status": "OK", "serie": []}
+
+    bundle = load_model(zone, risk)
+    if bundle is None:
+        return {**result, "status": "NO_MODEL",
+                "error": f"model_{risk}_{zone}.pkl introuvable dans {MODELS_DIR}"}
+
+    model         = bundle["model"]
+    features_used = bundle.get("features_used") or bundle.get("features")
+
+    df_raw = load_zone_data(zone, days=max(days + 90, 120))
+    if df_raw is None or df_raw.empty:
+        return {**result, "status": "NO_DATA",
+                "error": f"Aucune donnée pour {zone} dans {DATA_DIR}"}
+
+    df = compute_derived_features(df_raw)
+    col_list = features_used if features_used else RISK_FEATURES[risk]
+    cols = [f for f in col_list if f in df.columns]
+    if len(cols) < 3:
+        return {**result, "status": "INSUFFICIENT_FEATURES",
+                "error": f"Seulement {len(cols)} features disponibles (min 3)"}
+
+    fenetre = df.tail(days).copy()
+    X = fenetre[cols].copy()
+    for col in X.columns:
+        if X[col].isna().any():
+            X[col] = X[col].fillna(df[col].median())
+
+    try:
+        probas = model.predict_proba(X)[:, 1]
+    except Exception as e:
+        return {**result, "status": "PREDICT_ERROR", "error": str(e)}
+
+    serie = []
+    for d, p in zip(fenetre["date"], probas):
+        niveau, emoji = proba_to_level(float(p))
+        serie.append({
+            "date":   pd.Timestamp(d).date().isoformat(),
+            "proba":  round(float(p), 4),
+            "niveau": niveau,
+            "emoji":  emoji,
+        })
+
+    return {**result, "serie": serie}
+
+
+# ---------------------------------------------------------------------------
+# Inférence à horizon (J+1/J+3/J+7) — utilise les VRAIES prévisions Open-Meteo
+# ---------------------------------------------------------------------------
+def _lignes_prevision(previsions_daily: dict, horizon_jours: int) -> pd.DataFrame:
+    """
+    Construit les lignes journalières futures (jusqu'à horizon_jours inclus) à partir
+    du bloc previsions_daily d'Open-Meteo (meteorologie.previsions_daily du JSON de zone).
+    Colonnes brutes seulement — les colonnes dérivées sont recalculées après concaténation
+    avec l'historique, pour que rain_7d/rain_30d/spi3_approx etc. intègrent la prévision.
+    """
+    times = previsions_daily.get("time") or []
+    n     = min(len(times), horizon_jours + 1)
+    if n == 0:
+        return pd.DataFrame()
+
+    def serie(cle):
+        vals = previsions_daily.get(cle) or []
+        return vals[:n] if len(vals) >= n else [None] * n
+
+    tmax = serie("temperature_2m_max")
+    tmin = serie("temperature_2m_min")
+    rows = {
+        "date":                        pd.to_datetime(times[:n]),
+        "temperature_2m_max":          tmax,
+        "temperature_2m_min":          tmin,
+        "temperature_2m_mean":         [
+            (a + b) / 2 if a is not None and b is not None else None
+            for a, b in zip(tmax, tmin)
+        ],
+        "precipitation_sum":           serie("precipitation_sum"),
+        "et0_fao_evapotranspiration":  serie("et0_fao_evapotranspiration"),
+        "wind_speed_10m_max":          serie("windspeed_10m_max"),
+    }
+    return pd.DataFrame(rows)
+
+
+_COLONNES_TENDANCE = [
+    "soil_moisture_0_to_7cm_mean", "soil_moisture_7_to_28cm_mean", "soil_moisture_28_to_100cm_mean",
+]
+
+
+def _extrapoler_tendance(df_hist: pd.DataFrame, col: str, n_jours_prev: int, fenetre: int = 14) -> list:
+    """
+    Extrapole la tendance linéaire récente (régression sur les `fenetre` derniers jours
+    d'historique réel) sur n_jours_prev jours futurs, au lieu de figer la dernière valeur.
+
+    Pourquoi : l'humidité du sol n'a pas de prévision Open-Meteo, donc sans ça elle reste
+    identique à J+1 comme à J+14 — un modèle qui en dépend beaucoup (sécheresse) produit
+    alors un score quasi figé sur tous les horizons, même quand le sol s'assèche/s'humidifie
+    réellement de jour en jour (visible dans l'historique récent). L'extrapolation de
+    tendance capte cette dynamique sans prétendre à une simulation physique précise.
+    """
+    serie = df_hist[col].dropna().tail(fenetre)
+    if len(serie) < 5:
+        derniere = df_hist[col].dropna()
+        derniere = float(derniere.iloc[-1]) if not derniere.empty else None
+        return [derniere] * n_jours_prev
+
+    x = np.arange(len(serie))
+    y = serie.to_numpy(dtype=float)
+    pente, _ = np.polyfit(x, y, 1)
+    derniere_val = float(y[-1])
+
+    return [
+        float(np.clip(derniere_val + pente * i, 0.0, 0.6))
+        for i in range(1, n_jours_prev + 1)
+    ]
+
+
+def infer_zone_risk_horizon(
+    zone: str,
+    risk: str,
+    previsions_daily: dict,
+    horizon_jours: int,
+    days: int = 30,
+    verbose: bool = False,
+) -> dict:
+    """
+    Comme infer_zone_risk(), mais pour un horizon futur (J+1/J+3/J+7) : prolonge la
+    série historique avec les VRAIES prévisions météo Open-Meteo (previsions_daily),
+    recalcule les features dérivées (rolling 7/14/30/90j, SPI, anomalies) sur la série
+    étendue, puis prédit sur le jour cible (aujourd'hui + horizon_jours).
+
+    Les colonnes sans équivalent dans la prévision (humidité sol, NASA POWER, humidité
+    relative, rayonnement — pas de prévision disponible pour ces variables) sont
+    maintenues à la dernière valeur observée (persistance), documentée explicitement
+    plutôt que simulée par du bruit aléatoire.
+    """
+    result = {
+        "zone": zone, "risk": risk, "horizon_jours": horizon_jours,
+        "date_run": date.today().isoformat(), "status": "OK",
+    }
+
+    bundle = load_model(zone, risk)
+    if bundle is None:
+        return {**result, "status": "NO_MODEL",
+                "error": f"model_{risk}_{zone}.pkl introuvable dans {MODELS_DIR}"}
+
+    model         = bundle["model"]
+    threshold     = float(bundle.get("threshold", 0.5))
+    features_used = bundle.get("features_used") or bundle.get("features")
+    meta          = bundle.get("metadata", {})
+    metrics       = load_metrics(zone, risk)
+
+    df_raw = load_zone_data(zone, days=max(days + 90, 120))
+    if df_raw is None or df_raw.empty:
+        return {**result, "status": "NO_DATA",
+                "error": f"Aucune donnée pour {zone} dans {DATA_DIR}"}
+
+    df_prev = _lignes_prevision(previsions_daily or {}, horizon_jours)
+    if df_prev.empty:
+        # Pas de prévision dispo → persistance pure (comportement identique à J0)
+        return infer_zone_risk(zone, risk, days=days, verbose=verbose)
+
+    df_ext = pd.concat([df_raw, df_prev], ignore_index=True)
+    df_ext = df_ext.sort_values("date").drop_duplicates(subset="date", keep="last").reset_index(drop=True)
+
+    # Humidité du sol : extrapolation de tendance (voir _extrapoler_tendance) plutôt
+    # que persistance figée, pour qu'elle évolue réellement d'un horizon à l'autre.
+    prev_dates = set(df_prev["date"])
+    idx_prev = df_ext.index[df_ext["date"].isin(prev_dates)].sort_values()
+    for col in _COLONNES_TENDANCE:
+        if col not in df_raw.columns:
+            continue
+        valeurs = _extrapoler_tendance(df_raw, col, len(idx_prev))
+        for pos, idx in enumerate(idx_prev):
+            df_ext.loc[idx, col] = valeurs[pos]
+
+    # Persistance (dernière valeur connue) pour le reste des variables sans prévision
+    # (NASA POWER, humidité relative, rayonnement — pas de tendance de court terme fiable).
+    autres_cols = [c for c in df_ext.columns
+                   if c not in df_prev.columns and c != "date" and c not in _COLONNES_TENDANCE]
+    df_ext[autres_cols] = df_ext[autres_cols].ffill()
+
+    df = compute_derived_features(df_ext)
+
+    col_list = features_used if features_used else RISK_FEATURES[risk]
+    cols = [f for f in col_list if f in df.columns]
+    if len(cols) < 3:
+        return {**result, "status": "INSUFFICIENT_FEATURES",
+                "error": f"Seulement {len(cols)} features disponibles (min 3)"}
+
+    # Ligne cible = aujourd'hui + horizon_jours (dernière ligne de la prévision ajoutée)
+    date_cible = df_prev["date"].max()
+    ligne = df[df["date"] == date_cible]
+    if ligne.empty:
+        return {**result, "status": "NO_DATA",
+                "error": f"Jour cible {date_cible.date()} absent après fusion prévision"}
+
+    X = ligne[cols].copy()
+    for col in X.columns:
+        if X[col].isna().any():
+            X[col] = X[col].fillna(df[col].median())
+
+    try:
+        proba = float(model.predict_proba(X)[:, 1][0])
+    except Exception as e:
+        return {**result, "status": "PREDICT_ERROR", "error": str(e)}
+
+    level, emoji = proba_to_level(proba)
+
+    if verbose:
+        logger.info(
+            f"  [{zone}/{risk}] J+{horizon_jours} {emoji} {level:<9} "
+            f"proba={proba:.3f} (thr={threshold:.2f}, cible={date_cible.date()})"
+        )
+
+    result.update({
+        "proba":         round(proba, 4),
+        "level":         level,
+        "emoji":         emoji,
+        "date_cible":    date_cible.date().isoformat(),
+        "features_used": cols,
+        "n_features":    len(cols),
+        "threshold":     threshold,
+        "model_type":    meta.get("model", "Unknown"),
+        "cv_auc":        metrics.get("cv_auc_mean", None),
     })
     return result
 

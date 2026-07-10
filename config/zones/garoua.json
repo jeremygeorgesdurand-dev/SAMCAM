@@ -6,7 +6,10 @@
     "regime": "soudano_sahelien",
     "description": "Nord-Cameroun — altitude 240m, régime soudano-sahélien (juin-oct), coton/sorgho, Bénoué, températures extrêmes pré-mousson",
     "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
-    "calibration_note": "v1.1 — soudano-sahélien: plus humide que Maroua (900mm/an vs 600mm). Flood score=2 car Bénoué amplifie crues. Chaleur score=1 (>40°C structurel avr-mai). Sécheresse score=1 oct-mai."
+    "calibration_note": "v1.1 — soudano-sahélien: plus humide que Maroua (900mm/an vs 600mm). Flood score=2 car Bénoué amplifie crues. Chaleur score=1 (>40°C structurel avr-mai). Sécheresse score=1 oct-mai.",
+    "calibration_note_et0": "CORRIGÉ (audit 2026-07-10) — les anciennes normales ET0 etaient ~4-5x trop basses (ex: mois 7 ancien=32mm, reel~125.7mm), rendant le critere de stress ET0 du label secheresse quasi-toujours vrai, toute l'annee, dans les 8 zones. Nouvelles valeurs = moyenne mensuelle reelle observee sur l'historique 1990-2025.",
+    "calibration_note_pluie_sm": "CORRIGE (audit 2026-07-10) v2 - normale sm_rootzone recalculee sur soil_moisture_28_to_100cm_mean (colonne reellement utilisee par label_drought, pas 7_to_28cm). Pluie normale deja corrigee (voir historique).",
+    "calibration_note_pluie": "CORRIGE (audit 2026-07-10) v3 - normales pluie et percentiles hebdo recalcules depuis l'historique reel (ancien juillet=139.3mm -> nouveau=139.3mm). L'ancienne sous-estimation rendait le critere 'exces de pluie' du label inondation quasi-toujours vrai en saison humide."
   },
   "coordonnees": {
     "lat": 9.3008,
@@ -15,78 +18,231 @@
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 0,   "2": 2,   "3": 10,  "4": 25,
-    "5": 65,  "6": 120, "7": 190, "8": 215,
-    "9": 175, "10": 65, "11": 5,  "12": 0
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.7,
+    "4": 20.6,
+    "5": 62.0,
+    "6": 71.5,
+    "7": 139.3,
+    "8": 174.5,
+    "9": 124.0,
+    "10": 50.6,
+    "11": 1.5,
+    "12": 0.0
   },
   "et0_normales_mensuelles_mm": {
-    "1": 48, "2": 52, "3": 60, "4": 62, "5": 54, "6": 42,
-    "7": 32, "8": 28, "9": 30, "10": 38, "11": 46, "12": 46
+    "1": 182.0,
+    "2": 204.5,
+    "3": 225.4,
+    "4": 209.8,
+    "5": 172.8,
+    "6": 148.1,
+    "7": 125.7,
+    "8": 110.5,
+    "9": 123.3,
+    "10": 143.6,
+    "11": 173.1,
+    "12": 173.0
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 33.0, "2": 36.0, "3": 39.5, "4": 41.5, "5": 39.5, "6": 34.5,
-    "7": 30.5, "8": 29.5, "9": 31.0, "10": 35.5, "11": 36.5, "12": 33.5
+    "1": 33.0,
+    "2": 36.0,
+    "3": 39.5,
+    "4": 41.5,
+    "5": 39.5,
+    "6": 34.5,
+    "7": 30.5,
+    "8": 29.5,
+    "9": 31.0,
+    "10": 35.5,
+    "11": 36.5,
+    "12": 33.5
   },
   "temp_max_std_mensuelles_c": {
-    "1": 2.8, "2": 3.0, "3": 2.8, "4": 2.6, "5": 2.2, "6": 1.8,
-    "7": 1.4, "8": 1.3, "9": 1.5, "10": 2.0, "11": 2.4, "12": 2.6
+    "1": 2.8,
+    "2": 3.0,
+    "3": 2.8,
+    "4": 2.6,
+    "5": 2.2,
+    "6": 1.8,
+    "7": 1.4,
+    "8": 1.3,
+    "9": 1.5,
+    "10": 2.0,
+    "11": 2.4,
+    "12": 2.6
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 16.0, "2": 18.5, "3": 23.0, "4": 26.5, "5": 27.5, "6": 25.5,
-    "7": 23.5, "8": 23.0, "9": 23.5, "10": 24.0, "11": 20.0, "12": 16.5
+    "1": 16.0,
+    "2": 18.5,
+    "3": 23.0,
+    "4": 26.5,
+    "5": 27.5,
+    "6": 25.5,
+    "7": 23.5,
+    "8": 23.0,
+    "9": 23.5,
+    "10": 24.0,
+    "11": 20.0,
+    "12": 16.5
   },
   "sm_surface_normales": {
-    "1": 0.06, "2": 0.06, "3": 0.07, "4": 0.09, "5": 0.14, "6": 0.24,
-    "7": 0.34, "8": 0.38, "9": 0.32, "10": 0.16, "11": 0.08, "12": 0.06
+    "1": 0.06,
+    "2": 0.06,
+    "3": 0.07,
+    "4": 0.09,
+    "5": 0.14,
+    "6": 0.24,
+    "7": 0.34,
+    "8": 0.38,
+    "9": 0.32,
+    "10": 0.16,
+    "11": 0.08,
+    "12": 0.06
   },
   "sm_rootzone_normales": {
-    "1": 0.08, "2": 0.08, "3": 0.08, "4": 0.10, "5": 0.15, "6": 0.24,
-    "7": 0.34, "8": 0.38, "9": 0.33, "10": 0.18, "11": 0.10, "12": 0.08
+    "1": 0.151,
+    "2": 0.147,
+    "3": 0.145,
+    "4": 0.143,
+    "5": 0.142,
+    "6": 0.144,
+    "7": 0.15,
+    "8": 0.169,
+    "9": 0.195,
+    "10": 0.191,
+    "11": 0.173,
+    "12": 0.159
   },
   "ndvi_seuil_alerte": {
-    "1": 0.10, "2": 0.10, "3": 0.11, "4": 0.14, "5": 0.22, "6": 0.34,
-    "7": 0.46, "8": 0.50, "9": 0.44, "10": 0.26, "11": 0.13, "12": 0.10
+    "1": 0.1,
+    "2": 0.1,
+    "3": 0.11,
+    "4": 0.14,
+    "5": 0.22,
+    "6": 0.34,
+    "7": 0.46,
+    "8": 0.5,
+    "9": 0.44,
+    "10": 0.26,
+    "11": 0.13,
+    "12": 0.1
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0},
-    "2":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
-    "3":  {"p25": 0,  "p50": 0,  "p75": 2,  "p90": 8},
-    "4":  {"p25": 0,  "p50": 2,  "p75": 8,  "p90": 22},
-    "5":  {"p25": 2,  "p50": 10, "p75": 28, "p90": 58},
-    "6":  {"p25": 6,  "p50": 22, "p75": 54, "p90": 96},
-    "7":  {"p25": 12, "p50": 40, "p75": 82, "p90": 145},
-    "8":  {"p25": 14, "p50": 46, "p75": 95, "p90": 168},
-    "9":  {"p25": 10, "p50": 34, "p75": 74, "p90": 132},
-    "10": {"p25": 0,  "p50": 6,  "p75": 22, "p90": 52},
-    "11": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 4},
-    "12": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0}
+    "1": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "3": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "4": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.7,
+      "p90": 6.3
+    },
+    "5": {
+      "p25": 0.0,
+      "p50": 0.5,
+      "p75": 12.5,
+      "p90": 27.1
+    },
+    "6": {
+      "p25": 0.0,
+      "p50": 4.7,
+      "p75": 16.4,
+      "p90": 23.7
+    },
+    "7": {
+      "p25": 0.0,
+      "p50": 9.2,
+      "p75": 29.7,
+      "p90": 46.0
+    },
+    "8": {
+      "p25": 0.0,
+      "p50": 17.2,
+      "p75": 41.2,
+      "p90": 59.1
+    },
+    "9": {
+      "p25": 0.0,
+      "p50": 12.9,
+      "p75": 30.3,
+      "p90": 43.9
+    },
+    "10": {
+      "p25": 0.0,
+      "p50": 0.2,
+      "p75": 10.2,
+      "p90": 26.9
+    },
+    "11": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.2
+    },
+    "12": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    }
   },
   "seuils_inondation": {
     "pluie_7j_facteur_normale": 1.55,
     "pluie_prev_7j_facteur_normale": 1.35,
-    "sm_surface_seuil_haut": 0.40,
+    "sm_surface_seuil_haut": 0.4,
     "score_min_label_1": 2,
     "commentaire": "Bénoué amplifie les crues: sol aride ruisselle rapidement, rivière déborde en 48-72h. score_min=2 car double signal pluie+sol suffisant. sm_surface_seuil=0.40 calibré sur sols argileux de la plaine de Garoua (moins drainants que Maroua sableux)."
   },
   "seuils_secheresse": {
     "pluie_30j_facteur_deficit": 0.48,
-    "sm_rootzone_delta_seuil": -0.10,
+    "sm_rootzone_delta_seuil": -0.1,
     "ndvi_seuil_critique": 0.12,
     "et0_facteur_stress": 1.65,
-    "score_min_label_1": 1,
-    "commentaire": "Zone soudano-sahélienne — sécheresse oct-mai quasi-structurelle. score_min=1 car toute anomalie sur 8 mois secs est significative. ET0 élevée (46-62mm/mois) amplifie le stress. Coton très vulnérable déficit juin-août."
+    "score_min_label_1": 2,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=1 donnait 60.0% de jours positifs (7889/13149), label quasi-constant sans pouvoir discriminant. Passé à 2 (sur 4 critères) pour cibler les vraies anomalies plutôt que la saison sèche ordinaire."
   },
   "seuils_chaleur": {
     "temp_max_anomalie_sigma": 0.7,
     "temp_max_3j_anomalie_sigma": 0.4,
     "et0_facteur_stress": 1.75,
     "pluie_7j_max_sec": 4.0,
-    "score_min_label_1": 1,
-    "commentaire": "Chaleur extrême structurelle (>40°C avr-mai). score_min=1 et sigma=0.7 pour détecter toute anomalie thermique significative. pluie_7j_max_sec=4mm car Garoua encore plus sec que Maroua en saison chaude. ET0>75mm/mois en avr-mai = stress hydrique critique."
+    "score_min_label_1": 2,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=1 donnait 38.3% de jours positifs (5032/13149). Passé à 2 (sur 3 critères) pour resserrer sur les vraies vagues de chaleur."
   },
   "saisons": {
-    "saison_pluies": [5, 6, 7, 8, 9, 10],
-    "saison_seche": [11, 12, 1, 2, 3, 4],
+    "saison_pluies": [
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "saison_seche": [
+      11,
+      12,
+      1,
+      2,
+      3,
+      4
+    ],
     "commentaire": "Soudano-sahélien — saison pluies juin-oct, plus longue que Maroua mais plus courte que zones équatoriales"
   },
   "fichiers_historiques": {

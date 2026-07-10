@@ -140,3 +140,462 @@
 2026-07-08 15:10:00,771 [INFO]     secheresse  :  3002/9497 jours positifs (31.6%)
 2026-07-08 15:10:00,771 [INFO]     chaleur     :   371/9497 jours positifs (3.9%)
 2026-07-08 15:10:00,859 [INFO] [Sauvegarde] data/historical/Yaounde_peri_labeled.csv
+2026-07-10 13:16:02,486 [INFO] Labellisation de 1 zones : ['Maroua']
+2026-07-10 13:16:02,487 [INFO] 
+=======================================================
+2026-07-10 13:16:02,487 [INFO] [Labels] Traitement de Maroua...
+2026-07-10 13:16:02,487 [INFO] =======================================================
+2026-07-10 13:16:02,514 [INFO] [Config] 'Maroua' → JSON chargé (sahelien_aride) | pluie_normales: [0, 0, 2, 10, 35, 80, 155, 180, 115, 20, 1, 0] mm/mois
+2026-07-10 13:16:02,514 [INFO]   ✅ Config JSON individuelle → régime : sahelien_aride
+2026-07-10 13:16:02,549 [INFO]   [EM-DAT/OCHA] Maroua inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:02,549 [INFO]   [EM-DAT/OCHA] Maroua inondation 2020-08-15→2020-09-15 : 32 jours forcés à 1
+2026-07-10 13:16:02,549 [INFO]   [EM-DAT/OCHA] Maroua inondation 2022-08-01→2022-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:02,549 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 13:16:02,550 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2022-01-01→2022-06-30 : 181 jours forcés à 1
+2026-07-10 13:16:02,550 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 13:16:02,550 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 13:16:02,550 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2019-03-01→2019-05-15 : 76 jours forcés à 1
+2026-07-10 13:16:02,551 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 13:16:02,551 [INFO]     inondation  :  3452/13162 jours positifs (26.2%)
+2026-07-10 13:16:02,551 [INFO]     secheresse  :  4260/13162 jours positifs (32.4%)
+2026-07-10 13:16:02,551 [INFO]     chaleur     :  1670/13162 jours positifs (12.7%)
+2026-07-10 13:16:02,668 [INFO] [Sauvegarde] data/historical/Maroua_labeled.csv
+2026-07-10 13:16:18,446 [INFO] Labellisation de 8 zones : ['Bafoussam', 'Ebolowa', 'Garoua', 'Kribi', 'Kumba', 'Maroua', 'Ngaoundere', 'Yaounde_peri']
+2026-07-10 13:16:18,446 [INFO] 
+=======================================================
+2026-07-10 13:16:18,446 [INFO] [Labels] Traitement de Bafoussam...
+2026-07-10 13:16:18,446 [INFO] =======================================================
+2026-07-10 13:16:18,478 [INFO] [Config] 'Bafoussam' → JSON chargé (tropical_altitude_unimodal) | pluie_normales: [15, 30, 80, 145, 195, 210, 225, 200, 175, 130, 45, 15] mm/mois
+2026-07-10 13:16:18,478 [INFO]   ✅ Config JSON individuelle → régime : tropical_altitude_unimodal
+2026-07-10 13:16:18,513 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2019-10-01→2019-10-31 : 31 jours forcés à 1
+2026-07-10 13:16:18,513 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2020-09-15→2020-10-31 : 47 jours forcés à 1
+2026-07-10 13:16:18,514 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2023-09-01→2023-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,514 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2016-09-20→2016-10-31 : 42 jours forcés à 1
+2026-07-10 13:16:18,514 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 13:16:18,514 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 13:16:18,515 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2021-02-01→2021-04-15 : 74 jours forcés à 1
+2026-07-10 13:16:18,515 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2019-02-01→2019-04-15 : 74 jours forcés à 1
+2026-07-10 13:16:18,515 [INFO] ⚠️  inondation  :   227/13162 jours positifs (1.7%)
+2026-07-10 13:16:18,515 [INFO] ⚠️  secheresse  :  6670/13162 jours positifs (50.7%)
+2026-07-10 13:16:18,515 [INFO]     chaleur     :  2174/13162 jours positifs (16.5%)
+2026-07-10 13:16:18,638 [INFO] [Sauvegarde] data/historical/Bafoussam_labeled.csv
+2026-07-10 13:16:18,638 [INFO] 
+=======================================================
+2026-07-10 13:16:18,638 [INFO] [Labels] Traitement de Ebolowa...
+2026-07-10 13:16:18,638 [INFO] =======================================================
+2026-07-10 13:16:18,654 [INFO] [Config] 'Ebolowa' → JSON chargé (equatorial_bimodal_tardif) | pluie_normales: [45, 60, 120, 160, 180, 150, 70, 110, 185, 230, 175, 60] mm/mois
+2026-07-10 13:16:18,654 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_tardif
+2026-07-10 13:16:18,685 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2021-09-01→2021-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,685 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,685 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2019-09-15→2019-10-31 : 47 jours forcés à 1
+2026-07-10 13:16:18,685 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2017-09-01→2017-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,685 [INFO]   [EM-DAT/OCHA] Ebolowa secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 13:16:18,686 [INFO]   [EM-DAT/OCHA] Ebolowa chaleur 2023-02-15→2023-04-30 : 75 jours forcés à 1
+2026-07-10 13:16:18,686 [INFO] ⚠️  inondation  :   182/9510 jours positifs (1.9%)
+2026-07-10 13:16:18,686 [INFO]     secheresse  :  2865/9510 jours positifs (30.1%)
+2026-07-10 13:16:18,686 [INFO]     chaleur     :   404/9510 jours positifs (4.2%)
+2026-07-10 13:16:18,774 [INFO] [Sauvegarde] data/historical/Ebolowa_labeled.csv
+2026-07-10 13:16:18,774 [INFO] 
+=======================================================
+2026-07-10 13:16:18,774 [INFO] [Labels] Traitement de Garoua...
+2026-07-10 13:16:18,774 [INFO] =======================================================
+2026-07-10 13:16:18,792 [INFO] [Config] 'Garoua' → JSON chargé (soudano_sahelien) | pluie_normales: [0, 2, 10, 25, 65, 120, 190, 215, 175, 65, 5, 0] mm/mois
+2026-07-10 13:16:18,792 [INFO]   ✅ Config JSON individuelle → régime : soudano_sahelien
+2026-07-10 13:16:18,826 [INFO]   [EM-DAT/OCHA] Garoua inondation 2012-08-01→2012-09-15 : 46 jours forcés à 1
+2026-07-10 13:16:18,826 [INFO]   [EM-DAT/OCHA] Garoua inondation 2020-09-01→2020-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,827 [INFO]   [EM-DAT/OCHA] Garoua inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,827 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 13:16:18,827 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2021-01-01→2021-05-31 : 151 jours forcés à 1
+2026-07-10 13:16:18,827 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 13:16:18,828 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 13:16:18,828 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 13:16:18,828 [INFO]     inondation  :  1506/13162 jours positifs (11.4%)
+2026-07-10 13:16:18,828 [INFO] ⚠️  secheresse  :  6143/13162 jours positifs (46.7%)
+2026-07-10 13:16:18,828 [INFO]     chaleur     :  2214/13162 jours positifs (16.8%)
+2026-07-10 13:16:18,936 [INFO] [Sauvegarde] data/historical/Garoua_labeled.csv
+2026-07-10 13:16:18,936 [INFO] 
+=======================================================
+2026-07-10 13:16:18,936 [INFO] [Labels] Traitement de Kribi...
+2026-07-10 13:16:18,936 [INFO] =======================================================
+2026-07-10 13:16:18,951 [INFO] [Config] 'Kribi' → JSON chargé (equatorial_cotier_bimodal) | pluie_normales: [50, 80, 150, 230, 250, 200, 30, 40, 200, 280, 200, 70] mm/mois
+2026-07-10 13:16:18,952 [INFO]   ✅ Config JSON individuelle → régime : equatorial_cotier_bimodal
+2026-07-10 13:16:18,977 [INFO]   [EM-DAT/OCHA] Kribi inondation 2019-06-01→2019-07-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,978 [INFO]   [EM-DAT/OCHA] Kribi inondation 2017-08-01→2017-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:18,978 [INFO]   [EM-DAT/OCHA] Kribi inondation 2021-06-15→2021-07-31 : 47 jours forcés à 1
+2026-07-10 13:16:18,978 [INFO]   [EM-DAT/OCHA] Kribi inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:18,978 [INFO]   [EM-DAT/OCHA] Kribi secheresse 2015-07-01→2015-09-30 : 92 jours forcés à 1
+2026-07-10 13:16:18,978 [INFO]     inondation  :  1745/9526 jours positifs (18.3%)
+2026-07-10 13:16:18,978 [INFO]     secheresse  :  2725/9526 jours positifs (28.6%)
+2026-07-10 13:16:18,978 [INFO] ⚠️  chaleur     :    17/9526 jours positifs (0.2%)
+2026-07-10 13:16:19,064 [INFO] [Sauvegarde] data/historical/Kribi_labeled.csv
+2026-07-10 13:16:19,064 [INFO] 
+=======================================================
+2026-07-10 13:16:19,064 [INFO] [Labels] Traitement de Kumba...
+2026-07-10 13:16:19,064 [INFO] =======================================================
+2026-07-10 13:16:19,080 [INFO] [Config] 'Kumba' → JSON chargé (equatorial_montagnard_humide) | pluie_normales: [60, 90, 175, 280, 345, 315, 180, 210, 310, 375, 265, 90] mm/mois
+2026-07-10 13:16:19,080 [INFO]   ✅ Config JSON individuelle → régime : equatorial_montagnard_humide
+2026-07-10 13:16:19,110 [INFO]   [EM-DAT/OCHA] Kumba inondation 2020-10-01→2020-11-15 : 46 jours forcés à 1
+2026-07-10 13:16:19,110 [INFO]   [EM-DAT/OCHA] Kumba inondation 2018-09-01→2018-10-31 : 61 jours forcés à 1
+2026-07-10 13:16:19,110 [INFO]   [EM-DAT/OCHA] Kumba inondation 2022-09-15→2022-10-31 : 47 jours forcés à 1
+2026-07-10 13:16:19,110 [INFO]   [EM-DAT/OCHA] Kumba inondation 2016-09-01→2016-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:19,111 [INFO]   [EM-DAT/OCHA] Kumba secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 13:16:19,111 [INFO]   [EM-DAT/OCHA] Kumba chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 13:16:19,111 [INFO]     inondation  :   199/9510 jours positifs (2.1%)
+2026-07-10 13:16:19,111 [INFO]     secheresse  :  2532/9510 jours positifs (26.6%)
+2026-07-10 13:16:19,111 [INFO]     chaleur     :  1637/9510 jours positifs (17.2%)
+2026-07-10 13:16:19,199 [INFO] [Sauvegarde] data/historical/Kumba_labeled.csv
+2026-07-10 13:16:19,199 [INFO] 
+=======================================================
+2026-07-10 13:16:19,199 [INFO] [Labels] Traitement de Maroua...
+2026-07-10 13:16:19,199 [INFO] =======================================================
+2026-07-10 13:16:19,218 [INFO] [Config] 'Maroua' → JSON chargé (sahelien_aride) | pluie_normales: [0, 0, 2, 10, 35, 80, 155, 180, 115, 20, 1, 0] mm/mois
+2026-07-10 13:16:19,218 [INFO]   ✅ Config JSON individuelle → régime : sahelien_aride
+2026-07-10 13:16:19,253 [INFO]   [EM-DAT/OCHA] Maroua inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:19,253 [INFO]   [EM-DAT/OCHA] Maroua inondation 2020-08-15→2020-09-15 : 32 jours forcés à 1
+2026-07-10 13:16:19,253 [INFO]   [EM-DAT/OCHA] Maroua inondation 2022-08-01→2022-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:19,253 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2022-01-01→2022-06-30 : 181 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2019-03-01→2019-05-15 : 76 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 13:16:19,254 [INFO]     inondation  :  3452/13162 jours positifs (26.2%)
+2026-07-10 13:16:19,255 [INFO]     secheresse  :  4260/13162 jours positifs (32.4%)
+2026-07-10 13:16:19,255 [INFO]     chaleur     :  1670/13162 jours positifs (12.7%)
+2026-07-10 13:16:19,368 [INFO] [Sauvegarde] data/historical/Maroua_labeled.csv
+2026-07-10 13:16:19,368 [INFO] 
+=======================================================
+2026-07-10 13:16:19,368 [INFO] [Labels] Traitement de Ngaoundere...
+2026-07-10 13:16:19,368 [INFO] =======================================================
+2026-07-10 13:16:19,388 [INFO] [Config] 'Ngaoundere' → JSON chargé (tropical_adamaoua_unimodal) | pluie_normales: [5, 10, 35, 80, 150, 205, 245, 255, 215, 130, 30, 5] mm/mois
+2026-07-10 13:16:19,388 [INFO]   ✅ Config JSON individuelle → régime : tropical_adamaoua_unimodal
+2026-07-10 13:16:19,423 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2020-08-10→2020-09-10 : 32 jours forcés à 1
+2026-07-10 13:16:19,423 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2019-09-01→2019-10-15 : 45 jours forcés à 1
+2026-07-10 13:16:19,423 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2023-08-01→2023-09-15 : 46 jours forcés à 1
+2026-07-10 13:16:19,423 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2018-01-01→2018-03-31 : 90 jours forcés à 1
+2026-07-10 13:16:19,423 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2021-11-01→2022-03-31 : 151 jours forcés à 1
+2026-07-10 13:16:19,424 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2015-11-01→2016-03-31 : 152 jours forcés à 1
+2026-07-10 13:16:19,424 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2021-02-01→2021-04-30 : 89 jours forcés à 1
+2026-07-10 13:16:19,424 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2019-02-15→2019-04-30 : 75 jours forcés à 1
+2026-07-10 13:16:19,424 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 13:16:19,424 [INFO]     inondation  :   722/13162 jours positifs (5.5%)
+2026-07-10 13:16:19,424 [INFO] ⚠️  secheresse  :  6530/13162 jours positifs (49.6%)
+2026-07-10 13:16:19,424 [INFO]     chaleur     :  2897/13162 jours positifs (22.0%)
+2026-07-10 13:16:19,542 [INFO] [Sauvegarde] data/historical/Ngaoundere_labeled.csv
+2026-07-10 13:16:19,542 [INFO] 
+=======================================================
+2026-07-10 13:16:19,542 [INFO] [Labels] Traitement de Yaounde_peri...
+2026-07-10 13:16:19,542 [INFO] =======================================================
+2026-07-10 13:16:19,558 [INFO] [Config] 'Yaounde_peri' → JSON chargé (equatorial_bimodal_periurbain) | pluie_normales: [25, 55, 130, 185, 195, 145, 55, 80, 195, 230, 135, 35] mm/mois
+2026-07-10 13:16:19,558 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_periurbain
+2026-07-10 13:16:19,584 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2020-09-01→2020-10-31 : 61 jours forcés à 1
+2026-07-10 13:16:19,585 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2019-08-15→2019-09-30 : 47 jours forcés à 1
+2026-07-10 13:16:19,585 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2022-08-20→2022-09-30 : 42 jours forcés à 1
+2026-07-10 13:16:19,585 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2016-08-01→2016-09-30 : 61 jours forcés à 1
+2026-07-10 13:16:19,585 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 13:16:19,585 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 13:16:19,586 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2022-02-01→2022-04-30 : 89 jours forcés à 1
+2026-07-10 13:16:19,586 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2019-02-01→2019-04-30 : 89 jours forcés à 1
+2026-07-10 13:16:19,586 [INFO]     inondation  :   632/9510 jours positifs (6.6%)
+2026-07-10 13:16:19,586 [INFO] ⚠️  secheresse  :  4385/9510 jours positifs (46.1%)
+2026-07-10 13:16:19,586 [INFO]     chaleur     :   371/9510 jours positifs (3.9%)
+2026-07-10 13:16:19,671 [INFO] [Sauvegarde] data/historical/Yaounde_peri_labeled.csv
+2026-07-10 15:08:47,598 [INFO] Labellisation de 8 zones : ['Bafoussam', 'Ebolowa', 'Garoua', 'Kribi', 'Kumba', 'Maroua', 'Ngaoundere', 'Yaounde_peri']
+2026-07-10 15:08:47,599 [INFO] 
+=======================================================
+2026-07-10 15:08:47,599 [INFO] [Labels] Traitement de Bafoussam...
+2026-07-10 15:08:47,599 [INFO] =======================================================
+2026-07-10 15:08:47,635 [INFO] [Config] 'Bafoussam' → JSON chargé (tropical_altitude_unimodal) | pluie_normales: [15, 30, 80, 145, 195, 210, 225, 200, 175, 130, 45, 15] mm/mois
+2026-07-10 15:08:47,635 [INFO]   ✅ Config JSON individuelle → régime : tropical_altitude_unimodal
+2026-07-10 15:08:47,711 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2019-10-01→2019-10-31 : 31 jours forcés à 1
+2026-07-10 15:08:47,712 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2020-09-15→2020-10-31 : 47 jours forcés à 1
+2026-07-10 15:08:47,713 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2023-09-01→2023-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:47,713 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2016-09-20→2016-10-31 : 42 jours forcés à 1
+2026-07-10 15:08:47,713 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 15:08:47,714 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 15:08:47,715 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2021-02-01→2021-04-15 : 74 jours forcés à 1
+2026-07-10 15:08:47,715 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2019-02-01→2019-04-15 : 74 jours forcés à 1
+2026-07-10 15:08:47,715 [INFO] ⚠️  inondation  :   227/13164 jours positifs (1.7%)
+2026-07-10 15:08:47,715 [INFO]     secheresse  :   610/13164 jours positifs (4.6%)
+2026-07-10 15:08:47,715 [INFO]     chaleur     :  2174/13164 jours positifs (16.5%)
+2026-07-10 15:08:47,886 [INFO] [Sauvegarde] data/historical/Bafoussam_labeled.csv
+2026-07-10 15:08:47,886 [INFO] 
+=======================================================
+2026-07-10 15:08:47,886 [INFO] [Labels] Traitement de Ebolowa...
+2026-07-10 15:08:47,886 [INFO] =======================================================
+2026-07-10 15:08:47,908 [INFO] [Config] 'Ebolowa' → JSON chargé (equatorial_bimodal_tardif) | pluie_normales: [45, 60, 120, 160, 180, 150, 70, 110, 185, 230, 175, 60] mm/mois
+2026-07-10 15:08:47,908 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_tardif
+2026-07-10 15:08:47,944 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2021-09-01→2021-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:47,944 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:47,945 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2019-09-15→2019-10-31 : 47 jours forcés à 1
+2026-07-10 15:08:47,945 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2017-09-01→2017-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:47,945 [INFO]   [EM-DAT/OCHA] Ebolowa secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 15:08:47,945 [INFO]   [EM-DAT/OCHA] Ebolowa chaleur 2023-02-15→2023-04-30 : 75 jours forcés à 1
+2026-07-10 15:08:47,945 [INFO] ⚠️  inondation  :   182/9512 jours positifs (1.9%)
+2026-07-10 15:08:47,945 [INFO]     secheresse  :   750/9512 jours positifs (7.9%)
+2026-07-10 15:08:47,945 [INFO]     chaleur     :   404/9512 jours positifs (4.2%)
+2026-07-10 15:08:48,041 [INFO] [Sauvegarde] data/historical/Ebolowa_labeled.csv
+2026-07-10 15:08:48,041 [INFO] 
+=======================================================
+2026-07-10 15:08:48,041 [INFO] [Labels] Traitement de Garoua...
+2026-07-10 15:08:48,041 [INFO] =======================================================
+2026-07-10 15:08:48,061 [INFO] [Config] 'Garoua' → JSON chargé (soudano_sahelien) | pluie_normales: [0, 2, 10, 25, 65, 120, 190, 215, 175, 65, 5, 0] mm/mois
+2026-07-10 15:08:48,061 [INFO]   ✅ Config JSON individuelle → régime : soudano_sahelien
+2026-07-10 15:08:48,097 [INFO]   [EM-DAT/OCHA] Garoua inondation 2012-08-01→2012-09-15 : 46 jours forcés à 1
+2026-07-10 15:08:48,097 [INFO]   [EM-DAT/OCHA] Garoua inondation 2020-09-01→2020-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,097 [INFO]   [EM-DAT/OCHA] Garoua inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2021-01-01→2021-05-31 : 151 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 15:08:48,098 [INFO]     inondation  :  1506/13164 jours positifs (11.4%)
+2026-07-10 15:08:48,099 [INFO]     secheresse  :  2531/13164 jours positifs (19.2%)
+2026-07-10 15:08:48,099 [INFO]     chaleur     :  2216/13164 jours positifs (16.8%)
+2026-07-10 15:08:48,207 [INFO] [Sauvegarde] data/historical/Garoua_labeled.csv
+2026-07-10 15:08:48,207 [INFO] 
+=======================================================
+2026-07-10 15:08:48,207 [INFO] [Labels] Traitement de Kribi...
+2026-07-10 15:08:48,207 [INFO] =======================================================
+2026-07-10 15:08:48,223 [INFO] [Config] 'Kribi' → JSON chargé (equatorial_cotier_bimodal) | pluie_normales: [50, 80, 150, 230, 250, 200, 30, 40, 200, 280, 200, 70] mm/mois
+2026-07-10 15:08:48,223 [INFO]   ✅ Config JSON individuelle → régime : equatorial_cotier_bimodal
+2026-07-10 15:08:48,250 [INFO]   [EM-DAT/OCHA] Kribi inondation 2019-06-01→2019-07-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,250 [INFO]   [EM-DAT/OCHA] Kribi inondation 2017-08-01→2017-09-30 : 61 jours forcés à 1
+2026-07-10 15:08:48,250 [INFO]   [EM-DAT/OCHA] Kribi inondation 2021-06-15→2021-07-31 : 47 jours forcés à 1
+2026-07-10 15:08:48,250 [INFO]   [EM-DAT/OCHA] Kribi inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,251 [INFO]   [EM-DAT/OCHA] Kribi secheresse 2015-07-01→2015-09-30 : 92 jours forcés à 1
+2026-07-10 15:08:48,251 [INFO]     inondation  :  1746/9528 jours positifs (18.3%)
+2026-07-10 15:08:48,251 [INFO]     secheresse  :   692/9528 jours positifs (7.3%)
+2026-07-10 15:08:48,251 [INFO] ⚠️  chaleur     :    17/9528 jours positifs (0.2%)
+2026-07-10 15:08:48,344 [INFO] [Sauvegarde] data/historical/Kribi_labeled.csv
+2026-07-10 15:08:48,344 [INFO] 
+=======================================================
+2026-07-10 15:08:48,344 [INFO] [Labels] Traitement de Kumba...
+2026-07-10 15:08:48,344 [INFO] =======================================================
+2026-07-10 15:08:48,371 [INFO] [Config] 'Kumba' → JSON chargé (equatorial_montagnard_humide) | pluie_normales: [60, 90, 175, 280, 345, 315, 180, 210, 310, 375, 265, 90] mm/mois
+2026-07-10 15:08:48,371 [INFO]   ✅ Config JSON individuelle → régime : equatorial_montagnard_humide
+2026-07-10 15:08:48,419 [INFO]   [EM-DAT/OCHA] Kumba inondation 2020-10-01→2020-11-15 : 46 jours forcés à 1
+2026-07-10 15:08:48,419 [INFO]   [EM-DAT/OCHA] Kumba inondation 2018-09-01→2018-10-31 : 61 jours forcés à 1
+2026-07-10 15:08:48,419 [INFO]   [EM-DAT/OCHA] Kumba inondation 2022-09-15→2022-10-31 : 47 jours forcés à 1
+2026-07-10 15:08:48,420 [INFO]   [EM-DAT/OCHA] Kumba inondation 2016-09-01→2016-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,420 [INFO]   [EM-DAT/OCHA] Kumba secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 15:08:48,420 [INFO]   [EM-DAT/OCHA] Kumba chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 15:08:48,420 [INFO]     inondation  :   199/9512 jours positifs (2.1%)
+2026-07-10 15:08:48,420 [INFO]     secheresse  :   590/9512 jours positifs (6.2%)
+2026-07-10 15:08:48,420 [INFO]     chaleur     :  1637/9512 jours positifs (17.2%)
+2026-07-10 15:08:48,538 [INFO] [Sauvegarde] data/historical/Kumba_labeled.csv
+2026-07-10 15:08:48,539 [INFO] 
+=======================================================
+2026-07-10 15:08:48,539 [INFO] [Labels] Traitement de Maroua...
+2026-07-10 15:08:48,539 [INFO] =======================================================
+2026-07-10 15:08:48,565 [INFO] [Config] 'Maroua' → JSON chargé (sahelien_aride) | pluie_normales: [0, 0, 2, 10, 35, 80, 155, 180, 115, 20, 1, 0] mm/mois
+2026-07-10 15:08:48,565 [INFO]   ✅ Config JSON individuelle → régime : sahelien_aride
+2026-07-10 15:08:48,609 [INFO]   [EM-DAT/OCHA] Maroua inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-10 15:08:48,609 [INFO]   [EM-DAT/OCHA] Maroua inondation 2020-08-15→2020-09-15 : 32 jours forcés à 1
+2026-07-10 15:08:48,610 [INFO]   [EM-DAT/OCHA] Maroua inondation 2022-08-01→2022-09-30 : 61 jours forcés à 1
+2026-07-10 15:08:48,610 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 15:08:48,610 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2022-01-01→2022-06-30 : 181 jours forcés à 1
+2026-07-10 15:08:48,610 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 15:08:48,610 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 15:08:48,611 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2019-03-01→2019-05-15 : 76 jours forcés à 1
+2026-07-10 15:08:48,611 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 15:08:48,611 [INFO]     inondation  :  3452/13164 jours positifs (26.2%)
+2026-07-10 15:08:48,611 [INFO]     secheresse  :   550/13164 jours positifs (4.2%)
+2026-07-10 15:08:48,611 [INFO]     chaleur     :  1670/13164 jours positifs (12.7%)
+2026-07-10 15:08:48,752 [INFO] [Sauvegarde] data/historical/Maroua_labeled.csv
+2026-07-10 15:08:48,752 [INFO] 
+=======================================================
+2026-07-10 15:08:48,752 [INFO] [Labels] Traitement de Ngaoundere...
+2026-07-10 15:08:48,752 [INFO] =======================================================
+2026-07-10 15:08:48,775 [INFO] [Config] 'Ngaoundere' → JSON chargé (tropical_adamaoua_unimodal) | pluie_normales: [5, 10, 35, 80, 150, 205, 245, 255, 215, 130, 30, 5] mm/mois
+2026-07-10 15:08:48,775 [INFO]   ✅ Config JSON individuelle → régime : tropical_adamaoua_unimodal
+2026-07-10 15:08:48,811 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2020-08-10→2020-09-10 : 32 jours forcés à 1
+2026-07-10 15:08:48,811 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2019-09-01→2019-10-15 : 45 jours forcés à 1
+2026-07-10 15:08:48,812 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2023-08-01→2023-09-15 : 46 jours forcés à 1
+2026-07-10 15:08:48,812 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2018-01-01→2018-03-31 : 90 jours forcés à 1
+2026-07-10 15:08:48,812 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2021-11-01→2022-03-31 : 151 jours forcés à 1
+2026-07-10 15:08:48,812 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2015-11-01→2016-03-31 : 152 jours forcés à 1
+2026-07-10 15:08:48,813 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2021-02-01→2021-04-30 : 89 jours forcés à 1
+2026-07-10 15:08:48,813 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2019-02-15→2019-04-30 : 75 jours forcés à 1
+2026-07-10 15:08:48,813 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 15:08:48,813 [INFO]     inondation  :   722/13164 jours positifs (5.5%)
+2026-07-10 15:08:48,813 [INFO]     secheresse  :   725/13164 jours positifs (5.5%)
+2026-07-10 15:08:48,813 [INFO]     chaleur     :  2897/13164 jours positifs (22.0%)
+2026-07-10 15:08:49,008 [INFO] [Sauvegarde] data/historical/Ngaoundere_labeled.csv
+2026-07-10 15:08:49,009 [INFO] 
+=======================================================
+2026-07-10 15:08:49,009 [INFO] [Labels] Traitement de Yaounde_peri...
+2026-07-10 15:08:49,009 [INFO] =======================================================
+2026-07-10 15:08:49,100 [INFO] [Config] 'Yaounde_peri' → JSON chargé (equatorial_bimodal_periurbain) | pluie_normales: [25, 55, 130, 185, 195, 145, 55, 80, 195, 230, 135, 35] mm/mois
+2026-07-10 15:08:49,155 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_periurbain
+2026-07-10 15:08:49,190 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2020-09-01→2020-10-31 : 61 jours forcés à 1
+2026-07-10 15:08:49,191 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2019-08-15→2019-09-30 : 47 jours forcés à 1
+2026-07-10 15:08:49,191 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2022-08-20→2022-09-30 : 42 jours forcés à 1
+2026-07-10 15:08:49,191 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2016-08-01→2016-09-30 : 61 jours forcés à 1
+2026-07-10 15:08:49,191 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 15:08:49,192 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 15:08:49,192 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2022-02-01→2022-04-30 : 89 jours forcés à 1
+2026-07-10 15:08:49,192 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2019-02-01→2019-04-30 : 89 jours forcés à 1
+2026-07-10 15:08:49,192 [INFO]     inondation  :   634/9512 jours positifs (6.7%)
+2026-07-10 15:08:49,192 [INFO]     secheresse  :  1181/9512 jours positifs (12.4%)
+2026-07-10 15:08:49,192 [INFO]     chaleur     :   371/9512 jours positifs (3.9%)
+2026-07-10 15:08:49,304 [INFO] [Sauvegarde] data/historical/Yaounde_peri_labeled.csv
+2026-07-10 15:13:25,989 [INFO] Labellisation de 1 zones : ['Garoua']
+2026-07-10 15:13:25,989 [INFO] 
+=======================================================
+2026-07-10 15:13:25,989 [INFO] [Labels] Traitement de Garoua...
+2026-07-10 15:13:25,989 [INFO] =======================================================
+2026-07-10 15:13:26,022 [INFO] [Config] 'Garoua' → JSON chargé (soudano_sahelien) | pluie_normales: [0, 0, 1, 21, 62, 72, 139, 174, 124, 51, 2, 0] mm/mois
+2026-07-10 15:13:26,023 [INFO]   ✅ Config JSON individuelle → régime : soudano_sahelien
+2026-07-10 15:13:26,085 [INFO]   [EM-DAT/OCHA] Garoua inondation 2012-08-01→2012-09-15 : 46 jours forcés à 1
+2026-07-10 15:13:26,086 [INFO]   [EM-DAT/OCHA] Garoua inondation 2020-09-01→2020-10-15 : 45 jours forcés à 1
+2026-07-10 15:13:26,086 [INFO]   [EM-DAT/OCHA] Garoua inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:13:26,087 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 15:13:26,087 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2021-01-01→2021-05-31 : 151 jours forcés à 1
+2026-07-10 15:13:26,087 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 15:13:26,088 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 15:13:26,088 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 15:13:26,088 [INFO]     inondation  :  1574/13164 jours positifs (12.0%)
+2026-07-10 15:13:26,088 [INFO]     secheresse  :   519/13164 jours positifs (3.9%)
+2026-07-10 15:13:26,088 [INFO]     chaleur     :  2216/13164 jours positifs (16.8%)
+2026-07-10 15:13:26,346 [INFO] [Sauvegarde] data/historical/Garoua_labeled.csv
+2026-07-10 15:43:53,313 [INFO] Labellisation de 8 zones : ['Bafoussam', 'Ebolowa', 'Garoua', 'Kribi', 'Kumba', 'Maroua', 'Ngaoundere', 'Yaounde_peri']
+2026-07-10 15:43:53,314 [INFO] 
+=======================================================
+2026-07-10 15:43:53,314 [INFO] [Labels] Traitement de Bafoussam...
+2026-07-10 15:43:53,314 [INFO] =======================================================
+2026-07-10 15:43:53,338 [INFO] [Config] 'Bafoussam' → JSON chargé (tropical_altitude_unimodal) | pluie_normales: [2, 7, 40, 114, 136, 159, 238, 250, 232, 175, 48, 3] mm/mois
+2026-07-10 15:43:53,338 [INFO]   ✅ Config JSON individuelle → régime : tropical_altitude_unimodal
+2026-07-10 15:43:53,372 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2019-10-01→2019-10-31 : 31 jours forcés à 1
+2026-07-10 15:43:53,372 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2020-09-15→2020-10-31 : 47 jours forcés à 1
+2026-07-10 15:43:53,373 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2023-09-01→2023-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,373 [INFO]   [EM-DAT/OCHA] Bafoussam inondation 2016-09-20→2016-10-31 : 42 jours forcés à 1
+2026-07-10 15:43:53,373 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 15:43:53,373 [INFO]   [EM-DAT/OCHA] Bafoussam secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 15:43:53,374 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2021-02-01→2021-04-15 : 74 jours forcés à 1
+2026-07-10 15:43:53,374 [INFO]   [EM-DAT/OCHA] Bafoussam chaleur 2019-02-01→2019-04-15 : 74 jours forcés à 1
+2026-07-10 15:43:53,374 [INFO]     inondation  :   269/13164 jours positifs (2.0%)
+2026-07-10 15:43:53,374 [INFO]     secheresse  :   423/13164 jours positifs (3.2%)
+2026-07-10 15:43:53,374 [INFO]     chaleur     :  2174/13164 jours positifs (16.5%)
+2026-07-10 15:43:53,500 [INFO] [Sauvegarde] data/historical/Bafoussam_labeled.csv
+2026-07-10 15:43:53,501 [INFO] 
+=======================================================
+2026-07-10 15:43:53,501 [INFO] [Labels] Traitement de Ebolowa...
+2026-07-10 15:43:53,501 [INFO] =======================================================
+2026-07-10 15:43:53,517 [INFO] [Config] 'Ebolowa' → JSON chargé (equatorial_bimodal_tardif) | pluie_normales: [57, 83, 167, 211, 203, 187, 140, 136, 246, 286, 202, 82] mm/mois
+2026-07-10 15:43:53,517 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_tardif
+2026-07-10 15:43:53,548 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2021-09-01→2021-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,548 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,548 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2019-09-15→2019-10-31 : 47 jours forcés à 1
+2026-07-10 15:43:53,548 [INFO]   [EM-DAT/OCHA] Ebolowa inondation 2017-09-01→2017-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,548 [INFO]   [EM-DAT/OCHA] Ebolowa secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 15:43:53,549 [INFO]   [EM-DAT/OCHA] Ebolowa chaleur 2023-02-15→2023-04-30 : 75 jours forcés à 1
+2026-07-10 15:43:53,549 [INFO] ⚠️  inondation  :   182/9512 jours positifs (1.9%)
+2026-07-10 15:43:53,549 [INFO]     secheresse  :   885/9512 jours positifs (9.3%)
+2026-07-10 15:43:53,549 [INFO]     chaleur     :   404/9512 jours positifs (4.2%)
+2026-07-10 15:43:53,637 [INFO] [Sauvegarde] data/historical/Ebolowa_labeled.csv
+2026-07-10 15:43:53,637 [INFO] 
+=======================================================
+2026-07-10 15:43:53,637 [INFO] [Labels] Traitement de Garoua...
+2026-07-10 15:43:53,637 [INFO] =======================================================
+2026-07-10 15:43:53,656 [INFO] [Config] 'Garoua' → JSON chargé (soudano_sahelien) | pluie_normales: [0, 0, 1, 21, 62, 72, 139, 174, 124, 51, 2, 0] mm/mois
+2026-07-10 15:43:53,656 [INFO]   ✅ Config JSON individuelle → régime : soudano_sahelien
+2026-07-10 15:43:53,791 [INFO]   [EM-DAT/OCHA] Garoua inondation 2012-08-01→2012-09-15 : 46 jours forcés à 1
+2026-07-10 15:43:53,793 [INFO]   [EM-DAT/OCHA] Garoua inondation 2020-09-01→2020-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,800 [INFO]   [EM-DAT/OCHA] Garoua inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,801 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 15:43:53,801 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2021-01-01→2021-05-31 : 151 jours forcés à 1
+2026-07-10 15:43:53,801 [INFO]   [EM-DAT/OCHA] Garoua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 15:43:53,801 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 15:43:53,802 [INFO]   [EM-DAT/OCHA] Garoua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 15:43:53,803 [INFO]     inondation  :   523/13164 jours positifs (4.0%)
+2026-07-10 15:43:53,803 [INFO]     secheresse  :   519/13164 jours positifs (3.9%)
+2026-07-10 15:43:53,803 [INFO]     chaleur     :  2216/13164 jours positifs (16.8%)
+2026-07-10 15:43:53,918 [INFO] [Sauvegarde] data/historical/Garoua_labeled.csv
+2026-07-10 15:43:53,919 [INFO] 
+=======================================================
+2026-07-10 15:43:53,919 [INFO] [Labels] Traitement de Kribi...
+2026-07-10 15:43:53,919 [INFO] =======================================================
+2026-07-10 15:43:53,935 [INFO] [Config] 'Kribi' → JSON chargé (equatorial_cotier_bimodal) | pluie_normales: [102, 139, 221, 249, 301, 290, 224, 270, 352, 350, 281, 132] mm/mois
+2026-07-10 15:43:53,935 [INFO]   ✅ Config JSON individuelle → régime : equatorial_cotier_bimodal
+2026-07-10 15:43:53,963 [INFO]   [EM-DAT/OCHA] Kribi inondation 2019-06-01→2019-07-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,963 [INFO]   [EM-DAT/OCHA] Kribi inondation 2017-08-01→2017-09-30 : 61 jours forcés à 1
+2026-07-10 15:43:53,963 [INFO]   [EM-DAT/OCHA] Kribi inondation 2021-06-15→2021-07-31 : 47 jours forcés à 1
+2026-07-10 15:43:53,963 [INFO]   [EM-DAT/OCHA] Kribi inondation 2022-09-01→2022-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:53,964 [INFO]   [EM-DAT/OCHA] Kribi secheresse 2015-07-01→2015-09-30 : 92 jours forcés à 1
+2026-07-10 15:43:53,964 [INFO]     inondation  :  1062/9528 jours positifs (11.1%)
+2026-07-10 15:43:53,964 [INFO]     secheresse  :   972/9528 jours positifs (10.2%)
+2026-07-10 15:43:53,964 [INFO] ⚠️  chaleur     :    17/9528 jours positifs (0.2%)
+2026-07-10 15:43:54,059 [INFO] [Sauvegarde] data/historical/Kribi_labeled.csv
+2026-07-10 15:43:54,060 [INFO] 
+=======================================================
+2026-07-10 15:43:54,060 [INFO] [Labels] Traitement de Kumba...
+2026-07-10 15:43:54,060 [INFO] =======================================================
+2026-07-10 15:43:54,077 [INFO] [Config] 'Kumba' → JSON chargé (equatorial_montagnard_humide) | pluie_normales: [24, 49, 134, 177, 186, 264, 318, 402, 340, 275, 150, 32] mm/mois
+2026-07-10 15:43:54,077 [INFO]   ✅ Config JSON individuelle → régime : equatorial_montagnard_humide
+2026-07-10 15:43:54,108 [INFO]   [EM-DAT/OCHA] Kumba inondation 2020-10-01→2020-11-15 : 46 jours forcés à 1
+2026-07-10 15:43:54,109 [INFO]   [EM-DAT/OCHA] Kumba inondation 2018-09-01→2018-10-31 : 61 jours forcés à 1
+2026-07-10 15:43:54,109 [INFO]   [EM-DAT/OCHA] Kumba inondation 2022-09-15→2022-10-31 : 47 jours forcés à 1
+2026-07-10 15:43:54,109 [INFO]   [EM-DAT/OCHA] Kumba inondation 2016-09-01→2016-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:54,109 [INFO]   [EM-DAT/OCHA] Kumba secheresse 2016-01-01→2016-02-28 : 59 jours forcés à 1
+2026-07-10 15:43:54,110 [INFO]   [EM-DAT/OCHA] Kumba chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 15:43:54,110 [INFO]     inondation  :   199/9512 jours positifs (2.1%)
+2026-07-10 15:43:54,110 [INFO]     secheresse  :   372/9512 jours positifs (3.9%)
+2026-07-10 15:43:54,110 [INFO]     chaleur     :  1637/9512 jours positifs (17.2%)
+2026-07-10 15:43:54,200 [INFO] [Sauvegarde] data/historical/Kumba_labeled.csv
+2026-07-10 15:43:54,200 [INFO] 
+=======================================================
+2026-07-10 15:43:54,200 [INFO] [Labels] Traitement de Maroua...
+2026-07-10 15:43:54,200 [INFO] =======================================================
+2026-07-10 15:43:54,220 [INFO] [Config] 'Maroua' → JSON chargé (sahelien_aride) | pluie_normales: [0, 0, 0, 8, 32, 67, 131, 195, 113, 28, 0, 0] mm/mois
+2026-07-10 15:43:54,220 [INFO]   ✅ Config JSON individuelle → régime : sahelien_aride
+2026-07-10 15:43:54,255 [INFO]   [EM-DAT/OCHA] Maroua inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-10 15:43:54,255 [INFO]   [EM-DAT/OCHA] Maroua inondation 2020-08-15→2020-09-15 : 32 jours forcés à 1
+2026-07-10 15:43:54,256 [INFO]   [EM-DAT/OCHA] Maroua inondation 2022-08-01→2022-09-30 : 61 jours forcés à 1
+2026-07-10 15:43:54,256 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2017-04-01→2017-09-30 : 183 jours forcés à 1
+2026-07-10 15:43:54,256 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2022-01-01→2022-06-30 : 181 jours forcés à 1
+2026-07-10 15:43:54,256 [INFO]   [EM-DAT/OCHA] Maroua secheresse 2015-01-01→2015-06-30 : 181 jours forcés à 1
+2026-07-10 15:43:54,257 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2016-03-01→2016-05-31 : 92 jours forcés à 1
+2026-07-10 15:43:54,257 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2019-03-01→2019-05-15 : 76 jours forcés à 1
+2026-07-10 15:43:54,257 [INFO]   [EM-DAT/OCHA] Maroua chaleur 2023-03-15→2023-05-15 : 62 jours forcés à 1
+2026-07-10 15:43:54,257 [INFO]     inondation  :  1664/13164 jours positifs (12.6%)
+2026-07-10 15:43:54,257 [INFO]     secheresse  :   547/13164 jours positifs (4.2%)
+2026-07-10 15:43:54,257 [INFO]     chaleur     :  1670/13164 jours positifs (12.7%)
+2026-07-10 15:43:54,399 [INFO] [Sauvegarde] data/historical/Maroua_labeled.csv
+2026-07-10 15:43:54,399 [INFO] 
+=======================================================
+2026-07-10 15:43:54,399 [INFO] [Labels] Traitement de Ngaoundere...
+2026-07-10 15:43:54,399 [INFO] =======================================================
+2026-07-10 15:43:54,420 [INFO] [Config] 'Ngaoundere' → JSON chargé (tropical_adamaoua_unimodal) | pluie_normales: [0, 2, 21, 146, 248, 305, 320, 351, 328, 175, 18, 0] mm/mois
+2026-07-10 15:43:54,420 [INFO]   ✅ Config JSON individuelle → régime : tropical_adamaoua_unimodal
+2026-07-10 15:43:54,456 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2020-08-10→2020-09-10 : 32 jours forcés à 1
+2026-07-10 15:43:54,456 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2019-09-01→2019-10-15 : 45 jours forcés à 1
+2026-07-10 15:43:54,456 [INFO]   [EM-DAT/OCHA] Ngaoundere inondation 2023-08-01→2023-09-15 : 46 jours forcés à 1
+2026-07-10 15:43:54,456 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2018-01-01→2018-03-31 : 90 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2021-11-01→2022-03-31 : 151 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]   [EM-DAT/OCHA] Ngaoundere secheresse 2015-11-01→2016-03-31 : 152 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2021-02-01→2021-04-30 : 89 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2019-02-15→2019-04-30 : 75 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]   [EM-DAT/OCHA] Ngaoundere chaleur 2023-02-01→2023-04-15 : 74 jours forcés à 1
+2026-07-10 15:43:54,457 [INFO]     inondation  :   779/13164 jours positifs (5.9%)
+2026-07-10 15:43:54,458 [INFO]     secheresse  :   743/13164 jours positifs (5.6%)
+2026-07-10 15:43:54,458 [INFO]     chaleur     :  2897/13164 jours positifs (22.0%)
+2026-07-10 15:43:54,580 [INFO] [Sauvegarde] data/historical/Ngaoundere_labeled.csv
+2026-07-10 15:43:54,581 [INFO] 
+=======================================================
+2026-07-10 15:43:54,581 [INFO] [Labels] Traitement de Yaounde_peri...
+2026-07-10 15:43:54,581 [INFO] =======================================================
+2026-07-10 15:43:54,596 [INFO] [Config] 'Yaounde_peri' → JSON chargé (equatorial_bimodal_periurbain) | pluie_normales: [29, 51, 120, 166, 166, 158, 126, 119, 197, 232, 156, 43] mm/mois
+2026-07-10 15:43:54,596 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal_periurbain
+2026-07-10 15:43:54,624 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2020-09-01→2020-10-31 : 61 jours forcés à 1
+2026-07-10 15:43:54,624 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2019-08-15→2019-09-30 : 47 jours forcés à 1
+2026-07-10 15:43:54,624 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2022-08-20→2022-09-30 : 42 jours forcés à 1
+2026-07-10 15:43:54,624 [INFO]   [EM-DAT/OCHA] Yaounde_peri inondation 2016-08-01→2016-09-30 : 61 jours forcés à 1
+2026-07-10 15:43:54,624 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2016-01-01→2016-03-31 : 91 jours forcés à 1
+2026-07-10 15:43:54,625 [INFO]   [EM-DAT/OCHA] Yaounde_peri secheresse 2021-12-01→2022-02-28 : 90 jours forcés à 1
+2026-07-10 15:43:54,625 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2022-02-01→2022-04-30 : 89 jours forcés à 1
+2026-07-10 15:43:54,625 [INFO]   [EM-DAT/OCHA] Yaounde_peri chaleur 2019-02-01→2019-04-30 : 89 jours forcés à 1
+2026-07-10 15:43:54,625 [INFO]     inondation  :   921/9512 jours positifs (9.7%)
+2026-07-10 15:43:54,625 [INFO]     secheresse  :  1120/9512 jours positifs (11.8%)
+2026-07-10 15:43:54,625 [INFO]     chaleur     :   371/9512 jours positifs (3.9%)
+2026-07-10 15:43:54,717 [INFO] [Sauvegarde] data/historical/Yaounde_peri_labeled.csv

@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
+import '../models/custom_location.dart';
 
 /// Coordonnées GPS retournées par getPosition()
 class GpsPosition {
@@ -46,27 +47,39 @@ class ApiService {
       }
     }
 
+    // Vérifier que le service de localisation est activé
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return const GpsPosition(2.9399, 9.9094); // Fallback Kribi
+    }
+
     // Vérifier les permissions GPS
     LocationPermission perm = await Geolocator.checkPermission();
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
-    if (perm == LocationPermission.deniedForever) {
+    if (perm == LocationPermission.deniedForever ||
+        perm == LocationPermission.denied) {
       return const GpsPosition(2.9399, 9.9094); // Fallback Kribi
     }
 
-    final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.medium,
-    );
-    return GpsPosition(pos.latitude, pos.longitude);
+    try {
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      ).timeout(const Duration(seconds: 10));
+      return GpsPosition(pos.latitude, pos.longitude);
+    } catch (_) {
+      return const GpsPosition(2.9399, 9.9094); // Fallback Kribi
+    }
   }
 
-  // ── GET /api/risk — GPS-aware ou zone explicite ───────────────────
+  // ── GET /api/risk — GPS-aware, zone explicite, ou coordonnées explicites ──
   //
-  // Si [zone] est fourni : appelle /api/risk?zone=<zone>
-  // Sinon               : appelle /api/nearest?lat=X&lon=Y  (GPS auto)
+  // Si [zone] est fourni       : appelle /api/risk?zone=<zone>
+  // Sinon si [lat]/[lon] fournis : appelle /api/nearest?lat=X&lon=Y (endroit personnalisé)
+  // Sinon                      : appelle /api/nearest?lat=X&lon=Y  (GPS auto)
 
-  static Future<RiskReport> getRisk({String? zone}) async {
+  static Future<RiskReport> getRisk({String? zone, double? lat, double? lon}) async {
     final base = await getServerUrl();
 
     if (zone != null) {
@@ -86,8 +99,8 @@ class ApiService {
       return _nearestToRiskReport(json, null);
     }
 
-    // Mode GPS automatique
-    final pos = await getPosition();
+    // Mode coordonnées (endroit personnalisé) ou GPS automatique
+    final pos = (lat != null && lon != null) ? GpsPosition(lat, lon) : await getPosition();
     final uri = Uri.parse('$base/api/nearest').replace(
       queryParameters: {
         'lat': pos.lat.toString(),
@@ -105,6 +118,81 @@ class ApiService {
     final json =
         jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     return _nearestToRiskReport(json, pos);
+  }
+
+  // ── Recherche de ville (géocodage) ──────────────────────────────────
+
+  /// Cherche une ville par son nom via Nominatim (jusqu'à 5 résultats), pour
+  /// que l'utilisateur puisse vérifier/choisir le bon lieu avant de l'ajouter.
+  /// Retourne une liste vide si aucun résultat n'est trouvé.
+  static Future<List<GeocodeResult>> searchCity(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return [];
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/search'
+        '?q=' + Uri.encodeQueryComponent(trimmed) +
+        '&format=json&limit=5&accept-language=fr',
+      );
+      final response = await http.get(
+        uri,
+        headers: {'User-Agent': 'SAMCAM-App/1.0'},
+      ).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return [];
+      final results = jsonDecode(response.body) as List;
+      return results
+          .map((r) => r as Map<String, dynamic>)
+          .map((r) {
+            final lat = double.tryParse(r['lat'] as String? ?? '');
+            final lon = double.tryParse(r['lon'] as String? ?? '');
+            if (lat == null || lon == null) return null;
+            final displayName = (r['display_name'] as String?) ?? trimmed;
+            final shortName = displayName.split(',').first.trim();
+            return GeocodeResult(
+              shortName:   shortName.isNotEmpty ? shortName : trimmed,
+              fullAddress: displayName,
+              lat: lat,
+              lon: lon,
+            );
+          })
+          .whereType<GeocodeResult>()
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // ── Endroits personnalisés (persistance locale) ─────────────────────
+
+  static const String _prefCustomLocations = 'samcam_custom_locations';
+
+  static Future<List<CustomLocation>> getCustomLocations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_prefCustomLocations) ?? [];
+    return raw
+        .map((s) => CustomLocation.fromJson(jsonDecode(s) as Map<String, dynamic>))
+        .toList();
+  }
+
+  static Future<void> addCustomLocation(CustomLocation location) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getCustomLocations();
+    if (current.any((l) => l.name == location.name)) return;
+    current.add(location);
+    await prefs.setStringList(
+      _prefCustomLocations,
+      current.map((l) => jsonEncode(l.toJson())).toList(),
+    );
+  }
+
+  static Future<void> removeCustomLocation(String name) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = await getCustomLocations();
+    current.removeWhere((l) => l.name == name);
+    await prefs.setStringList(
+      _prefCustomLocations,
+      current.map((l) => jsonEncode(l.toJson())).toList(),
+    );
   }
 
   // ── GET /api/zones — liste des zones disponibles ──────────────────
@@ -163,17 +251,22 @@ class ApiService {
   }
 
   // ── GET /api/history ───────────────────────────────────────────────────
+  //
+  // Retourne l'évolution jour par jour des scores de risque pour une zone
+  // (calculée directement par les modèles, pas figée sur la valeur du jour).
+  // Si [zone] est omis, utilise la zone SAMCAM la plus proche de la position GPS.
 
   static Future<List<Map<String, dynamic>>> getHistory({
-    int limit = 30,
+    String? zone,
+    int days = 14,
   }) async {
     final base = await getServerUrl();
-    final pos  = await getPosition();
+    final zoneName = zone ?? await _nearestZoneName(base, await getPosition());
 
-    final uri = Uri.parse('$base/api/history'
-        '?limit=$limit'
-        + '&zone=' + Uri.encodeQueryComponent(await _nearestZoneName(base, pos)));
-
+    final uri = Uri.parse('$base/api/history').replace(queryParameters: {
+      'zone': zoneName,
+      'days': days.toString(),
+    });
 
     final response = await http
         .get(uri, headers: {'Accept': 'application/json'})
@@ -231,6 +324,9 @@ class ApiService {
     // RACINE du JSON (pas dans indicateurs). Chaque bloc a la forme :
     //   { "scores": { "score_inondation": X, "score_secheresse": Y, "score_chaleur": Z },
     //     "niveau_alerte": "VERT|JAUNE|ORANGE|ROUGE" }
+    bool hasHorizon(String key) =>
+        json.containsKey(key) || indicateurs.containsKey(key);
+
     Map<String, dynamic> extractScores(String key) {
       final bloc = (json[key] as Map<String, dynamic>?) ??
                    (indicateurs[key] as Map<String, dynamic>?) ?? {};
@@ -238,9 +334,11 @@ class ApiService {
       return (bloc['scores'] as Map<String, dynamic>?) ?? bloc;
     }
 
-    final scores   = extractScores('risque_actuel');
-    final scores3j = extractScores('risque_prevu_3j');
-    final scores7j = extractScores('risque_prevu_7j');
+    final scores    = extractScores('risque_actuel');
+    final scores3j  = extractScores('risque_prevu_3j');
+    final scores7j  = extractScores('risque_prevu_7j');
+    final scores10j = extractScores('risque_prevu_10j');
+    final scores14j = extractScores('risque_prevu_14j');
 
     // ── Lecture d'une valeur numérique ──────────────────────────────────
     // Accepte "score_X" (format API actuel) OU "X" (ancien format)
@@ -295,6 +393,24 @@ class ApiService {
           inondation: s(scores7j, 'inondation'),
           secheresse: s(scores7j, 'secheresse'),
           chaleur:    s(scores7j, 'chaleur'),
+        ),
+      ),
+      // J+10/J+14 : absents des anciennes réponses API — marqués INCONNU plutôt
+      // que VERT par défaut, pour que l'UI les masque proprement (voir RiskReport.horizons).
+      prevu10j: RiskPeriod(
+        niveauGlobal: hasHorizon('risque_prevu_10j') ? niveau(scores10j) : 'INCONNU',
+        scores: RiskScores(
+          inondation: s(scores10j, 'inondation'),
+          secheresse: s(scores10j, 'secheresse'),
+          chaleur:    s(scores10j, 'chaleur'),
+        ),
+      ),
+      prevu14j: RiskPeriod(
+        niveauGlobal: hasHorizon('risque_prevu_14j') ? niveau(scores14j) : 'INCONNU',
+        scores: RiskScores(
+          inondation: s(scores14j, 'inondation'),
+          secheresse: s(scores14j, 'secheresse'),
+          chaleur:    s(scores14j, 'chaleur'),
         ),
       ),
       indicateurs: Indicateurs.fromJson(indicateurs),

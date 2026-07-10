@@ -366,22 +366,26 @@ def label_flood(df: pd.DataFrame, cfg: dict) -> pd.Series:
     score = pd.Series(0, index=df.index)
 
     # Critère 1 : pluie journalière vs percentile p90 mensuel
+    # NB: comparaison stricte (>) — dans les mois où le p90 historique est nul
+    # (saison sèche marquée, ex: Sahel déc-jan), un seuil dérivé à 0 rendrait
+    # "pluie >= 0" toujours vrai (la pluie ne peut pas être négative), donc le
+    # critère se déclencherait tous les jours même sans une goutte de pluie.
     if rain_col:
         p90_vec = _monthly_vector(df, cfg["percentiles_p90"])
         # p90 est hebdomadaire → diviser par 7 pour obtenir équivalent journalier
-        crit1 = df[rain_col] >= (p90_vec / 7.0)
+        crit1 = df[rain_col] > (p90_vec / 7.0)
         score += crit1.astype(int)
 
-    # Critère 2 : cumul 7j vs normale × facteur
+    # Critère 2 : cumul 7j vs normale × facteur — même garde-fou (comparaison stricte)
     if "rain_7d" in df.columns:
         # normale 7j ≈ normale mensuelle / 30 × 7
         pluie_norm_7j = _monthly_vector(df, cfg["pluie_normales_mm"]) / 30.0 * 7.0
-        crit2 = df["rain_7d"] >= (cfg["flood_facteur_7j"] * pluie_norm_7j)
+        crit2 = df["rain_7d"] > (cfg["flood_facteur_7j"] * pluie_norm_7j)
         score += crit2.astype(int)
     elif rain_col:
         # Fallback : pluie journalière × 1.5 comme proxy 7j
         pluie_norm_7j = _monthly_vector(df, cfg["pluie_normales_mm"]) / 30.0 * 7.0
-        crit2 = df[rain_col] * 1.5 >= (cfg["flood_facteur_7j"] * pluie_norm_7j)
+        crit2 = df[rain_col] * 1.5 > (cfg["flood_facteur_7j"] * pluie_norm_7j)
         score += crit2.astype(int)
 
     # Critère 3 : saturation sol

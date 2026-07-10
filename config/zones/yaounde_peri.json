@@ -6,60 +6,201 @@
     "regime": "equatorial_bimodal_periurbain",
     "description": "Zone périurbaine de Yaoundé — altitude 750m, bimodal équatorial (mars-juin, sept-nov), imperméabilisation urbaine, maraîchage péri-urbain",
     "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
-    "calibration_note": "v1.1 — zone périurbaine: imperméabilisation partielle accélère le ruissellement. flood score=2 (vs score=3 pour Kribi/Kumba forestiers) car bétonisation réduit l'infiltration. Sécheresse score=2. Chaleur amplifiée îlot de chaleur urbain: sigma=0.9."
+    "calibration_note": "v1.1 — zone périurbaine: imperméabilisation partielle accélère le ruissellement. flood score=2 (vs score=3 pour Kribi/Kumba forestiers) car bétonisation réduit l'infiltration. Sécheresse score=2. Chaleur amplifiée îlot de chaleur urbain: sigma=0.9.",
+    "calibration_note_et0": "CORRIGÉ (audit 2026-07-10) — les anciennes normales ET0 etaient ~4-5x trop basses (ex: mois 7 ancien=21mm, reel~87.2mm), rendant le critere de stress ET0 du label secheresse quasi-toujours vrai, toute l'annee, dans les 8 zones. Nouvelles valeurs = moyenne mensuelle reelle observee sur l'historique 1990-2025.",
+    "calibration_note_pluie": "CORRIGE (audit 2026-07-10) v3 - normales pluie et percentiles hebdo recalcules depuis l'historique reel (ancien juillet=55mm -> nouveau=125.8mm). L'ancienne sous-estimation rendait le critere 'exces de pluie' du label inondation quasi-toujours vrai en saison humide."
   },
   "coordonnees": {
-    "lat": 3.8480,
+    "lat": 3.848,
     "lon": 11.5021,
     "altitude_m": 750,
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 25,  "2": 55,  "3": 130, "4": 185,
-    "5": 195, "6": 145, "7": 55,  "8": 80,
-    "9": 195, "10": 230, "11": 135, "12": 35
+    "1": 29.3,
+    "2": 50.7,
+    "3": 119.9,
+    "4": 165.9,
+    "5": 165.5,
+    "6": 157.8,
+    "7": 125.8,
+    "8": 118.6,
+    "9": 196.9,
+    "10": 232.3,
+    "11": 156.4,
+    "12": 42.6
   },
   "et0_normales_mensuelles_mm": {
-    "1": 26, "2": 25, "3": 23, "4": 20, "5": 19, "6": 18,
-    "7": 21, "8": 21, "9": 19, "10": 18, "11": 19, "12": 24
+    "1": 118.5,
+    "2": 125.0,
+    "3": 114.5,
+    "4": 106.8,
+    "5": 99.8,
+    "6": 90.2,
+    "7": 87.2,
+    "8": 88.7,
+    "9": 90.8,
+    "10": 89.1,
+    "11": 95.2,
+    "12": 107.0
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 30.5, "2": 31.5, "3": 31.5, "4": 30.5, "5": 29.5, "6": 28.5,
-    "7": 28.0, "8": 28.5, "9": 28.5, "10": 29.0, "11": 29.5, "12": 30.0
+    "1": 30.5,
+    "2": 31.5,
+    "3": 31.5,
+    "4": 30.5,
+    "5": 29.5,
+    "6": 28.5,
+    "7": 28.0,
+    "8": 28.5,
+    "9": 28.5,
+    "10": 29.0,
+    "11": 29.5,
+    "12": 30.0
   },
   "temp_max_std_mensuelles_c": {
-    "1": 2.0, "2": 1.9, "3": 1.8, "4": 1.6, "5": 1.5, "6": 1.4,
-    "7": 1.4, "8": 1.4, "9": 1.5, "10": 1.5, "11": 1.6, "12": 1.9
+    "1": 2.0,
+    "2": 1.9,
+    "3": 1.8,
+    "4": 1.6,
+    "5": 1.5,
+    "6": 1.4,
+    "7": 1.4,
+    "8": 1.4,
+    "9": 1.5,
+    "10": 1.5,
+    "11": 1.6,
+    "12": 1.9
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 17.5, "2": 18.0, "3": 18.5, "4": 18.5, "5": 18.0, "6": 17.5,
-    "7": 17.0, "8": 17.0, "9": 17.5, "10": 18.0, "11": 18.0, "12": 17.5
+    "1": 17.5,
+    "2": 18.0,
+    "3": 18.5,
+    "4": 18.5,
+    "5": 18.0,
+    "6": 17.5,
+    "7": 17.0,
+    "8": 17.0,
+    "9": 17.5,
+    "10": 18.0,
+    "11": 18.0,
+    "12": 17.5
   },
   "sm_surface_normales": {
-    "1": 0.24, "2": 0.26, "3": 0.34, "4": 0.42, "5": 0.44, "6": 0.38,
-    "7": 0.28, "8": 0.32, "9": 0.44, "10": 0.48, "11": 0.40, "12": 0.28
+    "1": 0.24,
+    "2": 0.26,
+    "3": 0.34,
+    "4": 0.42,
+    "5": 0.44,
+    "6": 0.38,
+    "7": 0.28,
+    "8": 0.32,
+    "9": 0.44,
+    "10": 0.48,
+    "11": 0.4,
+    "12": 0.28
   },
   "sm_rootzone_normales": {
-    "1": 0.28, "2": 0.30, "3": 0.36, "4": 0.43, "5": 0.45, "6": 0.40,
-    "7": 0.32, "8": 0.35, "9": 0.44, "10": 0.47, "11": 0.41, "12": 0.30
+    "1": 0.28,
+    "2": 0.3,
+    "3": 0.36,
+    "4": 0.43,
+    "5": 0.45,
+    "6": 0.4,
+    "7": 0.32,
+    "8": 0.35,
+    "9": 0.44,
+    "10": 0.47,
+    "11": 0.41,
+    "12": 0.3
   },
   "ndvi_seuil_alerte": {
-    "1": 0.30, "2": 0.34, "3": 0.44, "4": 0.54, "5": 0.56, "6": 0.50,
-    "7": 0.38, "8": 0.44, "9": 0.56, "10": 0.58, "11": 0.52, "12": 0.34
+    "1": 0.3,
+    "2": 0.34,
+    "3": 0.44,
+    "4": 0.54,
+    "5": 0.56,
+    "6": 0.5,
+    "7": 0.38,
+    "8": 0.44,
+    "9": 0.56,
+    "10": 0.58,
+    "11": 0.52,
+    "12": 0.34
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 0,  "p50": 4,  "p75": 12,  "p90": 24},
-    "2":  {"p25": 2,  "p50": 10, "p75": 26,  "p90": 50},
-    "3":  {"p25": 6,  "p50": 26, "p75": 58,  "p90": 105},
-    "4":  {"p25": 12, "p50": 38, "p75": 82,  "p90": 148},
-    "5":  {"p25": 14, "p50": 42, "p75": 88,  "p90": 158},
-    "6":  {"p25": 8,  "p50": 28, "p75": 62,  "p90": 115},
-    "7":  {"p25": 2,  "p50": 10, "p75": 26,  "p90": 52},
-    "8":  {"p25": 4,  "p50": 16, "p75": 38,  "p90": 72},
-    "9":  {"p25": 14, "p50": 40, "p75": 86,  "p90": 155},
-    "10": {"p25": 16, "p50": 46, "p75": 98,  "p90": 178},
-    "11": {"p25": 8,  "p50": 26, "p75": 58,  "p90": 108},
-    "12": {"p25": 0,  "p50": 6,  "p75": 16,  "p90": 32}
+    "1": {
+      "p25": 0.8,
+      "p50": 3.0,
+      "p75": 8.0,
+      "p90": 16.7
+    },
+    "2": {
+      "p25": 1.5,
+      "p50": 5.4,
+      "p75": 12.6,
+      "p90": 22.0
+    },
+    "3": {
+      "p25": 13.3,
+      "p50": 24.2,
+      "p75": 35.9,
+      "p90": 48.5
+    },
+    "4": {
+      "p25": 23.9,
+      "p50": 35.0,
+      "p75": 46.8,
+      "p90": 56.5
+    },
+    "5": {
+      "p25": 26.7,
+      "p50": 36.4,
+      "p75": 44.3,
+      "p90": 54.7
+    },
+    "6": {
+      "p25": 26.8,
+      "p50": 34.6,
+      "p75": 43.8,
+      "p90": 53.7
+    },
+    "7": {
+      "p25": 15.9,
+      "p50": 27.5,
+      "p75": 37.9,
+      "p90": 47.7
+    },
+    "8": {
+      "p25": 12.2,
+      "p50": 22.5,
+      "p75": 35.4,
+      "p90": 46.7
+    },
+    "9": {
+      "p25": 30.6,
+      "p50": 41.3,
+      "p75": 52.1,
+      "p90": 65.5
+    },
+    "10": {
+      "p25": 40.7,
+      "p50": 50.7,
+      "p75": 62.4,
+      "p90": 74.6
+    },
+    "11": {
+      "p25": 19.4,
+      "p50": 37.6,
+      "p75": 53.7,
+      "p90": 64.6
+    },
+    "12": {
+      "p25": 2.1,
+      "p50": 6.5,
+      "p75": 15.9,
+      "p90": 26.8
+    }
   },
   "seuils_inondation": {
     "pluie_7j_facteur_normale": 1.38,
@@ -85,10 +226,26 @@
     "commentaire": "Îlot de chaleur urbain: Tmax périurbaine +0.5 à +1°C vs forêt environnante. sigma=0.9 (plus sensible que Kribi forestier mais moins que zones soudaniennes). Chaleur ressentie amplifiée par humidité et asphalte jan-mars et juil-août."
   },
   "saisons": {
-    "saison_pluies_1": [3, 4, 5, 6],
-    "saison_pluies_2": [8, 9, 10, 11],
-    "petite_saison_seche": [7],
-    "grande_saison_seche": [12, 1, 2],
+    "saison_pluies_1": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "saison_pluies_2": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "petite_saison_seche": [
+      7
+    ],
+    "grande_saison_seche": [
+      12,
+      1,
+      2
+    ],
     "commentaire": "Bimodal équatorial périurbain — décalage léger vs Kribi (pic oct à 230mm > pic mai à 195mm)"
   },
   "fichiers_historiques": {

@@ -6,60 +6,201 @@
     "regime": "sahelien_aride",
     "description": "Extrême-Nord — altitude 420m, régime sahélien (juil-sept), mil/sorgho/oignon, sécheresse chronique, températures extrêmes pré-mousson",
     "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
-    "calibration_note": "v1.1 — ajustement pluie_prev flood: sols sableux Extrême-Nord saturent en <24h donc prévision 7j moins pertinente que cumul observé. Seuils sécheresse et chaleur confirmés corrects."
+    "calibration_note": "v1.1 — ajustement pluie_prev flood: sols sableux Extrême-Nord saturent en <24h donc prévision 7j moins pertinente que cumul observé. Seuils sécheresse et chaleur confirmés corrects.",
+    "calibration_note_et0": "CORRIGÉ (audit 2026-07-10) — les anciennes normales ET0 etaient ~4-5x trop basses (ex: mois 7 ancien=36mm, reel~129.5mm), rendant le critere de stress ET0 du label secheresse quasi-toujours vrai, toute l'annee, dans les 8 zones. Nouvelles valeurs = moyenne mensuelle reelle observee sur l'historique 1990-2025.",
+    "calibration_note_pluie": "CORRIGE (audit 2026-07-10) v3 - normales pluie et percentiles hebdo recalcules depuis l'historique reel (ancien juillet=155mm -> nouveau=130.7mm). L'ancienne sous-estimation rendait le critere 'exces de pluie' du label inondation quasi-toujours vrai en saison humide."
   },
   "coordonnees": {
-    "lat": 10.5960,
+    "lat": 10.596,
     "lon": 14.3158,
     "altitude_m": 420,
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 0,  "2": 0,  "3": 2,  "4": 10,
-    "5": 35, "6": 80, "7": 155, "8": 180,
-    "9": 115, "10": 20, "11": 1,  "12": 0
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.5,
+    "4": 8.5,
+    "5": 31.7,
+    "6": 67.2,
+    "7": 130.7,
+    "8": 194.6,
+    "9": 113.0,
+    "10": 28.2,
+    "11": 0.5,
+    "12": 0.0
   },
   "et0_normales_mensuelles_mm": {
-    "1": 52, "2": 56, "3": 62, "4": 62, "5": 56, "6": 46,
-    "7": 36, "8": 32, "9": 34, "10": 42, "11": 50, "12": 50
+    "1": 211.4,
+    "2": 244.3,
+    "3": 264.6,
+    "4": 234.0,
+    "5": 192.1,
+    "6": 159.4,
+    "7": 129.5,
+    "8": 113.3,
+    "9": 128.8,
+    "10": 155.7,
+    "11": 198.4,
+    "12": 201.6
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 32.5, "2": 35.0, "3": 38.5, "4": 41.0, "5": 40.0, "6": 36.0,
-    "7": 32.5, "8": 31.0, "9": 33.0, "10": 37.0, "11": 36.0, "12": 33.0
+    "1": 32.5,
+    "2": 35.0,
+    "3": 38.5,
+    "4": 41.0,
+    "5": 40.0,
+    "6": 36.0,
+    "7": 32.5,
+    "8": 31.0,
+    "9": 33.0,
+    "10": 37.0,
+    "11": 36.0,
+    "12": 33.0
   },
   "temp_max_std_mensuelles_c": {
-    "1": 3.0, "2": 3.2, "3": 3.0, "4": 2.8, "5": 2.5, "6": 2.0,
-    "7": 1.6, "8": 1.5, "9": 1.7, "10": 2.2, "11": 2.6, "12": 2.8
+    "1": 3.0,
+    "2": 3.2,
+    "3": 3.0,
+    "4": 2.8,
+    "5": 2.5,
+    "6": 2.0,
+    "7": 1.6,
+    "8": 1.5,
+    "9": 1.7,
+    "10": 2.2,
+    "11": 2.6,
+    "12": 2.8
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 14.0, "2": 16.5, "3": 21.0, "4": 25.0, "5": 26.0, "6": 25.0,
-    "7": 23.5, "8": 23.0, "9": 23.5, "10": 23.0, "11": 18.5, "12": 14.5
+    "1": 14.0,
+    "2": 16.5,
+    "3": 21.0,
+    "4": 25.0,
+    "5": 26.0,
+    "6": 25.0,
+    "7": 23.5,
+    "8": 23.0,
+    "9": 23.5,
+    "10": 23.0,
+    "11": 18.5,
+    "12": 14.5
   },
   "sm_surface_normales": {
-    "1": 0.04, "2": 0.04, "3": 0.04, "4": 0.06, "5": 0.10, "6": 0.18,
-    "7": 0.28, "8": 0.32, "9": 0.26, "10": 0.12, "11": 0.05, "12": 0.04
+    "1": 0.04,
+    "2": 0.04,
+    "3": 0.04,
+    "4": 0.06,
+    "5": 0.1,
+    "6": 0.18,
+    "7": 0.28,
+    "8": 0.32,
+    "9": 0.26,
+    "10": 0.12,
+    "11": 0.05,
+    "12": 0.04
   },
   "sm_rootzone_normales": {
-    "1": 0.05, "2": 0.05, "3": 0.05, "4": 0.07, "5": 0.11, "6": 0.18,
-    "7": 0.28, "8": 0.32, "9": 0.27, "10": 0.14, "11": 0.07, "12": 0.05
+    "1": 0.05,
+    "2": 0.05,
+    "3": 0.05,
+    "4": 0.07,
+    "5": 0.11,
+    "6": 0.18,
+    "7": 0.28,
+    "8": 0.32,
+    "9": 0.27,
+    "10": 0.14,
+    "11": 0.07,
+    "12": 0.05
   },
   "ndvi_seuil_alerte": {
-    "1": 0.08, "2": 0.08, "3": 0.09, "4": 0.12, "5": 0.18, "6": 0.28,
-    "7": 0.38, "8": 0.42, "9": 0.36, "10": 0.20, "11": 0.10, "12": 0.08
+    "1": 0.08,
+    "2": 0.08,
+    "3": 0.09,
+    "4": 0.12,
+    "5": 0.18,
+    "6": 0.28,
+    "7": 0.38,
+    "8": 0.42,
+    "9": 0.36,
+    "10": 0.2,
+    "11": 0.1,
+    "12": 0.08
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0},
-    "2":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
-    "3":  {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 4},
-    "4":  {"p25": 0,  "p50": 0,  "p75": 4,  "p90": 12},
-    "5":  {"p25": 0,  "p50": 4,  "p75": 14, "p90": 30},
-    "6":  {"p25": 2,  "p50": 14, "p75": 34, "p90": 66},
-    "7":  {"p25": 8,  "p50": 30, "p75": 66, "p90": 118},
-    "8":  {"p25": 10, "p50": 36, "p75": 76, "p90": 135},
-    "9":  {"p25": 4,  "p50": 22, "p75": 50, "p90": 92},
-    "10": {"p25": 0,  "p50": 2,  "p75": 10, "p90": 22},
-    "11": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 2},
-    "12": {"p25": 0,  "p50": 0,  "p75": 0,  "p90": 0}
+    "1": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "3": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "4": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 1.1,
+      "p90": 4.9
+    },
+    "5": {
+      "p25": 0.9,
+      "p50": 3.9,
+      "p75": 10.0,
+      "p90": 17.2
+    },
+    "6": {
+      "p25": 6.2,
+      "p50": 11.8,
+      "p75": 20.0,
+      "p90": 32.0
+    },
+    "7": {
+      "p25": 14.8,
+      "p50": 24.8,
+      "p75": 38.1,
+      "p90": 54.0
+    },
+    "8": {
+      "p25": 30.1,
+      "p50": 41.7,
+      "p75": 55.7,
+      "p90": 70.4
+    },
+    "9": {
+      "p25": 15.9,
+      "p50": 26.6,
+      "p75": 36.9,
+      "p90": 53.9
+    },
+    "10": {
+      "p25": 0.6,
+      "p50": 3.5,
+      "p75": 11.2,
+      "p90": 22.8
+    },
+    "11": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.1
+    },
+    "12": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    }
   },
   "seuils_inondation": {
     "pluie_7j_facteur_normale": 1.6,
@@ -70,23 +211,37 @@
   },
   "seuils_secheresse": {
     "pluie_30j_facteur_deficit": 0.45,
-    "sm_rootzone_delta_seuil": -0.10,
-    "ndvi_seuil_critique": 0.10,
+    "sm_rootzone_delta_seuil": -0.1,
+    "ndvi_seuil_critique": 0.1,
     "et0_facteur_stress": 1.7,
-    "score_min_label_1": 1,
-    "commentaire": "Zone sahélienne — score_min=1 car sécheresse quasi-permanente hors juillet-août. Seuils validés et performants — aucun changement."
+    "score_min_label_1": 2,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=1 donnait 99.3% de jours positifs sur 1990-2025 (13063/13149), soit un label quasi-constant sans pouvoir discriminant : le modèle entraîné dessus prédit un risque élevé en permanence. Passé à 2 (sur 4 critères : déficit pluie 30j, delta sm_rootzone, stress ET0, SPI-3) pour ne signaler que les vraies anomalies plutôt que l'état sec structurel de la zone."
   },
   "seuils_chaleur": {
     "temp_max_anomalie_sigma": 0.7,
     "temp_max_3j_anomalie_sigma": 0.4,
     "et0_facteur_stress": 1.8,
     "pluie_7j_max_sec": 3.0,
-    "score_min_label_1": 1,
-    "commentaire": "Chaleur extrême structurelle (>40°C en avr-mai) — score_min=1, sensibilité maximale. Seuils validés et performants — aucun changement."
+    "score_min_label_1": 2,
+    "commentaire": "CORRIGÉ (audit positive-rate) — score_min=1 donnait 59.7% de jours positifs (7851/13149), trop permissif pour un label de vague de chaleur. Passé à 2 (sur 3 critères : anomalie journalière, anomalie glissante 3j, période sèche concomitante) pour cibler les vraies vagues de chaleur plutôt que la chaleur ordinaire pré-mousson."
   },
   "saisons": {
-    "saison_pluies": [6, 7, 8, 9],
-    "saison_seche": [10, 11, 12, 1, 2, 3, 4, 5],
+    "saison_pluies": [
+      6,
+      7,
+      8,
+      9
+    ],
+    "saison_seche": [
+      10,
+      11,
+      12,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
     "commentaire": "Régime sahélien — 3 mois de pluie effective (juil-sept)"
   },
   "fichiers_historiques": {

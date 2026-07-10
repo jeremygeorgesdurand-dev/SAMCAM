@@ -1,24 +1,20 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/weather_service.dart';
+import '../models/custom_location.dart';
+import '../models/weather_forecast.dart' show weatherCodeIcon;
 
 // ── Zones SAMCAM (liste statique = fallback hors-serveur) ──────────────────
 const List<Map<String, dynamic>> kSamcamZones = [
-  {'name': 'Kribi',        'lat': 2.9399,  'lon': 9.9098,  'climate': 'Équatorial côtier'},
-  {'name': 'Ebolowa',      'lat': 2.9000,  'lon': 11.1500, 'climate': 'Équatorial'},
-  {'name': 'Kumba',        'lat': 4.6364,  'lon': 9.4469,  'climate': 'Équatorial'},
-  {'name': 'Bafoussam',    'lat': 5.4765,  'lon': 10.4178, 'climate': 'Tropical montagnard'},
-  {'name': 'Yaounde_peri', 'lat': 3.8480,  'lon': 11.5021, 'climate': 'Équatorial'},
-  {'name': 'Ngaoundere',   'lat': 7.3220,  'lon': 13.5840, 'climate': 'Tropical montagnard'},
-  {'name': 'Garoua',       'lat': 9.3000,  'lon': 13.3900, 'climate': 'Sahélien'},
-  {'name': 'Maroua',       'lat': 10.5910, 'lon': 14.3159, 'climate': 'Sahélien'},
+  {'name': 'Kribi',        'lat': 2.9399,  'lon': 9.9098 },
+  {'name': 'Ebolowa',      'lat': 2.9000,  'lon': 11.1500},
+  {'name': 'Kumba',        'lat': 4.6364,  'lon': 9.4469 },
+  {'name': 'Bafoussam',    'lat': 5.4765,  'lon': 10.4178},
+  {'name': 'Yaounde_peri', 'lat': 3.8480,  'lon': 11.5021},
+  {'name': 'Ngaoundere',   'lat': 7.3220,  'lon': 13.5840},
+  {'name': 'Garoua',       'lat': 9.3000,  'lon': 13.3900},
+  {'name': 'Maroua',       'lat': 10.5910, 'lon': 14.3159},
 ];
-
-String _climateEmoji(String climate) {
-  if (climate.contains('côtier'))     return '🌊';
-  if (climate.contains('montagnard')) return '⛰️';
-  if (climate.contains('Sahélien'))   return '🏜️';
-  return '🌿';
-}
 
 String _displayName(String name) {
   if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
@@ -30,16 +26,24 @@ String _displayName(String name) {
 // ══════════════════════════════════════════════════════════════════════════════
 class ZoneDrawer extends StatefulWidget {
   final String currentCity;          // nom de la ville GPS actuelle
-  final String? selectedZone;        // zone actuellement affichée (null = GPS auto)
+  final String? selectedZone;        // zone SAMCAM actuellement affichée
+  final String? selectedCustomName;  // endroit personnalisé actuellement affiché
+  final double? currentTemp;         // météo actuelle (mode GPS) — température
+  final int?    currentWeatherCode;  // météo actuelle (mode GPS) — code WMO
   final void Function(String zoneName) onZoneSelected;
+  final void Function(CustomLocation location) onCustomLocationSelected;
   final VoidCallback onCurrentLocationSelected;
 
   const ZoneDrawer({
     super.key,
     required this.currentCity,
     required this.selectedZone,
+    required this.selectedCustomName,
     required this.onZoneSelected,
+    required this.onCustomLocationSelected,
     required this.onCurrentLocationSelected,
+    this.currentTemp,
+    this.currentWeatherCode,
   });
 
   @override
@@ -48,11 +52,17 @@ class ZoneDrawer extends StatefulWidget {
 
 class _ZoneDrawerState extends State<ZoneDrawer> {
   List<String>? _serverZones;
+  List<CustomLocation> _customLocations = [];
+
+  /// nom du lieu → (température, code météo)
+  final Map<String, ({double temp, int code})> _weatherSummary = {};
 
   @override
   void initState() {
     super.initState();
     _tryLoadServerZones();
+    _loadCustomLocations();
+    _loadWeatherSummaries();
   }
 
   Future<void> _tryLoadServerZones() async {
@@ -64,20 +74,163 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
     } catch (_) {}
   }
 
+  Future<void> _loadCustomLocations() async {
+    final locations = await ApiService.getCustomLocations();
+    if (mounted) setState(() => _customLocations = locations);
+    _loadWeatherSummaries();
+  }
+
+  Future<void> _loadWeatherSummaries() async {
+    final targets = <String, (double, double)>{
+      for (final z in kSamcamZones)
+        z['name'] as String: (z['lat'] as double, z['lon'] as double),
+      for (final c in _customLocations) c.name: (c.lat, c.lon),
+    };
+    for (final entry in targets.entries) {
+      if (_weatherSummary.containsKey(entry.key)) continue;
+      WeatherService.getCurrentLight(entry.value.$1, entry.value.$2).then((w) {
+        if (w != null && mounted) {
+          setState(() => _weatherSummary[entry.key] = w);
+        }
+      });
+    }
+  }
+
   List<String> get _zones =>
       (_serverZones != null && _serverZones!.isNotEmpty)
           ? _serverZones!
           : kSamcamZones.map((z) => z['name'] as String).toList();
 
-  Map<String, dynamic>? _zoneInfo(String name) {
-    try {
-      return kSamcamZones.firstWhere((z) => z['name'] == name);
-    } catch (_) {
-      return null;
-    }
+  Future<void> _confirmAndAdd(BuildContext dialogCtx, GeocodeResult result) async {
+    final loc = result.toCustomLocation();
+    await ApiService.addCustomLocation(loc);
+    if (dialogCtx.mounted) Navigator.pop(dialogCtx);
+    await _loadCustomLocations();
+    widget.onCustomLocationSelected(loc);
   }
 
-  bool get _isGpsMode => widget.selectedZone == null;
+  Future<void> _showAddLocationDialog() async {
+    final controller = TextEditingController();
+    bool searching = false;
+    String? error;
+    List<GeocodeResult> results = [];
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          Future<void> runSearch() async {
+            final query = controller.text;
+            if (query.trim().isEmpty) return;
+            setDialogState(() { searching = true; error = null; results = []; });
+            final found = await ApiService.searchCity(query);
+            setDialogState(() {
+              searching = false;
+              results    = found;
+              error      = found.isEmpty ? 'Aucun lieu trouvé pour "$query"' : null;
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0D1A2E),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('Ajouter un endroit', style: TextStyle(color: Colors.white)),
+            content: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: controller,
+                          autofocus: true,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Nom de la ville',
+                            hintStyle: const TextStyle(color: Colors.white38),
+                            filled: true,
+                            fillColor: Colors.white.withOpacity(0.06),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onSubmitted: (_) => runSearch(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: searching ? null : runSearch,
+                        icon: searching
+                            ? const SizedBox(
+                                width: 16, height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white54))
+                            : const Icon(Icons.search, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                  if (error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                  ],
+                  if (results.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    const Text('Sélectionnez le lieu correspondant :',
+                      style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    const SizedBox(height: 4),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 260),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: results.length,
+                        separatorBuilder: (_, __) => const Divider(color: Colors.white12, height: 1),
+                        itemBuilder: (_, i) {
+                          final r = results[i];
+                          return InkWell(
+                            onTap: () => _confirmAndAdd(ctx, r),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(r.shortName,
+                                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 2),
+                                  Text(r.fullAddress,
+                                    style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                    maxLines: 2, overflow: TextOverflow.ellipsis),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _removeCustomLocation(CustomLocation loc) async {
+    await ApiService.removeCustomLocation(loc.name);
+    await _loadCustomLocations();
+  }
+
+  bool get _isGpsMode => widget.selectedZone == null && widget.selectedCustomName == null;
 
   @override
   Widget build(BuildContext context) {
@@ -161,46 +314,69 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                   ? widget.currentCity
                   : 'Position GPS',
               isSelected: _isGpsMode,
+              temp: widget.currentTemp,
+              weatherCode: widget.currentWeatherCode,
               onTap: () {
                 Navigator.pop(context);
                 widget.onCurrentLocationSelected();
               },
             ),
             const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'ZONES SAMCAM',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            // ── Liste des 8 zones ─────────────────────────────────────
+            // ── Contenu défilant : zones + endroits personnalisés ─────
             Expanded(
-              child: ListView.builder(
+              child: ListView(
                 padding: const EdgeInsets.only(bottom: 24),
-                itemCount: _zones.length,
-                itemBuilder: (ctx, i) {
-                  final zoneName = _zones[i];
-                  final info     = _zoneInfo(zoneName);
-                  final isSelected = widget.selectedZone == zoneName;
-                  return _ZoneTile(
-                    name:       _displayName(zoneName),
-                    rawName:    zoneName,
-                    climate:    info?['climate'] as String? ?? '',
-                    emoji:      info != null ? _climateEmoji(info['climate'] as String) : '📍',
-                    isSelected: isSelected,
-                    onTap: () {
-                      Navigator.pop(context);
-                      widget.onZoneSelected(zoneName);
-                    },
-                  );
-                },
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'ZONES SAMCAM',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final zoneName in _zones)
+                    _ZoneTile(
+                      name:        _displayName(zoneName),
+                      isSelected:  widget.selectedZone == zoneName,
+                      weather:     _weatherSummary[zoneName],
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onZoneSelected(zoneName);
+                      },
+                    ),
+                  const SizedBox(height: 20),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      'MES ENDROITS',
+                      style: TextStyle(
+                        color: Colors.white38,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final loc in _customLocations)
+                    _ZoneTile(
+                      name:        loc.name,
+                      isSelected:  widget.selectedCustomName == loc.name,
+                      weather:     _weatherSummary[loc.name],
+                      onTap: () {
+                        Navigator.pop(context);
+                        widget.onCustomLocationSelected(loc);
+                      },
+                      onDelete: () => _removeCustomLocation(loc),
+                    ),
+                  _AddLocationTile(onTap: _showAddLocationDialog),
+                ],
               ),
             ),
             // ── Pied de volet ─────────────────────────────────────────
@@ -228,16 +404,34 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
   }
 }
 
+// ── Petit résumé météo (icône + température) réutilisé par les tuiles ──────
+Widget _weatherSummaryChip(({double temp, int code})? weather) {
+  if (weather == null) return const SizedBox.shrink();
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Text(weatherCodeIcon(weather.code), style: const TextStyle(fontSize: 15)),
+      const SizedBox(width: 4),
+      Text('${weather.temp.toStringAsFixed(0)}°',
+        style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500)),
+    ],
+  );
+}
+
 // ── Tuile « Position GPS actuelle » ──────────────────────────────────────────
 class _LocationTile extends StatelessWidget {
   final String cityName;
   final bool isSelected;
+  final double? temp;
+  final int? weatherCode;
   final VoidCallback onTap;
 
   const _LocationTile({
     required this.cityName,
     required this.isSelected,
     required this.onTap,
+    this.temp,
+    this.weatherCode,
   });
 
   @override
@@ -274,31 +468,22 @@ class _LocationTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        cityName,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Ma position actuelle',
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    cityName,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                if (temp != null && weatherCode != null) ...[
+                  _weatherSummaryChip((temp: temp!, code: weatherCode!)),
+                  const SizedBox(width: 8),
+                ],
                 if (isSelected)
                   const Icon(
                     Icons.check_circle_outline,
@@ -314,22 +499,20 @@ class _LocationTile extends StatelessWidget {
   }
 }
 
-// ── Tuile de zone ─────────────────────────────────────────────────────────────
+// ── Tuile de zone / endroit personnalisé ────────────────────────────────────
 class _ZoneTile extends StatelessWidget {
   final String name;
-  final String rawName;
-  final String climate;
-  final String emoji;
   final bool isSelected;
+  final ({double temp, int code})? weather;
   final VoidCallback onTap;
+  final VoidCallback? onDelete;
 
   const _ZoneTile({
     required this.name,
-    required this.rawName,
-    required this.climate,
-    required this.emoji,
     required this.isSelected,
     required this.onTap,
+    this.weather,
+    this.onDelete,
   });
 
   @override
@@ -359,41 +542,81 @@ class _ZoneTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 20)),
-                const SizedBox(width: 12),
+                Icon(Icons.location_on_outlined,
+                  color: isSelected ? Colors.white70 : Colors.white38, size: 16),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : Colors.white70,
-                          fontSize: 14,
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w400,
-                        ),
-                      ),
-                      if (climate.isNotEmpty) ...[  
-                        const SizedBox(height: 2),
-                        Text(
-                          climate,
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
-                    ],
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.white70,
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (isSelected)
+                const SizedBox(width: 6),
+                _weatherSummaryChip(weather),
+                if (isSelected) ...[
+                  const SizedBox(width: 8),
                   const Icon(
                     Icons.check_circle_outline,
                     color: Colors.white54,
                     size: 16,
                   ),
+                ],
+                if (onDelete != null)
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white24, size: 15),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onDelete,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Tuile « Ajouter un endroit » ─────────────────────────────────────────────
+class _AddLocationTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddLocationTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.15),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.add, color: Colors.white54, size: 16),
+                const SizedBox(width: 10),
+                const Text(
+                  'Ajouter un endroit',
+                  style: TextStyle(color: Colors.white54, fontSize: 14),
+                ),
               ],
             ),
           ),

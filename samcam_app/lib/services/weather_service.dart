@@ -45,25 +45,29 @@ class WeatherService {
 
   /// Récupère les prévisions Open-Meteo.
   ///
-  /// - Si [zone] est fourni, utilise les coordonnées fixes de cette zone SAMCAM.
+  /// - Si [lat]/[lon] sont fournis, utilise ces coordonnées explicites (endroit personnalisé).
+  /// - Sinon si [zone] est fourni, utilise les coordonnées fixes de cette zone SAMCAM.
   /// - Sinon, utilise la position GPS de l'utilisateur.
   /// - Fallback automatique sur le mock Kribi si hors réseau.
-  static Future<WeatherData> getForecast({String? zone}) async {
+  static Future<WeatherData> getForecast({String? zone, double? lat, double? lon}) async {
     try {
-      double lat, lon;
+      double latitude, longitude;
 
-      if (zone != null && _zoneCoords.containsKey(zone)) {
-        lat = _zoneCoords[zone]![0];
-        lon = _zoneCoords[zone]![1];
+      if (lat != null && lon != null) {
+        latitude  = lat;
+        longitude = lon;
+      } else if (zone != null && _zoneCoords.containsKey(zone)) {
+        latitude  = _zoneCoords[zone]![0];
+        longitude = _zoneCoords[zone]![1];
       } else {
         final pos = await ApiService.getPosition();
-        lat = pos.lat;
-        lon = pos.lon;
+        latitude  = pos.lat;
+        longitude = pos.lon;
       }
 
       final uri = Uri.parse(
         'https://api.open-meteo.com/v1/forecast'
-        '?latitude=$lat&longitude=$lon'
+        '?latitude=$latitude&longitude=$longitude'
         '&hourly=temperature_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,relative_humidity_2m'
         '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max'
         ',uv_index_max,sunrise,sunset,precipitation_probability_max'
@@ -78,6 +82,30 @@ class WeatherService {
       return _parse(jsonDecode(response.body) as Map<String, dynamic>);
     } catch (e) {
       return _mockKribi();
+    }
+  }
+
+  /// Récupère uniquement la température + code météo actuels (léger, pour les tuiles du volet).
+  /// Retourne `null` en cas d'échec réseau.
+  static Future<({double temp, int code})?> getCurrentLight(double lat, double lon) async {
+    try {
+      final uri = Uri.parse(
+        'https://api.open-meteo.com/v1/forecast'
+        '?latitude=$lat&longitude=$lon'
+        '&current=temperature_2m,weather_code'
+        '&timezone=Africa%2FDouala',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (response.statusCode != 200) return null;
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final c = json['current'] as Map<String, dynamic>?;
+      if (c == null) return null;
+      return (
+        temp: (c['temperature_2m'] as num?)?.toDouble() ?? 0.0,
+        code: (c['weather_code']   as num?)?.toInt()    ?? 0,
+      );
+    } catch (_) {
+      return null;
     }
   }
 

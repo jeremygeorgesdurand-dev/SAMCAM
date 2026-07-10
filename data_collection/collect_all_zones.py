@@ -20,7 +20,7 @@ L'ordre de collecte respecte les régions climatiques :
 """
 
 import argparse
-import importlib
+import importlib.util
 import os
 import sys
 import time
@@ -74,8 +74,11 @@ def collect_zone(zone: str) -> bool:
         spec.loader.exec_module(module)
 
         # Appelle la fonction principale du module de collecte
+        # NB: collect() attend zone_name=<str> ou zone=<dict> — zone ici est
+        # une chaîne (nom de zone), donc zone_name= (pas zone=, qui indexerait
+        # une string comme un dict et lèverait "string indices must be integers").
         if hasattr(module, "collect"):
-            module.collect(zone=zone)
+            module.collect(zone_name=zone)
         elif hasattr(module, "main"):
             # Simule les args CLI
             old_argv = sys.argv

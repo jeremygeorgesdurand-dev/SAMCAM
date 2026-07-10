@@ -6,63 +6,204 @@
     "regime": "equatorial_bimodal_tardif",
     "description": "Zone équatoriale du Sud — altitude 640m, bimodal décalé (avr-juin, août-nov), cacaoyer, forêt dense",
     "sources": "ERA5-Land 1984-2025, SMAP SPL4SMGP, Open-Meteo",
-    "calibration_note": "v1.1 — bimodal tardif: 2ème saison pluies centrée sept-nov (plus forte que 1ère), sols forestiers à forte rétention hydrique. score_min flood=3 car sols absorbants en saison active."
+    "calibration_note": "v1.1 — bimodal tardif: 2ème saison pluies centrée sept-nov (plus forte que 1ère), sols forestiers à forte rétention hydrique. score_min flood=3 car sols absorbants en saison active.",
+    "calibration_note_et0": "CORRIGÉ (audit 2026-07-10) — les anciennes normales ET0 etaient ~4-5x trop basses (ex: mois 7 ancien=20mm, reel~87.3mm), rendant le critere de stress ET0 du label secheresse quasi-toujours vrai, toute l'annee, dans les 8 zones. Nouvelles valeurs = moyenne mensuelle reelle observee sur l'historique 1990-2025.",
+    "calibration_note_pluie": "CORRIGE (audit 2026-07-10) v3 - normales pluie et percentiles hebdo recalcules depuis l'historique reel (ancien juillet=70mm -> nouveau=140.1mm). L'ancienne sous-estimation rendait le critere 'exces de pluie' du label inondation quasi-toujours vrai en saison humide."
   },
   "coordonnees": {
-    "lat": 2.9000,
-    "lon": 11.1500,
+    "lat": 2.9,
+    "lon": 11.15,
     "altitude_m": 640,
     "timezone": "Africa/Douala"
   },
   "pluie_normales_mensuelles_mm": {
-    "1": 45,  "2": 60,  "3": 120, "4": 160,
-    "5": 180, "6": 150, "7": 70,  "8": 110,
-    "9": 185, "10": 230, "11": 175, "12": 60
+    "1": 57.0,
+    "2": 82.9,
+    "3": 167.2,
+    "4": 211.0,
+    "5": 203.2,
+    "6": 187.4,
+    "7": 140.1,
+    "8": 135.8,
+    "9": 245.9,
+    "10": 285.5,
+    "11": 202.2,
+    "12": 81.9
   },
   "et0_normales_mensuelles_mm": {
-    "1": 24, "2": 24, "3": 22, "4": 20, "5": 19, "6": 18,
-    "7": 20, "8": 20, "9": 19, "10": 18, "11": 18, "12": 22
+    "1": 109.0,
+    "2": 112.4,
+    "3": 109.3,
+    "4": 105.7,
+    "5": 98.9,
+    "6": 89.4,
+    "7": 87.3,
+    "8": 88.7,
+    "9": 90.7,
+    "10": 89.9,
+    "11": 93.5,
+    "12": 101.8
   },
   "temp_max_normales_mensuelles_c": {
-    "1": 30.0, "2": 31.0, "3": 31.5, "4": 30.5, "5": 29.5, "6": 28.5,
-    "7": 28.0, "8": 28.2, "9": 28.0, "10": 28.5, "11": 29.0, "12": 29.5
+    "1": 30.0,
+    "2": 31.0,
+    "3": 31.5,
+    "4": 30.5,
+    "5": 29.5,
+    "6": 28.5,
+    "7": 28.0,
+    "8": 28.2,
+    "9": 28.0,
+    "10": 28.5,
+    "11": 29.0,
+    "12": 29.5
   },
   "temp_max_std_mensuelles_c": {
-    "1": 2.0, "2": 1.9, "3": 1.8, "4": 1.6, "5": 1.5, "6": 1.4,
-    "7": 1.4, "8": 1.4, "9": 1.4, "10": 1.5, "11": 1.6, "12": 1.8
+    "1": 2.0,
+    "2": 1.9,
+    "3": 1.8,
+    "4": 1.6,
+    "5": 1.5,
+    "6": 1.4,
+    "7": 1.4,
+    "8": 1.4,
+    "9": 1.4,
+    "10": 1.5,
+    "11": 1.6,
+    "12": 1.8
   },
   "temp_min_normales_mensuelles_c": {
-    "1": 18.5, "2": 19.0, "3": 19.5, "4": 19.5, "5": 19.0, "6": 18.5,
-    "7": 18.0, "8": 18.0, "9": 18.0, "10": 18.5, "11": 18.5, "12": 18.5
+    "1": 18.5,
+    "2": 19.0,
+    "3": 19.5,
+    "4": 19.5,
+    "5": 19.0,
+    "6": 18.5,
+    "7": 18.0,
+    "8": 18.0,
+    "9": 18.0,
+    "10": 18.5,
+    "11": 18.5,
+    "12": 18.5
   },
   "sm_surface_normales": {
-    "1": 0.28, "2": 0.30, "3": 0.36, "4": 0.42, "5": 0.44, "6": 0.40,
-    "7": 0.34, "8": 0.38, "9": 0.44, "10": 0.48, "11": 0.44, "12": 0.32
+    "1": 0.28,
+    "2": 0.3,
+    "3": 0.36,
+    "4": 0.42,
+    "5": 0.44,
+    "6": 0.4,
+    "7": 0.34,
+    "8": 0.38,
+    "9": 0.44,
+    "10": 0.48,
+    "11": 0.44,
+    "12": 0.32
   },
   "sm_rootzone_normales": {
-    "1": 0.32, "2": 0.34, "3": 0.38, "4": 0.43, "5": 0.45, "6": 0.42,
-    "7": 0.38, "8": 0.40, "9": 0.44, "10": 0.48, "11": 0.45, "12": 0.36
+    "1": 0.32,
+    "2": 0.34,
+    "3": 0.38,
+    "4": 0.43,
+    "5": 0.45,
+    "6": 0.42,
+    "7": 0.38,
+    "8": 0.4,
+    "9": 0.44,
+    "10": 0.48,
+    "11": 0.45,
+    "12": 0.36
   },
   "ndvi_seuil_alerte": {
-    "1": 0.50, "2": 0.52, "3": 0.58, "4": 0.64, "5": 0.66, "6": 0.62,
-    "7": 0.56, "8": 0.60, "9": 0.66, "10": 0.68, "11": 0.65, "12": 0.54
+    "1": 0.5,
+    "2": 0.52,
+    "3": 0.58,
+    "4": 0.64,
+    "5": 0.66,
+    "6": 0.62,
+    "7": 0.56,
+    "8": 0.6,
+    "9": 0.66,
+    "10": 0.68,
+    "11": 0.65,
+    "12": 0.54
   },
   "percentiles_hebdo_pluie": {
-    "1":  {"p25": 2,  "p50": 8,  "p75": 22,  "p90": 42},
-    "2":  {"p25": 4,  "p50": 12, "p75": 28,  "p90": 55},
-    "3":  {"p25": 6,  "p50": 24, "p75": 55,  "p90": 98},
-    "4":  {"p25": 10, "p50": 34, "p75": 72,  "p90": 128},
-    "5":  {"p25": 12, "p50": 38, "p75": 80,  "p90": 142},
-    "6":  {"p25": 8,  "p50": 28, "p75": 64,  "p90": 118},
-    "7":  {"p25": 2,  "p50": 12, "p75": 32,  "p90": 62},
-    "8":  {"p25": 4,  "p50": 20, "p75": 46,  "p90": 88},
-    "9":  {"p25": 12, "p50": 38, "p75": 82,  "p90": 148},
-    "10": {"p25": 14, "p50": 46, "p75": 98,  "p90": 175},
-    "11": {"p25": 10, "p50": 36, "p75": 78,  "p90": 138},
-    "12": {"p25": 2,  "p50": 10, "p75": 28,  "p90": 55}
+    "1": {
+      "p25": 2.9,
+      "p50": 7.6,
+      "p75": 17.9,
+      "p90": 28.1
+    },
+    "2": {
+      "p25": 4.7,
+      "p50": 13.9,
+      "p75": 24.1,
+      "p90": 36.5
+    },
+    "3": {
+      "p25": 20.3,
+      "p50": 33.6,
+      "p75": 50.5,
+      "p90": 62.9
+    },
+    "4": {
+      "p25": 31.4,
+      "p50": 42.5,
+      "p75": 54.6,
+      "p90": 69.6
+    },
+    "5": {
+      "p25": 31.1,
+      "p50": 44.6,
+      "p75": 56.6,
+      "p90": 71.1
+    },
+    "6": {
+      "p25": 31.2,
+      "p50": 40.5,
+      "p75": 51.6,
+      "p90": 65.1
+    },
+    "7": {
+      "p25": 18.0,
+      "p50": 29.2,
+      "p75": 42.5,
+      "p90": 57.1
+    },
+    "8": {
+      "p25": 15.8,
+      "p50": 24.7,
+      "p75": 38.3,
+      "p90": 51.1
+    },
+    "9": {
+      "p25": 38.8,
+      "p50": 52.1,
+      "p75": 64.4,
+      "p90": 77.7
+    },
+    "10": {
+      "p25": 50.9,
+      "p50": 62.8,
+      "p75": 76.3,
+      "p90": 88.6
+    },
+    "11": {
+      "p25": 31.2,
+      "p50": 46.8,
+      "p75": 63.6,
+      "p90": 78.8
+    },
+    "12": {
+      "p25": 4.8,
+      "p50": 15.6,
+      "p75": 29.3,
+      "p90": 42.8
+    }
   },
   "seuils_inondation": {
-    "pluie_7j_facteur_normale": 1.40,
+    "pluie_7j_facteur_normale": 1.4,
     "pluie_prev_7j_facteur_normale": 1.25,
     "sm_surface_seuil_haut": 0.49,
     "score_min_label_1": 3,
@@ -72,23 +213,39 @@
     "pluie_30j_facteur_deficit": 0.58,
     "sm_rootzone_delta_seuil": -0.08,
     "ndvi_seuil_critique": 0.45,
-    "et0_facteur_stress": 1.30,
+    "et0_facteur_stress": 1.3,
     "score_min_label_1": 2,
     "commentaire": "Petite saison sèche juil-août marquée (70mm/mois). Cacaoyers stressés si déficit >42% sur 30j en pleine saison sèche. ET0 modérée (18-24mm/mois) — stress évaporatif moins fort que zones sahéliennes."
   },
   "seuils_chaleur": {
     "temp_max_anomalie_sigma": 1.0,
     "temp_max_3j_anomalie_sigma": 0.5,
-    "et0_facteur_stress": 1.30,
+    "et0_facteur_stress": 1.3,
     "pluie_7j_max_sec": 10.0,
     "score_min_label_1": 2,
     "commentaire": "Tmax normales 28-31°C modérées pour un équatorial. Vagues de chaleur significatives fév-mars (harmattan atténué). sigma=1.0 adapté à la variance relativement faible de la zone forestière."
   },
   "saisons": {
-    "saison_pluies_1": [3, 4, 5, 6],
-    "saison_pluies_2": [8, 9, 10, 11],
-    "petite_saison_seche": [7],
-    "grande_saison_seche": [12, 1, 2],
+    "saison_pluies_1": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "saison_pluies_2": [
+      8,
+      9,
+      10,
+      11
+    ],
+    "petite_saison_seche": [
+      7
+    ],
+    "grande_saison_seche": [
+      12,
+      1,
+      2
+    ],
     "commentaire": "Bimodal tardif — 2ème saison plus forte (oct pic à 230mm) contrairement à Kribi (oct=280 vs mai=250)"
   },
   "fichiers_historiques": {
