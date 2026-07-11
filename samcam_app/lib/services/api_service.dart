@@ -219,6 +219,24 @@ class ApiService {
     return [];
   }
 
+  // ── GET /api/overview — niveau de risque actuel des 8 zones ─────────
+
+  static Future<List<Map<String, dynamic>>> getOverview() async {
+    final base = await getServerUrl();
+    final uri  = Uri.parse('$base/api/overview');
+
+    final response = await http
+        .get(uri, headers: {'Accept': 'application/json'})
+        .timeout(Config.httpTimeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Vue d\'ensemble indisponible');
+    }
+
+    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return List<Map<String, dynamic>>.from(data['zones'] ?? []);
+  }
+
   // ── GET /api/nearest-live ───────────────────────────────────────────
 
   static Future<Map<String, dynamic>> getNearestLive() async {

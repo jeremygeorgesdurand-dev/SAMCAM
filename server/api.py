@@ -439,6 +439,35 @@ def list_zones():
     return {"zones": result, "total": len(result)}
 
 
+@app.get("/api/overview", tags=["Zones"])
+def get_overview():
+    """
+    Vue d'ensemble : niveau de risque ACTUEL des 8 zones en un seul appel.
+    Lit le cache précalculé (data/predictions/latest.json) — quasi-instantané,
+    avec repli sur le calcul direct si le cache est absent pour une zone.
+    """
+    result = []
+    for z in ZONES_META:
+        zone_name = z["name"]
+        try:
+            data        = _load_zone_data(zone_name)
+            indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
+            meteo       = data.get("meteorologie", {})
+        except HTTPException:
+            indicateurs, meteo = {}, {}
+
+        risk   = _compute_risk_for_zone(zone_name, indicateurs, meteo)
+        actuel = risk.get("risque_actuel", {})
+        result.append({
+            "zone":          zone_name,
+            "type":          z["type"],
+            "niveau_alerte": actuel.get("niveau_alerte", "INCONNU"),
+            "scores":        actuel.get("scores", {}),
+        })
+
+    return {"zones": result}
+
+
 @app.get("/api/nearest", tags=["Zones"])
 def get_nearest_zone(
     lat: float = Query(..., description="Latitude GPS de l'utilisateur (ex: 4.05)"),

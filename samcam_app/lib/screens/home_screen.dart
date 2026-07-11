@@ -13,6 +13,7 @@ import '../widgets/weather_animation.dart';
 import '../widgets/zone_drawer.dart';
 import 'settings_screen.dart';
 import 'history_screen.dart';
+import 'overview_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -280,11 +281,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    if (_hasAlert)
-                      Expanded(child: _buildInlineAlertBanner())
-                    else
-                      const Spacer(),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.grid_view_rounded, color: Colors.white70),
+                      tooltip: "Vue d'ensemble",
+                      onPressed: () async {
+                        final zone = await Navigator.push<String>(
+                          context,
+                          MaterialPageRoute(builder: (_) => const OverviewScreen()));
+                        if (zone != null) _onZoneSelected(zone);
+                      }),
                     IconButton(
                       icon: const Icon(Icons.history, color: Colors.white70),
                       onPressed: () => Navigator.push(
@@ -307,6 +313,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
+              // ── Bannière d'alerte : ligne dédiée pleine largeur sous les
+              // icônes (auparavant tassée dans la même ligne → texte tronqué).
+              if (_hasAlert)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                  child: _buildInlineAlertBanner(),
+                ),
             ],
           ),
         ),
@@ -317,6 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildInlineAlertBanner() {
     if (_report == null && _error != null) {
       return Container(
+        width: double.infinity,
         height: 28,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
@@ -325,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
           border: Border.all(color: Colors.white24, width: 0.8),
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.cloud_off_outlined, color: Colors.white54, size: 12),
             const SizedBox(width: 5),
@@ -365,6 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
     )!;
 
     return Container(
+      width: double.infinity,
       height: 28,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
@@ -373,7 +387,6 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: color.withOpacity(0.45), width: 0.9),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             isOk
@@ -960,21 +973,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ]),
       ),
       const SizedBox(height: 10),
-      IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final h in r.horizons.where((h) => h.label != 'Aujourd\'hui'))
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: h.label == r.horizons.last.label ? 0 : 10),
-                  child: _prevCard('${h.label.replaceAll('J+', '')} jours', h.periode.niveauGlobal),
-                ),
-              ),
-          ],
-        ),
-      ),
+      _buildPrevCardsGrid(r),
       const SizedBox(height: 10),
       _glassCard(
         child: Padding(
@@ -1081,6 +1080,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: LineChart(
             LineChartData(
               minY: 0, maxY: 100,
+              minX: 0, maxX: (horizons.length - 1).toDouble(),
               gridData: FlGridData(
                 show: true, drawVerticalLine: false,
                 horizontalInterval: 25,
@@ -1098,9 +1098,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(color: Colors.white38, fontSize: 10)))),
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
-                    showTitles: true, reservedSize: 24,
+                    showTitles: true, reservedSize: 24, interval: 1,
                     getTitlesWidget: (v, meta) {
-                      final i = v.toInt();
+                      // interval:1 garantit un appel par unité, mais on vérifie quand
+                      // même l'entier exact pour éviter tout doublon d'arrondi fl_chart.
+                      if (v != v.roundToDouble()) return const SizedBox.shrink();
+                      final i = v.round();
                       if (i < 0 || i >= horizons.length) return const SizedBox.shrink();
                       final lbl = horizons[i].label == 'Aujourd\'hui' ? 'Auj.' : horizons[i].label;
                       return Padding(
@@ -1294,6 +1297,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  /// Grille 2×2 des cartes de prévision (3j+7j sur une ligne, 10j+14j sur la
+  /// suivante) — une seule ligne de 4 cartes serrait trop chaque carte sur un
+  /// écran de téléphone (texte tronqué "10 jo…", niveau qui retourne à la ligne).
+  Widget _buildPrevCardsGrid(RiskReport r) {
+    final futurs = r.horizons.where((h) => h.label != 'Aujourd\'hui').toList();
+    final rangees = <Widget>[];
+    for (int i = 0; i < futurs.length; i += 2) {
+      final paire = futurs.sublist(i, (i + 2 <= futurs.length) ? i + 2 : i + 1);
+      if (rangees.isNotEmpty) rangees.add(const SizedBox(height: 10));
+      rangees.add(IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (int j = 0; j < paire.length; j++) ...[
+              if (j > 0) const SizedBox(width: 10),
+              Expanded(
+                child: _prevCard(
+                  '${paire[j].label.replaceAll('J+', '')} jours',
+                  paire[j].periode.niveauGlobal),
+              ),
+            ],
+          ],
+        ),
+      ));
+    }
+    return Column(children: rangees);
+  }
+
   Widget _prevCard(String horizon, String niveau) {
     final color = _alertColor(niveau);
     // Empilé (libellé au-dessus du badge) plutôt qu'en ligne : évite toute
@@ -1323,9 +1354,12 @@ class _HomeScreenState extends State<HomeScreen> {
               color: color.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: color.withOpacity(0.5))),
-            child: Text(_alertShort(niveau), style: TextStyle(
-              color: color, fontWeight: FontWeight.bold,
-              fontSize: 12, letterSpacing: 0.3))),
+            child: Text(_alertShort(niveau),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(
+                color: color, fontWeight: FontWeight.bold,
+                fontSize: 12, letterSpacing: 0.3))),
         ],
       ),
     );
