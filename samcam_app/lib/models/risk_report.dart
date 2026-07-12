@@ -252,6 +252,11 @@ class RiskReport {
   final Indicateurs indicateurs;
   final MeteoCourante meteo;
 
+  /// true si ce rapport provient du cache hors-ligne (échec réseau),
+  /// auquel cas [cachedAt] donne la date de la dernière mise à jour réussie.
+  final bool fromCache;
+  final DateTime? cachedAt;
+
   RiskReport({
     required this.date,
     required this.zone,
@@ -264,6 +269,8 @@ class RiskReport {
     required this.prevu14j,
     required this.indicateurs,
     required this.meteo,
+    this.fromCache = false,
+    this.cachedAt,
   });
 
   /// Horizons de prévision disponibles, dans l'ordre chronologique.

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
 import '../models/risk_report.dart';
 import '../models/custom_location.dart';
+import 'offline_cache.dart';
 
 /// Coordonnées GPS retournées par getPosition()
 class GpsPosition {
@@ -84,7 +85,39 @@ class ApiService {
 
     if (zone != null) {
       // Mode zone explicite → endpoint dédié
+      final cacheKey = 'risk_$zone';
       final uri = Uri.parse('$base/api/risk?zone=' + Uri.encodeQueryComponent(zone));
+      try {
+        final response = await http
+            .get(uri, headers: {'Accept': 'application/json'})
+            .timeout(Config.httpTimeout);
+
+        if (response.statusCode != 200) {
+          throw Exception('Erreur serveur : ' + response.statusCode.toString());
+        }
+
+        final body = utf8.decode(response.bodyBytes);
+        await OfflineCache.put(cacheKey, body);
+        final json = jsonDecode(body) as Map<String, dynamic>;
+        // /api/risk retourne directement un objet compatible _nearestToRiskReport
+        return _nearestToRiskReport(json, null);
+      } catch (e) {
+        final report = await _riskFromCache(cacheKey, null);
+        if (report != null) return report;
+        rethrow;
+      }
+    }
+
+    // Mode coordonnées (endroit personnalisé) ou GPS automatique
+    final pos = (lat != null && lon != null) ? GpsPosition(lat, lon) : await getPosition();
+    const cacheKey = 'risk_nearest'; // dernière réponse GPS/coordonnées connue
+    final uri = Uri.parse('$base/api/nearest').replace(
+      queryParameters: {
+        'lat': pos.lat.toString(),
+        'lon': pos.lon.toString(),
+      },
+    );
+    try {
       final response = await http
           .get(uri, headers: {'Accept': 'application/json'})
           .timeout(Config.httpTimeout);
@@ -93,31 +126,30 @@ class ApiService {
         throw Exception('Erreur serveur : ' + response.statusCode.toString());
       }
 
-      final json =
-          jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      // /api/risk retourne directement un objet compatible _nearestToRiskReport
-      return _nearestToRiskReport(json, null);
+      final body = utf8.decode(response.bodyBytes);
+      await OfflineCache.put(cacheKey, body);
+      final json = jsonDecode(body) as Map<String, dynamic>;
+      return _nearestToRiskReport(json, pos);
+    } catch (e) {
+      final report = await _riskFromCache(cacheKey, pos);
+      if (report != null) return report;
+      rethrow;
     }
+  }
 
-    // Mode coordonnées (endroit personnalisé) ou GPS automatique
-    final pos = (lat != null && lon != null) ? GpsPosition(lat, lon) : await getPosition();
-    final uri = Uri.parse('$base/api/nearest').replace(
-      queryParameters: {
-        'lat': pos.lat.toString(),
-        'lon': pos.lon.toString(),
-      },
-    );
-    final response = await http
-        .get(uri, headers: {'Accept': 'application/json'})
-        .timeout(Config.httpTimeout);
-
-    if (response.statusCode != 200) {
-      throw Exception('Erreur serveur : ' + response.statusCode.toString());
+  /// Reconstruit un RiskReport depuis le cache hors-ligne, marqué comme périmé.
+  /// Retourne null si aucune entrée n'existe pour [cacheKey].
+  static Future<RiskReport?> _riskFromCache(
+      String cacheKey, GpsPosition? pos) async {
+    final entry = await OfflineCache.get(cacheKey);
+    if (entry == null) return null;
+    try {
+      final json = jsonDecode(entry.json) as Map<String, dynamic>;
+      return _nearestToRiskReport(json, pos,
+          fromCache: true, cachedAt: entry.cachedAt);
+    } catch (_) {
+      return null;
     }
-
-    final json =
-        jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    return _nearestToRiskReport(json, pos);
   }
 
   // ── Recherche de ville (géocodage) ──────────────────────────────────
@@ -225,16 +257,27 @@ class ApiService {
     final base = await getServerUrl();
     final uri  = Uri.parse('$base/api/overview');
 
-    final response = await http
-        .get(uri, headers: {'Accept': 'application/json'})
-        .timeout(Config.httpTimeout);
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(Config.httpTimeout);
 
-    if (response.statusCode != 200) {
-      throw Exception('Vue d\'ensemble indisponible');
+      if (response.statusCode != 200) {
+        throw Exception('Vue d\'ensemble indisponible');
+      }
+
+      final body = utf8.decode(response.bodyBytes);
+      await OfflineCache.put('overview', body);
+      final data = jsonDecode(body) as Map<String, dynamic>;
+      return List<Map<String, dynamic>>.from(data['zones'] ?? []);
+    } catch (e) {
+      final entry = await OfflineCache.get('overview');
+      if (entry != null) {
+        final data = jsonDecode(entry.json) as Map<String, dynamic>;
+        return List<Map<String, dynamic>>.from(data['zones'] ?? []);
+      }
+      rethrow;
     }
-
-    final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    return List<Map<String, dynamic>>.from(data['zones'] ?? []);
   }
 
   // ── GET /api/nearest-live ───────────────────────────────────────────
@@ -286,15 +329,59 @@ class ApiService {
       'days': days.toString(),
     });
 
+    try {
+      final response = await http
+          .get(uri, headers: {'Accept': 'application/json'})
+          .timeout(Config.httpTimeout);
+
+      if (response.statusCode != 200) {
+        throw Exception('Historique indisponible');
+      }
+      final body = utf8.decode(response.bodyBytes);
+      await OfflineCache.put('history_$zoneName', body);
+      final data = jsonDecode(body);
+      return List<Map<String, dynamic>>.from(data['history'] ?? []);
+    } catch (e) {
+      final entry = await OfflineCache.get('history_$zoneName');
+      if (entry != null) {
+        final data = jsonDecode(entry.json);
+        return List<Map<String, dynamic>>.from(data['history'] ?? []);
+      }
+      rethrow;
+    }
+  }
+
+  // ── POST /api/signalement — signalement communautaire ───────────────
+
+  /// Envoie un signalement d'événement climatique observé sur le terrain.
+  /// [typeEvenement] : inondation | secheresse | chaleur | autre.
+  static Future<void> submitSignalement({
+    required String zone,
+    required String typeEvenement,
+    String description = '',
+    double? lat,
+    double? lon,
+  }) async {
+    final base = await getServerUrl();
+    final uri  = Uri.parse('$base/api/signalement');
+
     final response = await http
-        .get(uri, headers: {'Accept': 'application/json'})
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'zone':           zone,
+            'type_evenement': typeEvenement,
+            'description':    description,
+            if (lat != null) 'lat': lat,
+            if (lon != null) 'lon': lon,
+          }),
+        )
         .timeout(Config.httpTimeout);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(utf8.decode(response.bodyBytes));
-      return List<Map<String, dynamic>>.from(data['history'] ?? []);
+    if (response.statusCode != 200) {
+      throw Exception('Signalement refusé (${response.statusCode})');
     }
-    throw Exception('Historique indisponible');
   }
 
   // ── Helpers privés ─────────────────────────────────────────────────
@@ -329,8 +416,10 @@ class ApiService {
   ///   }
   static RiskReport _nearestToRiskReport(
     Map<String, dynamic> json,
-    GpsPosition? pos,
-  ) {
+    GpsPosition? pos, {
+    bool fromCache = false,
+    DateTime? cachedAt,
+  }) {
     final zone        = (json['zone']        as String?) ?? 'Kribi';
     final distanceKm  = (json['distance_km'] as num?)?.toDouble() ?? 0.0;
     final hors_zone   = json['hors_zone'] as bool? ?? false;
@@ -435,6 +524,8 @@ class ApiService {
       meteo: meteo.isNotEmpty
           ? MeteoCourante.fromJson(meteo)
           : MeteoCourante.empty(),
+      fromCache: fromCache,
+      cachedAt:  cachedAt,
     );
   }
 }

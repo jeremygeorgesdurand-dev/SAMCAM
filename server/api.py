@@ -45,6 +45,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────────
 
@@ -731,6 +732,85 @@ def get_history(
         })
 
     return {"zone": zone, "history": history, "total": len(history)}
+
+
+# ─── SIGNALEMENTS COMMUNAUTAIRES ───────────────────────────────────────────────
+#
+# Les utilisateurs de l'app peuvent signaler un événement climatique observé
+# sur le terrain (inondation constatée, sécheresse, vague de chaleur…).
+# Ces observations sont stockées en JSONL et serviront de vérité terrain pour
+# recalibrer les labels des modèles (aujourd'hui basés sur des seuils
+# climatologiques, pas sur des événements confirmés).
+
+SIGNALEMENTS_PATH = os.path.join(ROOT, "data", "community_reports", "signalements.jsonl")
+_TYPES_EVENEMENT = {"inondation", "secheresse", "chaleur", "autre"}
+
+
+class Signalement(BaseModel):
+    zone: str = Field(..., min_length=2, max_length=50)
+    type_evenement: str = Field(..., description="inondation|secheresse|chaleur|autre")
+    description: str = Field("", max_length=1000)
+    date_observation: Optional[str] = Field(None, description="YYYY-MM-DD (défaut : aujourd'hui)")
+    lat: Optional[float] = Field(None, ge=-90, le=90)
+    lon: Optional[float] = Field(None, ge=-180, le=180)
+
+
+@app.post("/api/signalement", tags=["Communauté"])
+def post_signalement(s: Signalement):
+    """Enregistre un signalement d'événement climatique observé sur le terrain."""
+    if s.type_evenement not in _TYPES_EVENEMENT:
+        raise HTTPException(
+            status_code=422,
+            detail=f"type_evenement invalide (attendu : {sorted(_TYPES_EVENEMENT)})",
+        )
+    # La zone doit être une zone SAMCAM connue (évite le stockage de déchets)
+    _resolve_zone(s.zone)
+
+    date_obs = s.date_observation or datetime.now().strftime("%Y-%m-%d")
+    try:
+        datetime.strptime(date_obs, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=422, detail="date_observation invalide (format YYYY-MM-DD)")
+
+    entree = {
+        "zone":             s.zone,
+        "type_evenement":   s.type_evenement,
+        "description":      s.description.strip(),
+        "date_observation": date_obs,
+        "lat":              s.lat,
+        "lon":              s.lon,
+        "recu_le":          datetime.now().isoformat(timespec="seconds"),
+    }
+    try:
+        os.makedirs(os.path.dirname(SIGNALEMENTS_PATH), exist_ok=True)
+        with open(SIGNALEMENTS_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entree, ensure_ascii=False) + "\n")
+    except OSError as e:
+        print(f"[api] Erreur écriture signalement : {e}")
+        raise HTTPException(status_code=500, detail="Impossible d'enregistrer le signalement")
+
+    return {"status": "OK", "signalement": entree}
+
+
+@app.get("/api/signalements", tags=["Communauté"])
+def get_signalements(
+    zone: Optional[str] = Query(None, description="Filtrer par zone"),
+    limit: int = Query(50, ge=1, le=500),
+):
+    """Liste les derniers signalements communautaires (les plus récents d'abord)."""
+    if not os.path.isfile(SIGNALEMENTS_PATH):
+        return {"signalements": [], "total": 0}
+    try:
+        with open(SIGNALEMENTS_PATH, encoding="utf-8") as f:
+            entrees = [json.loads(l) for l in f if l.strip()]
+    except (OSError, json.JSONDecodeError) as e:
+        print(f"[api] Erreur lecture signalements : {e}")
+        raise HTTPException(status_code=500, detail="Impossible de lire les signalements")
+
+    if zone:
+        entrees = [e for e in entrees if e.get("zone", "").lower() == zone.lower()]
+    entrees = entrees[::-1][:limit]
+    return {"signalements": entrees, "total": len(entrees)}
 
 
 # ─── STATIC FILES ──────────────────────────────────────────────────────────────

@@ -9,6 +9,8 @@ import '../models/custom_location.dart';
 import '../services/api_service.dart';
 import '../services/weather_service.dart';
 import '../services/notification_service.dart';
+import '../services/report_share.dart';
+import '../widgets/signalement_sheet.dart';
 import '../widgets/weather_animation.dart';
 import '../widgets/zone_drawer.dart';
 import 'settings_screen.dart';
@@ -465,6 +467,7 @@ class _HomeScreenState extends State<HomeScreen> {
       controller: _scrollCtrl,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
       children: [
+        if (_report?.fromCache == true) _buildOfflineBanner(_report!),
         _buildWeatherHeaderOverlay(weather),
         const SizedBox(height: 20),
         _buildHourlySection(weather),
@@ -475,6 +478,39 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 12),
         if (_report != null) ..._buildRiskSection(_report!),
       ],
+    );
+  }
+
+  /// Bandeau affiché quand les données proviennent du cache hors-ligne
+  /// (réseau indisponible) : indique l'ancienneté de la dernière mise à jour.
+  Widget _buildOfflineBanner(RiskReport r) {
+    final when = r.cachedAt;
+    final quand = when == null
+        ? ''
+        : ' du ${DateFormat('dd/MM à HH:mm').format(when)}';
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF37474F).withOpacity(0.85),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.cloud_off, color: Colors.white70, size: 16),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mode hors-ligne — données$quand',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -984,6 +1020,17 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(children: [
                 _sectionLabel('RISQUES CLIMATIQUES'),
                 const Spacer(),
+                // Partage du bulletin en texte (WhatsApp, SMS, e-mail…)
+                InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: () => ReportShare.share(r),
+                  child: const Padding(
+                    padding: EdgeInsets.all(6),
+                    child: Icon(Icons.share_outlined,
+                      color: Colors.white54, size: 16),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -1040,6 +1087,30 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
+      ),
+      const SizedBox(height: 10),
+      // Signalement communautaire : les observations terrain servent de
+      // vérité terrain pour recalibrer les modèles côté serveur.
+      OutlinedButton.icon(
+        onPressed: () async {
+          final zone = r.zone.split(' (').first;
+          final sent = await showSignalementSheet(context, zone);
+          if (sent == true && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Merci ! Votre signalement a été enregistré.'),
+                backgroundColor: Color(0xFF01696F),
+              ),
+            );
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white70,
+          side: const BorderSide(color: Colors.white24),
+          padding: const EdgeInsets.symmetric(vertical: 13),
+        ),
+        icon: const Icon(Icons.campaign_outlined, size: 18),
+        label: const Text('Signaler un événement observé'),
       ),
     ];
   }
