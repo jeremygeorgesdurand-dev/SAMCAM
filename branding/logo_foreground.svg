@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Foreground pour icône adaptative Android — zone de sécurité 66% centrale,
+       fond transparent (le fond plein est fourni séparément). -->
+  <g transform="translate(-45,-15.5)">
+    <circle cx="655" cy="365" r="120" fill="#FFC169"/>
+    <g fill="#FFFFFF">
+      <circle cx="450" cy="560" r="118"/>
+      <circle cx="565" cy="505" r="150"/>
+      <circle cx="680" cy="570" r="102"/>
+      <rect x="450" y="560" width="230" height="118" rx="59"/>
+    </g>
+    <g fill="#DFF3F5">
+      <path d="M466 723 C 483 746, 494 765, 494 780 C 494 798, 481 810, 466 810 C 451 810, 438 798, 438 780 C 438 765, 449 746, 466 723 Z"/>
+      <path d="M565 723 C 582 746, 593 765, 593 780 C 593 798, 580 810, 565 810 C 550 810, 537 798, 537 780 C 537 765, 548 746, 565 723 Z"/>
+    </g>
+    <path fill="#FFB74D" d="M664 723 C 681 746, 692 765, 692 780 C 692 798, 679 810, 664 810 C 649 810, 636 798, 636 780 C 636 765, 647 746, 664 723 Z"/>
+  </g>
+</svg>

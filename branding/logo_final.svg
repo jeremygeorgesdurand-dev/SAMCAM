@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- SAMCAM — Icône finale : nuage/soleil/pluie, palette de l'app, goutte ambre = alerte -->
+  <rect width="1024" height="1024" fill="#2596BE"/>
+  <g transform="translate(-58,-43)">
+    <circle cx="690" cy="350" r="156" fill="#FFC169"/>
+    <g fill="#FFFFFF">
+      <circle cx="424" cy="584" r="152"/>
+      <circle cx="580" cy="510" r="196"/>
+      <circle cx="736" cy="600" r="132"/>
+      <rect x="424" y="584" width="312" height="152" rx="76"/>
+    </g>
+    <g fill="#DFF3F5">
+      <path d="M444 800 C 466 830, 480 856, 480 876 C 480 900, 462 916, 444 916 C 426 916, 408 900, 408 876 C 408 856, 422 830, 444 800 Z"/>
+      <path d="M580 800 C 602 830, 616 856, 616 876 C 616 900, 598 916, 580 916 C 562 916, 544 900, 544 876 C 544 856, 558 830, 580 800 Z"/>
+    </g>
+    <!-- goutte d'alerte -->
+    <path fill="#FFB74D" d="M716 800 C 738 830, 752 856, 752 876 C 752 900, 734 916, 716 916 C 698 916, 680 900, 680 876 C 680 856, 694 830, 716 800 Z"/>
+  </g>
+</svg>
