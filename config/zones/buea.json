@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "zone": "buea",
+    "label": "Buea",
+    "version": "1.0.0",
+    "regime": "equatorial_bimodal",
+    "description": "Sud-Ouest — palmier à huile/banane, piémont du Mont Cameroun, forte pluviométrie",
+    "sources": "Open-Meteo ERA5-Land + NASA POWER, 2000-01-01 → 2026-07-13",
+    "calibration_note": "Normales et percentiles calculés automatiquement depuis l'historique réel (9505 jours) par generate_zone_config.py. Facteurs de seuil (flood/drought/heat) repris du profil générique 'equatorial' — à réétalonner sur événements réels documentés si disponibles.",
+    "calibration_seuils": "Facteurs de seuil ré-étalonnés par dichotomie (calibrate_zone_thresholds.py) pour aligner les taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique, au lieu des facteurs génériques bruts."
+  },
+  "coordonnees": {
+    "lat": 4.156,
+    "lon": 9.242,
+    "altitude_m": 870,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 110.5,
+    "2": 148.3,
+    "3": 229.7,
+    "4": 232.6,
+    "5": 259.3,
+    "6": 434.8,
+    "7": 717.5,
+    "8": 802.0,
+    "9": 719.0,
+    "10": 433.4,
+    "11": 195.0,
+    "12": 95.9
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 110.2,
+    "2": 103.7,
+    "3": 106.9,
+    "4": 98.3,
+    "5": 93.2,
+    "6": 76.9,
+    "7": 68.2,
+    "8": 68.3,
+    "9": 74.8,
+    "10": 85.9,
+    "11": 91.6,
+    "12": 103.8
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 26.5,
+    "2": 26.9,
+    "3": 26.6,
+    "4": 26.3,
+    "5": 25.7,
+    "6": 24.2,
+    "7": 23.3,
+    "8": 23.1,
+    "9": 23.8,
+    "10": 24.5,
+    "11": 25.3,
+    "12": 26.0
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 1.39,
+    "2": 1.36,
+    "3": 1.39,
+    "4": 1.34,
+    "5": 1.4,
+    "6": 1.43,
+    "7": 1.69,
+    "8": 1.64,
+    "9": 1.68,
+    "10": 1.48,
+    "11": 1.34,
+    "12": 1.23
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 20.1,
+    "2": 20.7,
+    "3": 21.0,
+    "4": 21.0,
+    "5": 20.8,
+    "6": 19.9,
+    "7": 19.4,
+    "8": 19.3,
+    "9": 19.5,
+    "10": 19.9,
+    "11": 20.2,
+    "12": 20.2
+  },
+  "sm_surface_normales": {
+    "1": 0.3,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "sm_rootzone_normales": {
+    "1": 0.3,
+    "2": 0.3,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "percentiles_hebdo_pluie": {
+    "1": {
+      "p25": 5.4,
+      "p50": 13.4,
+      "p75": 31.0,
+      "p90": 59.8
+    },
+    "2": {
+      "p25": 12.7,
+      "p50": 28.6,
+      "p75": 51.8,
+      "p90": 80.3
+    },
+    "3": {
+      "p25": 32.0,
+      "p50": 49.5,
+      "p75": 69.1,
+      "p90": 87.5
+    },
+    "4": {
+      "p25": 35.4,
+      "p50": 54.6,
+      "p75": 71.3,
+      "p90": 85.2
+    },
+    "5": {
+      "p25": 38.0,
+      "p50": 63.3,
+      "p75": 76.8,
+      "p90": 94.7
+    },
+    "6": {
+      "p25": 62.1,
+      "p50": 84.5,
+      "p75": 123.2,
+      "p90": 185.8
+    },
+    "7": {
+      "p25": 74.9,
+      "p50": 128.5,
+      "p75": 209.0,
+      "p90": 342.3
+    },
+    "8": {
+      "p25": 103.9,
+      "p50": 161.7,
+      "p75": 238.8,
+      "p90": 331.4
+    },
+    "9": {
+      "p25": 81.9,
+      "p50": 109.4,
+      "p75": 202.0,
+      "p90": 339.9
+    },
+    "10": {
+      "p25": 64.1,
+      "p50": 84.9,
+      "p75": 109.5,
+      "p90": 202.9
+    },
+    "11": {
+      "p25": 25.7,
+      "p50": 42.1,
+      "p75": 60.6,
+      "p90": 76.3
+    },
+    "12": {
+      "p25": 7.1,
+      "p50": 13.4,
+      "p75": 30.1,
+      "p90": 49.3
+    }
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.5827,
+    "sm_surface_seuil_haut": 0.48,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement (calibrate_zone_thresholds.py) pour un taux d'alerte cible ~6.2% (référence classe 'equatorial')."
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.4417,
+    "sm_rootzone_delta_seuil": -0.06,
+    "et0_facteur_stress": 1.2,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~8.8%."
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 1.7807,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.3,
+    "pluie_7j_max_sec": 10.0,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~6.4%."
+  },
+  "saisons": {
+    "grande_saison_pluies": [],
+    "petite_saison_pluies": [],
+    "grande_saison_seche": [],
+    "petite_saison_seche": []
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/historical/Buea_historical.csv",
+    "flood_events_csv": ""
+  }
+}

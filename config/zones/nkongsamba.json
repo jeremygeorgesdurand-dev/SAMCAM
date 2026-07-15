@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "zone": "nkongsamba",
+    "label": "Nkongsamba",
+    "version": "1.0.0",
+    "regime": "equatorial_bimodal",
+    "description": "Littoral/Moungo — cacao/bananeraie d'exportation",
+    "sources": "Open-Meteo ERA5-Land + NASA POWER, 2000-01-01 → 2026-07-13",
+    "calibration_note": "Normales et percentiles calculés automatiquement depuis l'historique réel (9505 jours) par generate_zone_config.py. Facteurs de seuil (flood/drought/heat) repris du profil générique 'equatorial' — à réétalonner sur événements réels documentés si disponibles.",
+    "calibration_seuils": "Facteurs de seuil ré-étalonnés par dichotomie (calibrate_zone_thresholds.py) pour aligner les taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique, au lieu des facteurs génériques bruts."
+  },
+  "coordonnees": {
+    "lat": 4.9547,
+    "lon": 9.9401,
+    "altitude_m": 900,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 44.0,
+    "2": 86.5,
+    "3": 233.3,
+    "4": 276.3,
+    "5": 270.5,
+    "6": 301.7,
+    "7": 387.5,
+    "8": 437.8,
+    "9": 409.6,
+    "10": 372.6,
+    "11": 184.6,
+    "12": 49.8
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 123.6,
+    "2": 115.1,
+    "3": 109.6,
+    "4": 96.5,
+    "5": 94.1,
+    "6": 80.1,
+    "7": 74.9,
+    "8": 75.0,
+    "9": 78.3,
+    "10": 85.9,
+    "11": 94.0,
+    "12": 112.4
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 28.0,
+    "2": 28.7,
+    "3": 27.3,
+    "4": 26.4,
+    "5": 25.8,
+    "6": 24.5,
+    "7": 23.9,
+    "8": 23.7,
+    "9": 24.3,
+    "10": 24.8,
+    "11": 25.6,
+    "12": 26.7
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 1.31,
+    "2": 1.67,
+    "3": 1.53,
+    "4": 1.31,
+    "5": 1.31,
+    "6": 1.34,
+    "7": 1.52,
+    "8": 1.63,
+    "9": 1.49,
+    "10": 1.25,
+    "11": 1.07,
+    "12": 1.05
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 18.4,
+    "2": 19.2,
+    "3": 19.7,
+    "4": 19.8,
+    "5": 19.6,
+    "6": 19.0,
+    "7": 18.6,
+    "8": 18.6,
+    "9": 18.7,
+    "10": 18.8,
+    "11": 18.9,
+    "12": 18.6
+  },
+  "sm_surface_normales": {
+    "1": 0.3,
+    "2": 0.3,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.3
+  },
+  "sm_rootzone_normales": {
+    "1": 0.3,
+    "2": 0.3,
+    "3": 0.3,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.3
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "percentiles_hebdo_pluie": {
+    "1": {
+      "p25": 1.6,
+      "p50": 4.8,
+      "p75": 12.0,
+      "p90": 28.0
+    },
+    "2": {
+      "p25": 3.0,
+      "p50": 10.0,
+      "p75": 37.4,
+      "p90": 61.6
+    },
+    "3": {
+      "p25": 23.5,
+      "p50": 49.8,
+      "p75": 75.0,
+      "p90": 93.2
+    },
+    "4": {
+      "p25": 41.5,
+      "p50": 67.6,
+      "p75": 83.2,
+      "p90": 98.3
+    },
+    "5": {
+      "p25": 40.7,
+      "p50": 66.8,
+      "p75": 80.5,
+      "p90": 87.9
+    },
+    "6": {
+      "p25": 56.0,
+      "p50": 71.9,
+      "p75": 80.5,
+      "p90": 100.1
+    },
+    "7": {
+      "p25": 64.2,
+      "p50": 76.8,
+      "p75": 98.2,
+      "p90": 152.0
+    },
+    "8": {
+      "p25": 68.8,
+      "p50": 88.2,
+      "p75": 120.1,
+      "p90": 152.8
+    },
+    "9": {
+      "p25": 74.6,
+      "p50": 88.7,
+      "p75": 105.4,
+      "p90": 130.0
+    },
+    "10": {
+      "p25": 68.2,
+      "p50": 87.5,
+      "p75": 103.8,
+      "p90": 115.0
+    },
+    "11": {
+      "p25": 18.1,
+      "p50": 35.7,
+      "p75": 66.9,
+      "p90": 81.3
+    },
+    "12": {
+      "p25": 2.4,
+      "p50": 4.9,
+      "p75": 13.3,
+      "p90": 32.9
+    }
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.5318,
+    "sm_surface_seuil_haut": 0.48,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement (calibrate_zone_thresholds.py) pour un taux d'alerte cible ~6.2% (référence classe 'equatorial')."
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.388,
+    "sm_rootzone_delta_seuil": -0.06,
+    "et0_facteur_stress": 1.2,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~8.8%."
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 0.3028,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.3,
+    "pluie_7j_max_sec": 10.0,
+    "score_min_label_1": 3,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~6.4%."
+  },
+  "saisons": {
+    "grande_saison_pluies": [],
+    "petite_saison_pluies": [],
+    "grande_saison_seche": [],
+    "petite_saison_seche": []
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/historical/Nkongsamba_historical.csv",
+    "flood_events_csv": ""
+  }
+}

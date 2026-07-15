@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "zone": "foumbot",
+    "label": "Foumbot",
+    "version": "1.0.0",
+    "regime": "hauts_plateaux_bimodal",
+    "description": "Plaine fertile du Noun (Ouest) — maraîchage/maïs sur sols volcaniques",
+    "sources": "Open-Meteo ERA5-Land + NASA POWER, 1990-01-01 → 2026-07-13",
+    "calibration_note": "Normales et percentiles calculés automatiquement depuis l'historique réel (13157 jours) par generate_zone_config.py. Facteurs de seuil (flood/drought/heat) repris du profil générique 'tropical_highland' — à réétalonner sur événements réels documentés si disponibles.",
+    "calibration_seuils": "Facteurs de seuil ré-étalonnés par dichotomie (calibrate_zone_thresholds.py) pour aligner les taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique, au lieu des facteurs génériques bruts."
+  },
+  "coordonnees": {
+    "lat": 5.5167,
+    "lon": 10.6333,
+    "altitude_m": 1000,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 2.0,
+    "2": 7.6,
+    "3": 60.6,
+    "4": 156.1,
+    "5": 183.8,
+    "6": 194.4,
+    "7": 244.3,
+    "8": 267.2,
+    "9": 243.9,
+    "10": 212.9,
+    "11": 60.7,
+    "12": 3.6
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 158.9,
+    "2": 157.4,
+    "3": 154.4,
+    "4": 121.5,
+    "5": 112.6,
+    "6": 99.9,
+    "7": 95.5,
+    "8": 98.6,
+    "9": 97.3,
+    "10": 102.8,
+    "11": 118.7,
+    "12": 144.2
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 30.8,
+    "2": 32.2,
+    "3": 31.0,
+    "4": 28.2,
+    "5": 26.6,
+    "6": 25.4,
+    "7": 24.8,
+    "8": 24.8,
+    "9": 24.9,
+    "10": 25.2,
+    "11": 26.7,
+    "12": 29.1
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 1.31,
+    "2": 1.56,
+    "3": 2.24,
+    "4": 1.9,
+    "5": 1.46,
+    "6": 1.21,
+    "7": 1.22,
+    "8": 1.3,
+    "9": 1.3,
+    "10": 1.46,
+    "11": 1.48,
+    "12": 1.35
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 17.0,
+    "2": 18.1,
+    "3": 19.3,
+    "4": 19.2,
+    "5": 18.6,
+    "6": 17.9,
+    "7": 17.6,
+    "8": 17.6,
+    "9": 17.5,
+    "10": 17.5,
+    "11": 17.1,
+    "12": 16.6
+  },
+  "sm_surface_normales": {
+    "1": 0.2,
+    "2": 0.2,
+    "3": 0.2,
+    "4": 0.3,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.3,
+    "12": 0.2
+  },
+  "sm_rootzone_normales": {
+    "1": 0.3,
+    "2": 0.2,
+    "3": 0.2,
+    "4": 0.2,
+    "5": 0.3,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.3
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "percentiles_hebdo_pluie": {
+    "1": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.1,
+      "p90": 0.9
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.7,
+      "p90": 8.6
+    },
+    "3": {
+      "p25": 0.6,
+      "p50": 8.3,
+      "p75": 22.6,
+      "p90": 34.6
+    },
+    "4": {
+      "p25": 24.1,
+      "p50": 36.0,
+      "p75": 46.6,
+      "p90": 58.5
+    },
+    "5": {
+      "p25": 30.7,
+      "p50": 40.2,
+      "p75": 50.5,
+      "p90": 61.3
+    },
+    "6": {
+      "p25": 33.4,
+      "p50": 42.5,
+      "p75": 54.3,
+      "p90": 66.2
+    },
+    "7": {
+      "p25": 41.8,
+      "p50": 54.8,
+      "p75": 67.2,
+      "p90": 83.1
+    },
+    "8": {
+      "p25": 48.7,
+      "p50": 58.7,
+      "p75": 71.1,
+      "p90": 88.2
+    },
+    "9": {
+      "p25": 42.1,
+      "p50": 52.2,
+      "p75": 67.7,
+      "p90": 78.0
+    },
+    "10": {
+      "p25": 33.6,
+      "p50": 44.8,
+      "p75": 62.2,
+      "p90": 76.4
+    },
+    "11": {
+      "p25": 0.6,
+      "p50": 4.6,
+      "p75": 23.8,
+      "p90": 40.2
+    },
+    "12": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.1,
+      "p90": 0.7
+    }
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 1.6348,
+    "sm_surface_seuil_haut": 0.46,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement (calibrate_zone_thresholds.py) pour un taux d'alerte cible ~4.0% (référence classe 'tropical_highland')."
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.6796,
+    "sm_rootzone_delta_seuil": -0.08,
+    "et0_facteur_stress": 1.3,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~4.4%."
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 1.0125,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.3,
+    "pluie_7j_max_sec": 8.0,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~19.3%."
+  },
+  "saisons": {
+    "grande_saison_pluies": [],
+    "petite_saison_pluies": [],
+    "grande_saison_seche": [],
+    "petite_saison_seche": []
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/historical/Foumbot_historical.csv",
+    "flood_events_csv": ""
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "zone": "bafia",
+    "label": "Bafia",
+    "version": "1.0.0",
+    "regime": "equatorial_bimodal",
+    "description": "Centre — vivrier/arachide, transition forêt-savane",
+    "sources": "Open-Meteo ERA5-Land + NASA POWER, 2000-01-01 → 2026-07-13",
+    "calibration_note": "Normales et percentiles calculés automatiquement depuis l'historique réel (9505 jours) par generate_zone_config.py. Facteurs de seuil (flood/drought/heat) repris du profil générique 'equatorial' — à réétalonner sur événements réels documentés si disponibles.",
+    "calibration_seuils": "Facteurs de seuil ré-étalonnés par dichotomie (calibrate_zone_thresholds.py) pour aligner les taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique, au lieu des facteurs génériques bruts."
+  },
+  "coordonnees": {
+    "lat": 4.75,
+    "lon": 11.2333,
+    "altitude_m": 480,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 4.1,
+    "2": 14.4,
+    "3": 58.6,
+    "4": 116.0,
+    "5": 129.7,
+    "6": 134.0,
+    "7": 127.2,
+    "8": 140.4,
+    "9": 184.3,
+    "10": 186.6,
+    "11": 73.6,
+    "12": 8.1
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 147.9,
+    "2": 144.3,
+    "3": 145.2,
+    "4": 122.8,
+    "5": 114.5,
+    "6": 100.6,
+    "7": 97.9,
+    "8": 100.2,
+    "9": 100.1,
+    "10": 103.2,
+    "11": 109.8,
+    "12": 131.5
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 33.4,
+    "2": 34.6,
+    "3": 33.2,
+    "4": 31.0,
+    "5": 29.8,
+    "6": 28.6,
+    "7": 28.0,
+    "8": 27.9,
+    "9": 28.1,
+    "10": 28.3,
+    "11": 29.4,
+    "12": 31.6
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 1.29,
+    "2": 1.73,
+    "3": 2.09,
+    "4": 1.79,
+    "5": 1.59,
+    "6": 1.33,
+    "7": 1.42,
+    "8": 1.56,
+    "9": 1.43,
+    "10": 1.45,
+    "11": 1.39,
+    "12": 1.37
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 22.0,
+    "2": 22.8,
+    "3": 23.0,
+    "4": 22.6,
+    "5": 22.2,
+    "6": 21.5,
+    "7": 21.1,
+    "8": 21.0,
+    "9": 21.1,
+    "10": 21.2,
+    "11": 21.6,
+    "12": 21.8
+  },
+  "sm_surface_normales": {
+    "1": 0.3,
+    "2": 0.3,
+    "3": 0.3,
+    "4": 0.4,
+    "5": 0.5,
+    "6": 0.5,
+    "7": 0.5,
+    "8": 0.5,
+    "9": 0.5,
+    "10": 0.5,
+    "11": 0.4,
+    "12": 0.3
+  },
+  "sm_rootzone_normales": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.3,
+    "4": 0.3,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.5,
+    "9": 0.5,
+    "10": 0.5,
+    "11": 0.5,
+    "12": 0.4
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "percentiles_hebdo_pluie": {
+    "1": {
+      "p25": 0.0,
+      "p50": 0.2,
+      "p75": 1.0,
+      "p90": 2.3
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.5,
+      "p75": 3.3,
+      "p90": 11.0
+    },
+    "3": {
+      "p25": 3.3,
+      "p50": 10.4,
+      "p75": 18.3,
+      "p90": 29.1
+    },
+    "4": {
+      "p25": 14.2,
+      "p50": 24.1,
+      "p75": 36.8,
+      "p90": 42.3
+    },
+    "5": {
+      "p25": 18.1,
+      "p50": 27.1,
+      "p75": 36.8,
+      "p90": 49.0
+    },
+    "6": {
+      "p25": 20.4,
+      "p50": 26.8,
+      "p75": 39.4,
+      "p90": 50.2
+    },
+    "7": {
+      "p25": 15.9,
+      "p50": 26.4,
+      "p75": 38.9,
+      "p90": 54.2
+    },
+    "8": {
+      "p25": 17.0,
+      "p50": 28.9,
+      "p75": 43.5,
+      "p90": 54.0
+    },
+    "9": {
+      "p25": 27.6,
+      "p50": 36.8,
+      "p75": 52.1,
+      "p90": 64.0
+    },
+    "10": {
+      "p25": 30.8,
+      "p50": 40.3,
+      "p75": 52.5,
+      "p90": 65.7
+    },
+    "11": {
+      "p25": 2.1,
+      "p50": 11.6,
+      "p75": 26.4,
+      "p90": 40.6
+    },
+    "12": {
+      "p25": 0.1,
+      "p50": 0.6,
+      "p75": 1.4,
+      "p90": 4.5
+    }
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 0.7745,
+    "sm_surface_seuil_haut": 0.48,
+    "score_min_label_1": 3,
+    "commentaire": "Ré-étalonné automatiquement (calibrate_zone_thresholds.py) pour un taux d'alerte cible ~6.2% (référence classe 'equatorial')."
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.6411,
+    "sm_rootzone_delta_seuil": -0.06,
+    "et0_facteur_stress": 1.2,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~8.8%."
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 0.9847,
+    "temp_max_3j_anomalie_sigma": 0.5,
+    "et0_facteur_stress": 1.3,
+    "pluie_7j_max_sec": 10.0,
+    "score_min_label_1": 3,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~6.4%."
+  },
+  "saisons": {
+    "grande_saison_pluies": [],
+    "petite_saison_pluies": [],
+    "grande_saison_seche": [],
+    "petite_saison_seche": []
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/historical/Bafia_historical.csv",
+    "flood_events_csv": ""
+  }
+}

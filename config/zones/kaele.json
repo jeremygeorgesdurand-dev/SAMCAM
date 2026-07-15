@@ -1,0 +1,235 @@
+{
+  "_meta": {
+    "zone": "kaele",
+    "label": "Kaele",
+    "version": "1.0.0",
+    "regime": "sahelien_monomodal",
+    "description": "Extrême-Nord — sorgho/mil pluvial, saison des pluies courte",
+    "sources": "Open-Meteo ERA5-Land + NASA POWER, 1990-01-01 → 2026-07-13",
+    "calibration_note": "Normales et percentiles calculés automatiquement depuis l'historique réel (13157 jours) par generate_zone_config.py. Facteurs de seuil (flood/drought/heat) repris du profil générique 'sahelian' — à réétalonner sur événements réels documentés si disponibles.",
+    "calibration_seuils": "Facteurs de seuil ré-étalonnés par dichotomie (calibrate_zone_thresholds.py) pour aligner les taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique, au lieu des facteurs génériques bruts."
+  },
+  "coordonnees": {
+    "lat": 10.1167,
+    "lon": 14.45,
+    "altitude_m": 380,
+    "timezone": "Africa/Douala"
+  },
+  "pluie_normales_mensuelles_mm": {
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.3,
+    "4": 10.5,
+    "5": 39.5,
+    "6": 63.5,
+    "7": 113.3,
+    "8": 164.4,
+    "9": 102.2,
+    "10": 33.5,
+    "11": 0.6,
+    "12": 0.0
+  },
+  "et0_normales_mensuelles_mm": {
+    "1": 206.1,
+    "2": 215.4,
+    "3": 249.3,
+    "4": 207.7,
+    "5": 172.9,
+    "6": 139.6,
+    "7": 115.1,
+    "8": 102.8,
+    "9": 110.0,
+    "10": 137.7,
+    "11": 179.1,
+    "12": 195.1
+  },
+  "temp_max_normales_mensuelles_c": {
+    "1": 33.1,
+    "2": 35.9,
+    "3": 39.3,
+    "4": 39.9,
+    "5": 37.1,
+    "6": 33.9,
+    "7": 30.7,
+    "8": 29.2,
+    "9": 30.2,
+    "10": 33.1,
+    "11": 34.6,
+    "12": 33.1
+  },
+  "temp_max_std_mensuelles_c": {
+    "1": 2.83,
+    "2": 2.86,
+    "3": 2.01,
+    "4": 1.94,
+    "5": 2.77,
+    "6": 2.26,
+    "7": 1.96,
+    "8": 1.54,
+    "9": 1.63,
+    "10": 2.03,
+    "11": 1.53,
+    "12": 2.15
+  },
+  "temp_min_normales_mensuelles_c": {
+    "1": 18.8,
+    "2": 21.1,
+    "3": 24.6,
+    "4": 26.9,
+    "5": 26.4,
+    "6": 24.8,
+    "7": 23.2,
+    "8": 22.4,
+    "9": 22.6,
+    "10": 22.8,
+    "11": 21.5,
+    "12": 19.4
+  },
+  "sm_surface_normales": {
+    "1": 0.2,
+    "2": 0.2,
+    "3": 0.2,
+    "4": 0.2,
+    "5": 0.2,
+    "6": 0.3,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.3,
+    "11": 0.2,
+    "12": 0.2
+  },
+  "sm_rootzone_normales": {
+    "1": 0.3,
+    "2": 0.3,
+    "3": 0.3,
+    "4": 0.3,
+    "5": 0.3,
+    "6": 0.3,
+    "7": 0.3,
+    "8": 0.3,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.3,
+    "12": 0.3
+  },
+  "ndvi_seuil_alerte": {
+    "1": 0.4,
+    "2": 0.4,
+    "3": 0.4,
+    "4": 0.4,
+    "5": 0.4,
+    "6": 0.4,
+    "7": 0.4,
+    "8": 0.4,
+    "9": 0.4,
+    "10": 0.4,
+    "11": 0.4,
+    "12": 0.4
+  },
+  "percentiles_hebdo_pluie": {
+    "1": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "2": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "3": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "4": {
+      "p25": 0.0,
+      "p50": 0.2,
+      "p75": 2.5,
+      "p90": 7.6
+    },
+    "5": {
+      "p25": 0.8,
+      "p50": 5.2,
+      "p75": 13.3,
+      "p90": 23.6
+    },
+    "6": {
+      "p25": 5.1,
+      "p50": 12.1,
+      "p75": 20.7,
+      "p90": 31.9
+    },
+    "7": {
+      "p25": 13.6,
+      "p50": 23.2,
+      "p75": 32.9,
+      "p90": 50.8
+    },
+    "8": {
+      "p25": 22.3,
+      "p50": 36.4,
+      "p75": 48.9,
+      "p90": 69.4
+    },
+    "9": {
+      "p25": 11.0,
+      "p50": 21.4,
+      "p75": 33.9,
+      "p90": 44.2
+    },
+    "10": {
+      "p25": 0.2,
+      "p50": 2.8,
+      "p75": 9.2,
+      "p90": 25.9
+    },
+    "11": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    },
+    "12": {
+      "p25": 0.0,
+      "p50": 0.0,
+      "p75": 0.0,
+      "p90": 0.0
+    }
+  },
+  "seuils_inondation": {
+    "pluie_7j_facteur_normale": 2.645,
+    "sm_surface_seuil_haut": 0.34,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement (calibrate_zone_thresholds.py) pour un taux d'alerte cible ~8.3% (référence classe 'sahelian')."
+  },
+  "seuils_secheresse": {
+    "pluie_30j_facteur_deficit": 0.9633,
+    "sm_rootzone_delta_seuil": -0.1,
+    "et0_facteur_stress": 1.7,
+    "score_min_label_1": 2,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~4.0%."
+  },
+  "seuils_chaleur": {
+    "temp_max_anomalie_sigma": 0.616,
+    "temp_max_3j_anomalie_sigma": 0.4,
+    "et0_facteur_stress": 1.3,
+    "pluie_7j_max_sec": 3.0,
+    "score_min_label_1": 3,
+    "commentaire": "Ré-étalonné automatiquement pour un taux d'alerte cible ~14.8%."
+  },
+  "saisons": {
+    "grande_saison_pluies": [],
+    "petite_saison_pluies": [],
+    "grande_saison_seche": [],
+    "petite_saison_seche": []
+  },
+  "fichiers_historiques": {
+    "dataset_csv": "data/historical/Kaele_historical.csv",
+    "flood_events_csv": ""
+  }
+}
