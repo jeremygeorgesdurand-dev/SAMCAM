@@ -56,6 +56,8 @@ RISKS = ["inondation", "secheresse", "chaleur"]
 ZONES = [
     "Kribi", "Ebolowa", "Kumba", "Bafoussam",
     "Yaounde_peri", "Ngaoundere", "Garoua", "Maroua",
+    "Ndop", "Foumbot", "Kaele", "Guider", "Meiganga",
+    "Mbalmayo", "Bafia", "Bertoua", "Nkongsamba", "Buea",
 ]
 
 FEATURE_GROUPS = {

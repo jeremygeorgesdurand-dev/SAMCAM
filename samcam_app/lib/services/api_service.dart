@@ -18,14 +18,41 @@ class GpsPosition {
 class ApiService {
   // ── URL serveur ──────────────────────────────────────────────────────
 
+  /// URL résolue par auto-détection, mémorisée pour la session.
+  static String? _resolvedUrl;
+
+  /// Retourne l'URL du serveur, sans configuration manuelle nécessaire :
+  /// 1. une URL saisie dans les réglages a toujours la priorité ;
+  /// 2. sinon, chaque candidat de Config.defaultServerCandidates est testé
+  ///    (GET /health, 3 s max) et le premier qui répond est retenu pour
+  ///    toute la session ;
+  /// 3. en dernier recours, l'URL par défaut (sans la mémoriser, pour
+  ///    réessayer la détection au prochain appel).
   static Future<String> getServerUrl() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(Config.prefServerUrl) ?? Config.defaultServerUrl;
+    final saved = prefs.getString(Config.prefServerUrl);
+    if (saved != null && saved.isNotEmpty) return saved;
+
+    if (_resolvedUrl != null) return _resolvedUrl!;
+
+    for (final base in Config.defaultServerCandidates) {
+      try {
+        final r = await http
+            .get(Uri.parse('$base/health'))
+            .timeout(const Duration(seconds: 3));
+        if (r.statusCode == 200) {
+          _resolvedUrl = base;
+          return base;
+        }
+      } catch (_) {}
+    }
+    return Config.defaultServerUrl;
   }
 
   static Future<void> setServerUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(Config.prefServerUrl, url);
+    _resolvedUrl = null; // forcer une nouvelle détection si l'URL est effacée
   }
 
   // ── Position GPS ───────────────────────────────────────────────────
@@ -382,6 +409,38 @@ class ApiService {
     if (response.statusCode != 200) {
       throw Exception('Signalement refusé (${response.statusCode})');
     }
+  }
+
+  // ── POST /api/assistant — assistant IA (Ollama), grounded sur le bulletin réel ──
+  //
+  // Délai volontairement plus long que Config.httpTimeout : un modèle de
+  // langage local (Ollama) peut mettre du temps à répondre, surtout au
+  // premier appel après inactivité (chargement du modèle en mémoire) ou
+  // sur le matériel modeste d'un Raspberry Pi.
+  static const Duration _assistantTimeout = Duration(seconds: 90);
+
+  /// [question] absente → l'assistant résume le bulletin actuel de [zone].
+  /// [question] fournie → réponse ciblée, basée uniquement sur les données réelles.
+  static Future<String> askAssistant({required String zone, String? question}) async {
+    final base = await getServerUrl();
+    final uri  = Uri.parse('$base/api/assistant');
+
+    final response = await http
+        .post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'zone': zone,
+            if (question != null && question.trim().isNotEmpty) 'question': question.trim(),
+          }),
+        )
+        .timeout(_assistantTimeout);
+
+    if (response.statusCode != 200) {
+      throw Exception('Assistant indisponible (${response.statusCode})');
+    }
+    final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    return (json['reponse'] as String?) ?? '';
   }
 
   // ── Helpers privés ─────────────────────────────────────────────────

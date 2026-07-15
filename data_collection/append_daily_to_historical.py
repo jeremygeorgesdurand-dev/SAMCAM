@@ -34,6 +34,11 @@ CLIMATE_BY_ZONE = {
     "Kribi": "equatorial", "Ebolowa": "equatorial", "Kumba": "equatorial",
     "Bafoussam": "tropical_highland", "Ngaoundere": "tropical_highland",
     "Yaounde_peri": "equatorial", "Garoua": "sahelian", "Maroua": "sahelian",
+    # Zones agricoles ajoutées
+    "Ndop": "tropical_highland", "Foumbot": "tropical_highland",
+    "Kaele": "sahelian", "Guider": "sahelian", "Meiganga": "tropical_highland",
+    "Mbalmayo": "equatorial", "Bafia": "equatorial", "Bertoua": "equatorial",
+    "Nkongsamba": "equatorial", "Buea": "equatorial",
 }
 
 DERIVED_COLS = [

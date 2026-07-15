@@ -38,8 +38,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
   Color _alertColor(String niveau) =>
       Color(Config.alertColors[niveau] ?? Config.alertColors['INCONNU']!);
 
-  String _displayZoneName(String name) =>
-      name == 'Yaounde_peri' ? 'Yaoundé (péri.)' : name;
+  String _displayZoneName(String name) {
+    if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
+    if (name == 'Kaele') return 'Kaélé';
+    return name;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +95,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  /// Coordonnées des 8 zones SAMCAM (mêmes valeurs que kSamcamZones).
+  /// Coordonnées des zones SAMCAM (mêmes valeurs que kSamcamZones).
   static const Map<String, (double, double)> _zoneCoords = {
     'Kribi':        (2.9399, 9.9098),
     'Ebolowa':      (2.9000, 11.1500),
@@ -102,6 +105,16 @@ class _OverviewScreenState extends State<OverviewScreen> {
     'Ngaoundere':   (7.3220, 13.5840),
     'Garoua':       (9.3000, 13.3900),
     'Maroua':       (10.5910, 14.3159),
+    'Ndop':         (5.9833, 10.4500),
+    'Foumbot':      (5.5167, 10.6333),
+    'Kaele':        (10.1167, 14.4500),
+    'Guider':       (9.9333, 13.9500),
+    'Meiganga':     (6.5167, 14.3000),
+    'Mbalmayo':     (3.5167, 11.5000),
+    'Bafia':        (4.7500, 11.2333),
+    'Bertoua':      (4.5833, 13.6833),
+    'Nkongsamba':   (4.9547, 9.9401),
+    'Buea':         (4.1560, 9.2420),
   };
 
   Widget _buildMapView() {

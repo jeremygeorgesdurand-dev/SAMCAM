@@ -110,6 +110,77 @@ ZONES = [
         "cultures": ["mil", "sorgho", "niébé", "oignon"],
         "saison_semis": [6, 7],
     },
+    # ── Zones agricoles ajoutées (couverture filières/régions) ─────────────
+    {
+        "name": "Ndop",
+        "lat": 5.9833, "lon": 10.4500,
+        "type": "maraichage",
+        "cultures": ["riz", "maraîchage"],
+        "saison_semis": [3, 4, 8, 9],
+    },
+    {
+        "name": "Foumbot",
+        "lat": 5.5167, "lon": 10.6333,
+        "type": "agricole",
+        "cultures": ["maïs", "maraîchage", "haricot"],
+        "saison_semis": [3, 4, 8, 9],
+    },
+    {
+        "name": "Kaele",
+        "lat": 10.1167, "lon": 14.4500,
+        "type": "sahel",
+        "cultures": ["sorgho", "mil"],
+        "saison_semis": [6, 7],
+    },
+    {
+        "name": "Guider",
+        "lat": 9.9333, "lon": 13.9500,
+        "type": "agricole_nord",
+        "cultures": ["coton", "sorgho", "arachide"],
+        "saison_semis": [5, 6],
+    },
+    {
+        "name": "Meiganga",
+        "lat": 6.5167, "lon": 14.3000,
+        "type": "elevage",
+        "cultures": ["élevage bovin", "maïs"],
+        "saison_semis": [5, 6, 7],
+    },
+    {
+        "name": "Mbalmayo",
+        "lat": 3.5167, "lon": 11.5000,
+        "type": "maraichage",
+        "cultures": ["manioc", "plantain", "maraîchage"],
+        "saison_semis": [3, 4, 9, 10],
+    },
+    {
+        "name": "Bafia",
+        "lat": 4.7500, "lon": 11.2333,
+        "type": "agricole",
+        "cultures": ["arachide", "manioc", "maïs"],
+        "saison_semis": [3, 4, 9],
+    },
+    {
+        "name": "Bertoua",
+        "lat": 4.5833, "lon": 13.6833,
+        "type": "agricole",
+        "cultures": ["café robusta", "cacao"],
+        "saison_semis": [3, 4, 9],
+    },
+    {
+        "name": "Nkongsamba",
+        "lat": 4.9547, "lon": 9.9401,
+        "type": "agricole",
+        "cultures": ["cacao", "bananier"],
+        "saison_semis": [3, 4, 9],
+    },
+    {
+        "name": "Buea",
+        "lat": 4.1560, "lon": 9.2420,
+        "type": "agricole",
+        "cultures": ["palmier à huile", "bananier"],
+        "saison_semis": [3, 4, 9],
+    },
 ]
 
 

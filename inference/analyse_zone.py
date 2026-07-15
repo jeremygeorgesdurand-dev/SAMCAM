@@ -48,6 +48,16 @@ ZONES = [
     {"name": "Ngaoundere",   "slug": "ngaoundere"},
     {"name": "Garoua",       "slug": "garoua"},
     {"name": "Maroua",       "slug": "maroua"},
+    {"name": "Ndop",         "slug": "ndop"},
+    {"name": "Foumbot",      "slug": "foumbot"},
+    {"name": "Kaele",        "slug": "kaele"},
+    {"name": "Guider",       "slug": "guider"},
+    {"name": "Meiganga",     "slug": "meiganga"},
+    {"name": "Mbalmayo",     "slug": "mbalmayo"},
+    {"name": "Bafia",        "slug": "bafia"},
+    {"name": "Bertoua",      "slug": "bertoua"},
+    {"name": "Nkongsamba",   "slug": "nkongsamba"},
+    {"name": "Buea",         "slug": "buea"},
 ]
 
 ZONES_BY_SLUG = {z["slug"]: z for z in ZONES}

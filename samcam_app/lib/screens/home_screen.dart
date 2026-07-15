@@ -11,6 +11,7 @@ import '../services/weather_service.dart';
 import '../services/notification_service.dart';
 import '../services/report_share.dart';
 import '../widgets/signalement_sheet.dart';
+import '../widgets/assistant_card.dart';
 import '../widgets/weather_animation.dart';
 import '../widgets/zone_drawer.dart';
 import 'settings_screen.dart';
@@ -1088,6 +1089,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+      const SizedBox(height: 10),
+      AssistantCard(zone: r.zone.split(' (').first),
       const SizedBox(height: 10),
       // Signalement communautaire : les observations terrain servent de
       // vérité terrain pour recalibrer les modèles côté serveur.

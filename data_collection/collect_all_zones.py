@@ -41,6 +41,17 @@ ALL_ZONES = [
     "Ngaoundere",
     "Garoua",
     "Maroua",
+    # Zones agricoles ajoutées
+    "Ndop",
+    "Foumbot",
+    "Kaele",
+    "Guider",
+    "Meiganga",
+    "Mbalmayo",
+    "Bafia",
+    "Bertoua",
+    "Nkongsamba",
+    "Buea",
 ]
 
 DATA_DIR  = os.path.join(ROOT, "data")

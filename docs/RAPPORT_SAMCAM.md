@@ -618,7 +618,51 @@ sudo systemctl status samcam        # vérifier
 
 Recommandations réseau : attribuer une **IP fixe** (ou réservation DHCP) à la station — l'application mobile pointe vers cette IP et casserait à chaque changement ; si un pare-feu est actif : `sudo ufw allow 8000/tcp` ; l'heure doit être à l'heure (NTP) pour la collecte planifiée. Pour l'écran public, ouvrir Chromium en mode kiosque sur l'URL du dashboard au démarrage de la session graphique.
 
-### 9.5 Installation de l'application mobile
+### 9.5 Accès distant : rendre l'API accessible depuis Internet (gratuit)
+
+Sur le réseau WiFi local, l'app joint la station via `http://<IP-locale>:8000`. Pour que **n'importe qui, n'importe où** puisse y accéder, la solution retenue est **Tailscale Funnel** : gratuite, sans nom de domaine à acheter, et fonctionnelle derrière la 4G (les connexions mobiles camerounaises sont derrière du CGNAT : pas d'adresse IP publique, donc la redirection de ports classique est impossible — un tunnel sortant est la seule approche fiable).
+
+**Principe** : la station ouvre elle-même une connexion sortante vers le réseau Tailscale, qui publie l'API sur une URL HTTPS stable du type `https://<nom-de-la-machine>.<votre-tailnet>.ts.net`. Les utilisateurs n'installent **rien** : l'URL est publique.
+
+**Installation sur le Raspberry Pi (une seule fois) :**
+
+```bash
+# 1. Installer Tailscale (même compte que les autres machines du projet —
+#    Google/GitHub/Microsoft, gratuit)
+curl -fsSL https://tailscale.com/install.sh | sh
+
+# 2. Se connecter en nommant explicitement la machine « Cameroun » : c'est
+#    ce nom qui apparaît dans l'URL publique (https://cameroun.<tailnet>.ts.net)
+sudo tailscale up --hostname=cameroun   # ouvre un lien d'authentification
+
+# 3. Activer HTTPS sur le tailnet (une fois pour tout le compte, depuis la
+#    console web https://login.tailscale.com/admin/dns → HTTPS Certificates → Enable)
+
+# 4. Activer Funnel sur le tailnet si ce n'est pas déjà fait pour une autre
+#    machine du compte (un lien d'activation s'affiche au premier essai) :
+sudo tailscale funnel --bg 8000
+```
+
+Toutes les machines connectées avec le **même compte Tailscale** partagent le même suffixe de tailnet (ex. `tail7296d8.ts.net`) — seul le nom de machine change dans l'URL. La station Raspberry Pi, nommée **Cameroun**, est donc joignable sur `https://cameroun.tail7296d8.ts.net` dès que les 4 étapes ci-dessus sont faites une fois.
+
+Une fois cette première connexion établie, **la publication redevient automatique à chaque démarrage** : `server/start.sh` détecte Tailscale, republie le port 8000 via Funnel et affiche l'URL dans sa console (`[funnel] API publiée sur Internet : https://cameroun.….ts.net`). Si Tailscale est absent ou déconnecté, le serveur démarre quand même en accès local. La publication est persistante et le trafic est chiffré en HTTPS.
+
+> **Piège rencontré en test** : après activation de Funnel, la première poignée de main HTTPS peut mettre 15 à 25 secondes (relais + certificat) — un client avec un délai d'expiration court (ex. `curl -m 10`) peut sembler échouer alors que le service fonctionne. L'app mobile utilise un délai de 10 s (`Config.httpTimeout`) ; si le premier essai échoue juste après un redémarrage de la station, un second essai (tirer l'écran vers le bas) suffit généralement.
+
+**Côté application : aucune configuration.** Au premier lancement, l'app teste automatiquement une liste d'adresses connues et retient la première qui répond au `/health` — voir `Config.defaultServerCandidates` dans `lib/config.dart` : l'URL publique de la station (`https://cameroun.tail7296d8.ts.net`) y est en première position, suivie de repli de développement (Mac, IP LAN, localhost, émulateur) à retirer une fois la station Cameroun en service permanent. Une URL saisie manuellement dans **Réglages → Connexion serveur** garde toujours la priorité (cas particuliers).
+
+**Limites et alternatives :**
+
+| Solution | Coût | Utilisateurs | Remarque |
+|---|---|---|---|
+| **Tailscale Funnel** (retenue) | Gratuit | Grand public | URL `.ts.net` ; bande passante adaptée à une API JSON légère |
+| Cloudflare Tunnel | Domaine ~10 €/an | Grand public | URL personnalisée (`api.samcam.cm`), protection DDoS — à envisager en production |
+| Tailscale VPN simple | Gratuit | Administrateurs seulement | Accès SSH/maintenance à distance — complément utile du Funnel |
+| Redirection de ports + DynDNS | Gratuit | Grand public | **Impossible derrière la 4G (CGNAT)** ; envisageable uniquement sur une box fibre |
+
+> **Note d'échelle** : le Funnel convient au prototype et à quelques centaines d'utilisateurs. Pour un déploiement massif, basculer vers l'architecture « miroir cloud » (la station pousse `data/predictions/latest.json` vers un petit serveur hébergé qui encaisse le trafic public — voir §10.3) : la station n'est alors plus exposée du tout.
+
+### 9.6 Installation de l'application mobile
 
 **Compiler** (sur la machine de développement, dossier `samcam_app/`) :
 
@@ -638,19 +682,18 @@ adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 
 L'APK peut aussi être copié sur les téléphones par câble, Bluetooth ou lien de téléchargement (installation « sources inconnues »).
 
-**Connecter l'app au serveur** — au premier lancement :
+**Connecter l'app au serveur** — dans le cas normal, **rien à faire** : au premier lancement, l'app détecte automatiquement le serveur en testant les adresses de `Config.defaultServerCandidates` (URL publique Funnel, IP locale de la station, localhost, alias émulateur `10.0.2.2`) et retient la première qui répond.
 
-1. Ouvrir **Réglages** (icône ⚙️ en haut de l'écran d'accueil) ;
-2. Section **Connexion serveur** → saisir l'URL de la station, par exemple `http://192.168.1.42:8000` ;
-3. Bouton **Tester** (doit afficher la version du serveur), puis **Sauvegarder**.
+La configuration manuelle (**Réglages ⚙️ → Connexion serveur → Tester → Sauvegarder**) ne sert que si la station est à une adresse inhabituelle ; une URL sauvegardée garde alors la priorité sur la détection automatique (effacer le champ pour la réactiver).
 
-| Contexte | URL à utiliser |
+| Contexte | Adresse détectée / à utiliser |
 |---|---|
+| Téléphone en 4G ou autre réseau | URL publique `https://….ts.net` (Funnel, voir 9.5) |
 | Téléphone sur le même WiFi que la station | `http://<IP-de-la-station>:8000` |
 | Émulateur Android sur la machine du serveur | `http://10.0.2.2:8000` (jamais `localhost`) |
 | Test web/desktop local | `http://localhost:8000` |
 
-### 9.6 Guide d'utilisation de l'application
+### 9.7 Guide d'utilisation de l'application
 
 **Parcours quotidien type :**
 
@@ -664,7 +707,7 @@ L'APK peut aussi être copié sur les téléphones par câble, Bluetooth ou lien
 8. **Signaler** : bouton « Signaler un événement observé » → type + description ; l'observation part au serveur et servira à améliorer les modèles.
 9. **Sans réseau** : l'app affiche les dernières données connues avec un bandeau « Mode hors-ligne — données du JJ/MM à HH:MM » ; tirer vers le bas pour réessayer.
 
-### 9.7 Réentraîner les modèles
+### 9.8 Réentraîner les modèles
 
 À faire après un enrichissement des historiques, une correction de configuration de zone, ou périodiquement (trimestriel) :
 
@@ -682,7 +725,7 @@ python3 inference/compute_daily_predictions.py     # 4. Rafraîchir le cache de 
 - le résumé final doit annoncer `24/24 modèles entraînés avec succès` (métriques détaillées dans `models/zonal/metrics/*.json`) ;
 - lancer ces scripts **depuis la racine du projet** (chemins relatifs).
 
-### 9.8 Dépannage
+### 9.9 Dépannage
 
 | Symptôme | Cause probable | Remède |
 |---|---|---|
@@ -700,36 +743,83 @@ python3 inference/compute_daily_predictions.py     # 4. Rafraîchir le cache de 
 
 ## 10. Perspectives d'évolution
 
-### 10.1 Notifications push (préparé)
+### 10.1 Assistant IA dans l'application (implémenté)
 
-Aujourd'hui, l'app notifie à l'ouverture (notifications locales). L'infrastructure pour de **vraies notifications push app fermée** (Firebase Cloud Messaging) est prête côté serveur :
+Les 24 modèles de risque restent l'unique source des scores — un modèle de langage **ne calcule jamais un risque**. Ce qu'il apporte : reformuler en français simple des données déjà calculées, à la demande de l'utilisateur.
+
+**Principe (RAG léger)** : le serveur calcule le bulletin réel de la zone (`_get_full_risk_payload()`, la même fonction que `/api/risk`), l'injecte tel quel dans un prompt, et un modèle de langage local — **Ollama + Phi-3 mini (3.8B)**, déjà utilisé comme repli du pipeline légataire — le reformule. Le modèle ne peut pas inventer un chiffre : il ne voit que ceux qu'on lui donne.
+
+```mermaid
+flowchart LR
+    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?}"| API["server/api.py"]
+    API --> CALC["_get_full_risk_payload(zone)<br/>(mêmes données que /api/risk)"]
+    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama<br/>Phi-3 mini (local)"]
+    OLLAMA -->|"réponse en<br/>français simple"| APP
+```
+
+- **Backend** : `POST /api/assistant` (`server/api.py`) — accepte `{zone, question?}` ; sans question, génère un résumé automatique du bulletin (niveau, tendance, conseil) ; avec une question libre (« puis-je semer cette semaine ? »), répond spécifiquement, toujours ancré sur les données réelles.
+- **App** : nouvelle carte pliable **« Assistant SAMCAM »** (`lib/widgets/assistant_card.dart`) sous la section risques — résumé automatique à l'ouverture, champ de question libre pour aller plus loin.
+- **Limite mesurée en test** : sur un Mac de développement, une réponse prend 20 à 30 secondes (jusqu'à 1-2 minutes au tout premier appel, le temps qu'Ollama charge le modèle en mémoire). Sur un Raspberry Pi (CPU nettement plus modeste), ce délai sera plus long — le design l'anticipe : timeout serveur de 120 s, timeout app de 90 s, et l'interface affiche explicitement « l'analyse peut prendre jusqu'à une minute » plutôt que de donner l'impression d'un blocage.
+
+### 10.2 Bot WhatsApp (implémenté, activation nécessite un compte Meta)
+
+Le code du bot est écrit et monté dans le serveur (`server/whatsapp_bot.py`) : c'est une simple façade qui traduit un message WhatsApp en appel aux endpoints existants (`/api/risk`, `/api/assistant`, `/api/signalement`) et renvoie la réponse formatée. Il ne recalcule jamais rien.
+
+```mermaid
+flowchart LR
+    USER["👥 Utilisateur WhatsApp"] <-->|"message"| META["Meta Cloud API<br/>(WhatsApp Business)"]
+    META <-->|"webhook HTTPS<br/>(via Tailscale Funnel)"| BOT["server/whatsapp_bot.py<br/>(monté dans api.py)"]
+    BOT --> RISK["/api/risk"]
+    BOT --> ASSIST["/api/assistant<br/>(Ollama)"]
+    BOT --> SIGNAL["/api/signalement"]
+```
+
+**Ce qu'il comprend déjà** :
+
+| Message utilisateur | Comportement |
+|---|---|
+| `Maroua` (nom de zone seul) | Bulletin complet formaté (niveau, 3 scores, prévisions J+3→J+14) |
+| `risque à Garoua cette semaine ?` | Question libre → `/api/assistant`, réponse en langage naturel |
+| `signalement inondation Maroua eau dans les rues` | Enregistré via `/api/signalement`, confirmation renvoyée |
+| `aide` / `bonjour` / `menu` | Message d'aide avec la liste des zones et des exemples |
+
+Une petite mémoire par numéro (`data/whatsapp_state.json`) retient la dernière zone utilisée, pour ne pas avoir à la répéter à chaque message.
+
+**Ce qui reste à faire — uniquement des étapes côté compte, pas de code :**
+
+1. **Créer un compte Meta Business** (business.facebook.com, gratuit) et une **app WhatsApp Business** dans Meta for Developers (developers.facebook.com/apps) ;
+2. Dans l'app Meta, section **WhatsApp → API Setup**, récupérer un **numéro de test** (immédiat, gratuit, limité à quelques destinataires vérifiés) ou faire vérifier un numéro de production ;
+3. Récupérer le **jeton d'accès temporaire** (ou en générer un permanent via un utilisateur système) et l'**ID du numéro de téléphone** ;
+4. Configurer ces informations sur la station (jamais en dur dans le code) :
+   ```bash
+   export WHATSAPP_VERIFY_TOKEN="un-secret-choisi-par-vous"
+   export WHATSAPP_ACCESS_TOKEN="EAAxxxxx..."       # depuis la console Meta
+   export WHATSAPP_PHONE_NUMBER_ID="1234567890"     # depuis la console Meta
+   ```
+   (à placer dans un fichier chargé par `server/start.sh`, ex. `.env` + `source .env`) ;
+5. Dans la console Meta, section **Configuration → Webhook**, renseigner :
+   - URL de rappel : `https://cameroun.tail7296d8.ts.net/webhook/whatsapp` (l'URL Funnel de la station, déjà publique — §9.5)
+   - Jeton de vérification : la même valeur que `WHATSAPP_VERIFY_TOKEN`
+   - S'abonner au champ `messages` ;
+6. Redémarrer le serveur (`bash server/start.sh`) et envoyer un message WhatsApp au numéro de test pour valider.
+
+Le tunnel Tailscale Funnel déjà en service pour l'app mobile (§9.5) sert donc aussi de webhook WhatsApp — aucune infrastructure supplémentaire à déployer.
+
+**Coût** : la Cloud API WhatsApp offre un quota gratuit de conversations par mois largement suffisant pour un prototype ou un déploiement local ; au-delà, la facturation est à l'usage (par conversation), sans engagement.
+
+### 10.3 Notifications push (préparé)
+
+Complémentaire au bot WhatsApp : de vraies notifications push app fermée (Firebase Cloud Messaging), pour les utilisateurs de l'app mobile plutôt que de WhatsApp.
 
 - `server/send_push_alerts.py` : publie une alerte sur un topic par zone (`zone_maroua`, …) dès qu'une zone passe ORANGE/ROUGE, avec déduplication jour à jour — testé en simulation ;
 - `docs/NOTIFICATIONS_PUSH_FCM.md` : guide d'installation complet (~10 min, nécessite un compte Firebase).
 
-### 10.2 Bot WhatsApp (prochaine étape majeure)
+### 10.4 Autres pistes
 
-WhatsApp est le canal de communication dominant au Cameroun — bien plus universel qu'une application à installer. L'évolution prévue :
-
-```mermaid
-flowchart LR
-    API["API SAMCAM<br/>(Raspberry Pi)"] --> BOT["Bot WhatsApp<br/>(WhatsApp Business API)"]
-    LLM["Modèle de langage<br/>(IA conversationnelle)"] --> BOT
-    BOT <-->|"questions / bulletins<br/>en français simple"| USERS["👥 Habitants, agriculteurs,<br/>autorités locales"]
-    BOT -->|"alertes proactives<br/>ORANGE/ROUGE"| USERS
-```
-
-Fonctionnalités cibles :
-
-- **Bulletins à la demande** : « Quel est le risque à Garoua cette semaine ? » → le bot interroge l'API et répond en langage naturel, dans un français simple (voire en fulfulde ou en pidgin à terme) ;
-- **Alertes proactives** : diffusion automatique aux abonnés d'une zone quand elle passe en alerte — réutilisant la logique de `send_push_alerts.py` ;
-- **Collecte de signalements** par simple message (« il y a de l'eau partout à Kousséri ») que l'IA structure et enregistre via `POST /api/signalement` ;
-- **IA conversationnelle** pour reformuler les données techniques (scores, indicateurs) en conseils concrets (« évitez de semer cette semaine, fortes pluies attendues »).
-
-L'API existante fournit déjà tous les points d'entrée nécessaires ; le bot est une couche de présentation supplémentaire, au même titre que l'app et l'écran local.
-
-### 10.3 Autres pistes
-
+- **Miroir cloud pour le passage à l'échelle** : la station pousse quotidiennement son cache de prédictions (`data/predictions/latest.json`, quelques Ko) vers un petit serveur hébergé qui sert le trafic public ; la Raspberry Pi n'est plus exposée à Internet et une coupure de courant locale n'interrompt plus le service pour les utilisateurs (ils lisent les dernières prédictions poussées) ;
+- **Modèle plus léger pour l'assistant sur Raspberry Pi** : si Phi-3 mini s'avère trop lent sur le Pi, essayer un modèle plus petit (Gemma 2 2B, Qwen2.5 1.5B) — compromis vitesse/qualité à valider sur le matériel réel ;
+- **Alertes proactives par WhatsApp** : diffuser automatiquement aux numéros abonnés d'une zone quand elle passe en alerte, en réutilisant la logique de `send_push_alerts.py` adaptée à l'API WhatsApp ;
+- **Multilingue** : le prompt de l'assistant peut être adapté pour répondre en fulfulde ou en pidgin, élargissant l'audience dans le Nord et l'Ouest ;
 - **Enrichissement du réseau de capteurs** : stations capteurs satellites (LoRa) autour de la Raspberry Pi centrale ;
 - **Nouvelles zones** : l'architecture zonale (un dossier de config + un historique par zone) rend l'ajout d'une 9ᵉ zone mécanique ;
 - **Ré-entraînement continu** : intégrer les signalements validés comme labels, avec ré-entraînement périodique automatisé (le pipeline `RETRAIN_GUIDE.md` existe déjà) ;

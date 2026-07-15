@@ -19,16 +19,25 @@ echo -e "${BLUE}\n════════════════════�
 echo -e "  SAMCAM — Serveur + Scheduler"
 echo -e "══════════════════════════════════════════════${NC}\n"
 
-# ── Environnement virtuel ─────────────────────────────────────────────────────
+# ── Environnement virtuel (accepte venv/ et .venv/) ──────────────────────────
 if [ -f "venv/bin/activate" ]; then
-    echo -e "${GREEN}[venv]${NC} Activation de l'environnement virtuel..."
+    echo -e "${GREEN}[venv]${NC} Activation de l'environnement virtuel (venv)..."
     source venv/bin/activate
+elif [ -f ".venv/bin/activate" ]; then
+    echo -e "${GREEN}[venv]${NC} Activation de l'environnement virtuel (.venv)..."
+    source .venv/bin/activate
 else
     echo -e "${YELLOW}[venv]${NC} Pas de venv trouvé — utilisation du Python système"
 fi
 
 PYTHON="$(which python3)"
 echo -e "${GREEN}[python]${NC} $PYTHON"
+
+# ── Secrets locaux (WhatsApp, etc.) — jamais commités, voir .gitignore ───────
+if [ -f "server/.env.local" ]; then
+    echo -e "${GREEN}[env]${NC} Chargement de server/.env.local..."
+    source server/.env.local
+fi
 
 # ── Dépendances ───────────────────────────────────────────────────────────────
 echo -e "${GREEN}[deps]${NC} Vérification des dépendances..."
@@ -76,16 +85,71 @@ schedule_collector() {
     done
 }
 
-# Lance le scheduler en arrière-plan
+# ── Garde-fou : un seul scheduler à la fois ───────────────────────────────────
+# Chaque lancement de start.sh créait un scheduler d'arrière-plan qui
+# SURVIVAIT à l'arrêt du serveur (aucun trap) : les instances s'accumulaient
+# et le pipeline quotidien s'exécutait N fois en parallèle. On tue donc les
+# schedulers résiduels des lancements précédents, et un trap lie la vie du
+# nouveau scheduler à celle du serveur.
+for pid in $(pgrep -f "server/start.sh" 2>/dev/null || true); do
+    [ "$pid" != "$$" ] && [ "$pid" != "$PPID" ] && kill "$pid" 2>/dev/null || true
+done
+
 schedule_collector &
 SCHEDULER_PID=$!
-echo -e "${GREEN}[scheduler]${NC} PID $SCHEDULER_PID"
+trap 'kill $SCHEDULER_PID 2>/dev/null || true' EXIT INT TERM
+echo -e "${GREEN}[scheduler]${NC} PID $SCHEDULER_PID (arrêté automatiquement avec le serveur)"
+
+# ── Accès distant : publication automatique via Tailscale Funnel ─────────────
+# Si Tailscale est installé et connecté, l'API est publiée sur Internet
+# (https://<machine>.<tailnet>.ts.net) sans aucune manipulation supplémentaire.
+# La publication est persistante (--bg) : elle survit aux redémarrages tant
+# que tailscaled tourne. Sans Tailscale, le serveur reste accessible en local.
+#
+# Résolution du binaire : sur Linux (Raspberry Pi), le paquet officiel
+# installe `tailscale` dans le PATH. Sur macOS (version Mac App Store), le
+# CLI n'est PAS dans le PATH — il faut appeler le binaire de l'app bundle
+# directement (jamais via un lien symbolique : le binaire vérifie son
+# identifiant de bundle et plante si on le symlinke ailleurs).
+resolve_tailscale_bin() {
+    if command -v tailscale >/dev/null 2>&1; then
+        echo "tailscale"
+    elif [ -x "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]; then
+        echo "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    fi
+}
+
+enable_funnel() {
+    local TS
+    TS="$(resolve_tailscale_bin)"
+    if [ -z "$TS" ]; then
+        echo -e "${YELLOW}[funnel]${NC} Tailscale non installé — accès local uniquement."
+        echo -e "${YELLOW}[funnel]${NC} Pour l'accès Internet : curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up --hostname=cameroun"
+        return 0
+    fi
+    if ! "$TS" status >/dev/null 2>&1; then
+        echo -e "${YELLOW}[funnel]${NC} Tailscale installé mais non connecté — lancez : sudo $TS up --hostname=cameroun"
+        return 0
+    fi
+    if "$TS" funnel --bg 8000 >/dev/null 2>&1 || sudo -n "$TS" funnel --bg 8000 >/dev/null 2>&1; then
+        FUNNEL_URL=$("$TS" funnel status 2>/dev/null | grep -o 'https://[^ ]*\.ts\.net[^ ]*' | head -1)
+        echo -e "${GREEN}[funnel]${NC} API publiée sur Internet : ${FUNNEL_URL:-voir « $TS funnel status »}"
+    else
+        echo -e "${YELLOW}[funnel]${NC} Publication impossible (droits ?) — lancez une fois : sudo $TS funnel --bg 8000"
+    fi
+}
+enable_funnel
 
 # ── Démarrage du serveur FastAPI ──────────────────────────────────────────────
+# uvicorn tourne en processus ENFANT (pas exec) pour que le trap EXIT
+# s'exécute à l'arrêt et tue le scheduler avec le serveur.
 if [[ "${1:-}" == "--dev" ]]; then
     echo -e "${GREEN}[server]${NC} Mode développement (hot-reload)..."
-    exec uvicorn server.api:app --host 0.0.0.0 --port 8000 --reload
+    uvicorn server.api:app --host 0.0.0.0 --port 8000 --reload &
 else
     echo -e "${GREEN}[server]${NC} Mode production..."
-    exec uvicorn server.api:app --host 0.0.0.0 --port 8000 --workers 2
+    uvicorn server.api:app --host 0.0.0.0 --port 8000 --workers 2 &
 fi
+SERVER_PID=$!
+trap 'kill $SERVER_PID $SCHEDULER_PID 2>/dev/null || true' EXIT INT TERM
+wait $SERVER_PID

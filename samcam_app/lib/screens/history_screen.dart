@@ -52,8 +52,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return const Color(0xFFEF5350);
   }
 
-  String _displayZoneName(String name) =>
-      name == 'Yaounde_peri' ? 'Yaoundé (péri.)' : name;
+  String _displayZoneName(String name) {
+    if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
+    if (name == 'Kaele') return 'Kaélé';
+    return name;
+  }
 
   String _formatDate(String? iso) {
     if (iso == null) return '--';

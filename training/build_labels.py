@@ -197,6 +197,12 @@ KNOWN_EVENTS = [
     ("Yaounde_peri", "2019-02-01", "2019-04-30", "chaleur"),  # OCHA 2019
     ("Kumba",        "2023-02-01", "2023-04-15", "chaleur"),  # anomalie 2023
     ("Ebolowa",      "2023-02-15", "2023-04-30", "chaleur"),  # anomalie 2023
+    # --- Nouvelles zones agricoles : événements réels documentés (OCHA/presse) ---
+    ("Kaele",        "2024-08-15", "2024-09-30", "inondation"),  # OCHA Extrême-Nord — 56 000 maisons détruites, 365 000 pers. touchées
+    ("Guider",       "2024-08-15", "2024-09-30", "inondation"),  # OCHA Extrême-Nord — même épisode régional, Guider bordant Kaélé
+    ("Kaele",        "2012-08-01", "2012-09-30", "inondation"),  # crue régionale Logone/Extrême-Nord (cf. Maroua 2012)
+    ("Guider",        "2012-08-01", "2012-09-30", "inondation"),
+    ("Buea",         "2023-03-25", "2023-03-30", "inondation"),  # OCHA — pluies torrentielles 28 mars 2023, 2 morts
 ]
 
 

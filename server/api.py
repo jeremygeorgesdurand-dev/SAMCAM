@@ -69,6 +69,17 @@ ZONES_META = [
     {"name": "Ngaoundere",   "type": "elevage",      "lat": 7.3167,  "lon": 13.5833, "cultures": ["élevage bovin", "maïs", "sorgho"]},
     {"name": "Garoua",       "type": "agricole_nord","lat": 9.3017,  "lon": 13.3922, "cultures": ["coton", "sorgho", "mil", "arachide"]},
     {"name": "Maroua",       "type": "sahel",        "lat": 10.5910, "lon": 14.3158, "cultures": ["mil", "sorgho", "niébé", "oignon"]},
+    # Zones agricoles ajoutées
+    {"name": "Ndop",         "type": "maraichage",   "lat": 5.9833,  "lon": 10.4500, "cultures": ["riz", "maraîchage"]},
+    {"name": "Foumbot",      "type": "agricole",     "lat": 5.5167,  "lon": 10.6333, "cultures": ["maïs", "maraîchage", "haricot"]},
+    {"name": "Kaele",        "type": "sahel",        "lat": 10.1167, "lon": 14.4500, "cultures": ["sorgho", "mil"]},
+    {"name": "Guider",       "type": "agricole_nord","lat": 9.9333,  "lon": 13.9500, "cultures": ["coton", "sorgho", "arachide"]},
+    {"name": "Meiganga",     "type": "elevage",      "lat": 6.5167,  "lon": 14.3000, "cultures": ["élevage bovin", "maïs"]},
+    {"name": "Mbalmayo",     "type": "maraichage",   "lat": 3.5167,  "lon": 11.5000, "cultures": ["manioc", "plantain", "maraîchage"]},
+    {"name": "Bafia",        "type": "agricole",     "lat": 4.7500,  "lon": 11.2333, "cultures": ["arachide", "manioc", "maïs"]},
+    {"name": "Bertoua",      "type": "agricole",     "lat": 4.5833,  "lon": 13.6833, "cultures": ["café robusta", "cacao"]},
+    {"name": "Nkongsamba",   "type": "agricole",     "lat": 4.9547,  "lon": 9.9401,  "cultures": ["cacao", "bananier"]},
+    {"name": "Buea",         "type": "agricole",     "lat": 4.1560,  "lon": 9.2420,  "cultures": ["palmier à huile", "bananier"]},
 ]
 ZONES_NAMES = {z["name"].lower(): z for z in ZONES_META}
 
@@ -585,13 +596,14 @@ async def get_nearest_live(
     }
 
 
-@app.get("/api/risk", tags=["Risque"])
-def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua)")):
+def _get_full_risk_payload(zone: str) -> dict:
     """
-    Retourne le niveau d'alerte + scores ML J0/J+3/J+7 pour la zone demandée.
+    Calcule le bulletin de risque complet d'une zone (scores J0→J+14 +
+    indicateurs). Factorisé hors de get_risk() pour être réutilisé par
+    l'assistant IA (/api/assistant) et le bot WhatsApp — les deux doivent
+    répondre à partir des MÊMES données que celles affichées dans l'app,
+    jamais d'un recalcul divergent.
     """
-    _resolve_zone(zone)
-
     try:
         data        = _load_zone_data(zone)
         indicateurs = data.get("indicateurs_risque", data.get("indicateurs", {}))
@@ -636,6 +648,98 @@ def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kr
         "risque_prevu_14j": risque.get("risque_prevu_14j", {}),
         "indicateurs":      indicateurs,
     }
+
+
+@app.get("/api/risk", tags=["Risque"])
+def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kribi, Garoua)")):
+    """
+    Retourne le niveau d'alerte + scores ML J0/J+3/J+7 pour la zone demandée.
+    """
+    _resolve_zone(zone)
+    return _get_full_risk_payload(zone)
+
+
+# ─── ASSISTANT IA (Ollama) ──────────────────────────────────────────────────
+#
+# Les 24 modèles de risque (.pkl) restent l'unique source des scores — un LLM
+# ne calcule JAMAIS un risque. Ollama sert uniquement à REFORMULER en langage
+# naturel des données déjà calculées (RAG léger) : le prompt injecte le JSON
+# réel du bulletin, ce qui empêche le modèle d'inventer des chiffres.
+# Réutilisé tel quel par le bot WhatsApp (server/whatsapp_bot.py).
+
+OLLAMA_URL   = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:mini")
+
+_ASSISTANT_SYSTEM = (
+    "Tu es l'assistant SAMCAM, un système d'alerte climatique pour le Cameroun. "
+    "Tu réponds UNIQUEMENT à partir des données réelles fournies (jamais d'invention "
+    "de chiffres). Ton public est un habitant, un agriculteur ou une autorité locale : "
+    "réponds en français simple, concret, sans jargon technique. "
+    "Sois bref : 3 à 5 phrases maximum, sauf si on te demande plus de détails."
+)
+
+
+class AssistantRequest(BaseModel):
+    zone: str = Field(..., min_length=2, max_length=50)
+    question: Optional[str] = Field(
+        None, max_length=500,
+        description="Question libre. Si absente, un résumé du bulletin est généré.")
+
+
+def _construire_prompt_assistant(zone: str, bulletin: dict, question: Optional[str]) -> str:
+    resume = json.dumps(bulletin, ensure_ascii=False, indent=None)
+    if question:
+        return (
+            f"Données réelles du bulletin de risque pour {zone} :\n{resume}\n\n"
+            f"Question de l'utilisateur : {question}\n\n"
+            "Réponds à cette question en te basant uniquement sur ces données."
+        )
+    return (
+        f"Données réelles du bulletin de risque pour {zone} :\n{resume}\n\n"
+        "Résume la situation climatique de cette zone en langage simple : "
+        "niveau de risque actuel, tendance sur les prochains jours, et un "
+        "conseil pratique si le risque est modéré ou élevé."
+    )
+
+
+def _appeler_ollama(prompt: str) -> str:
+    payload = {
+        "model":   OLLAMA_MODEL,
+        "system":  _ASSISTANT_SYSTEM,
+        "prompt":  prompt,
+        "stream":  False,
+        "options": {"temperature": 0.2, "top_p": 0.9, "num_predict": 350},
+    }
+    try:
+        # Le premier appel après inactivité charge le modèle en mémoire
+        # (peut prendre 30-90 s sur un CPU de Raspberry Pi) ; les appels
+        # suivants sont rapides tant qu'Ollama garde le modèle chargé.
+        resp = httpx.post(OLLAMA_URL, json=payload, timeout=120.0)
+        resp.raise_for_status()
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail="Assistant indisponible : Ollama ne répond pas (lancez 'ollama serve').")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"Erreur Ollama : {e}")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="L'assistant met trop de temps à répondre.")
+
+    return resp.json().get("response", "").strip()
+
+
+@app.post("/api/assistant", tags=["Assistant"])
+def poser_question_assistant(req: AssistantRequest):
+    """
+    Assistant IA (Ollama + Phi-3 mini) qui commente ou répond à une question
+    sur le bulletin de risque RÉEL d'une zone. Ne calcule jamais de risque
+    lui-même — il reformule les scores déjà produits par les modèles ML.
+    """
+    _resolve_zone(req.zone)
+    bulletin = _get_full_risk_payload(req.zone)
+    prompt   = _construire_prompt_assistant(req.zone, bulletin, req.question)
+    reponse  = _appeler_ollama(prompt)
+    return {"zone": req.zone, "question": req.question, "reponse": reponse}
 
 
 @app.get("/api/meteo", tags=["Météo"])
@@ -818,3 +922,18 @@ def get_signalements(
 _dashboard_path = os.path.join(ROOT, "dashboard")
 if os.path.isdir(_dashboard_path):
     app.mount("/dashboard", StaticFiles(directory=_dashboard_path, html=True), name="dashboard")
+
+
+# ─── BOT WHATSAPP ────────────────────────────────────────────────────────────
+# Simple façade sur l'API ci-dessus (voir server/whatsapp_bot.py). Reste actif
+# même sans les identifiants Meta configurés — répond juste 503 à l'envoi
+# tant qu'ils sont absents ; n'affecte jamais le reste du serveur.
+try:
+    import sys as _sys
+    if ROOT not in _sys.path:
+        _sys.path.insert(0, ROOT)
+    from server.whatsapp_bot import router as _whatsapp_router
+    app.include_router(_whatsapp_router)
+    print("[API] ✅ Bot WhatsApp monté (/webhook/whatsapp)")
+except Exception as e:
+    print(f"[API] ⚠️  Bot WhatsApp non monté : {e}")

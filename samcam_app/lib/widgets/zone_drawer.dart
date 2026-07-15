@@ -14,10 +14,22 @@ const List<Map<String, dynamic>> kSamcamZones = [
   {'name': 'Ngaoundere',   'lat': 7.3220,  'lon': 13.5840},
   {'name': 'Garoua',       'lat': 9.3000,  'lon': 13.3900},
   {'name': 'Maroua',       'lat': 10.5910, 'lon': 14.3159},
+  // Zones agricoles ajoutées
+  {'name': 'Ndop',         'lat': 5.9833,  'lon': 10.4500},
+  {'name': 'Foumbot',      'lat': 5.5167,  'lon': 10.6333},
+  {'name': 'Kaele',        'lat': 10.1167, 'lon': 14.4500},
+  {'name': 'Guider',       'lat': 9.9333,  'lon': 13.9500},
+  {'name': 'Meiganga',     'lat': 6.5167,  'lon': 14.3000},
+  {'name': 'Mbalmayo',     'lat': 3.5167,  'lon': 11.5000},
+  {'name': 'Bafia',        'lat': 4.7500,  'lon': 11.2333},
+  {'name': 'Bertoua',      'lat': 4.5833,  'lon': 13.6833},
+  {'name': 'Nkongsamba',   'lat': 4.9547,  'lon': 9.9401 },
+  {'name': 'Buea',         'lat': 4.1560,  'lon': 9.2420 },
 ];
 
 String _displayName(String name) {
   if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
+  if (name == 'Kaele') return 'Kaélé';
   return name;
 }
 

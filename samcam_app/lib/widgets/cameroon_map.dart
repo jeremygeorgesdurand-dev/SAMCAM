@@ -87,8 +87,11 @@ class CameroonMap extends StatelessWidget {
     this.selectedZone,
   });
 
-  static String _displayName(String name) =>
-      name == 'Yaounde_peri' ? 'Yaoundé' : name;
+  static String _displayName(String name) {
+    if (name == 'Yaounde_peri') return 'Yaoundé';
+    if (name == 'Kaele') return 'Kaélé';
+    return name;
+  }
 
   @override
   Widget build(BuildContext context) {

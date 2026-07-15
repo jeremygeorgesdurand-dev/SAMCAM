@@ -55,6 +55,17 @@ ZONES = {
     "Ngaoundere":   {"lat": 7.3220,  "lon": 13.5840, "climate": "tropical_highland","start": "1990-01-01"},
     "Garoua":       {"lat": 9.3000,  "lon": 13.3900, "climate": "sahelian",         "start": "1990-01-01"},
     "Maroua":       {"lat": 10.5910, "lon": 14.3159, "climate": "sahelian",         "start": "1990-01-01"},
+    # ── Zones agricoles ajoutées ─────────────────────────────────────────
+    "Ndop":         {"lat": 5.9833,  "lon": 10.4500, "climate": "tropical_highland","start": "1990-01-01"},
+    "Foumbot":      {"lat": 5.5167,  "lon": 10.6333, "climate": "tropical_highland","start": "1990-01-01"},
+    "Kaele":        {"lat": 10.1167, "lon": 14.4500, "climate": "sahelian",         "start": "1990-01-01"},
+    "Guider":       {"lat": 9.9333,  "lon": 13.9500, "climate": "sahelian",         "start": "1990-01-01"},
+    "Meiganga":     {"lat": 6.5167,  "lon": 14.3000, "climate": "tropical_highland","start": "1990-01-01"},
+    "Mbalmayo":     {"lat": 3.5167,  "lon": 11.5000, "climate": "equatorial",       "start": "2000-01-01"},
+    "Bafia":        {"lat": 4.7500,  "lon": 11.2333, "climate": "equatorial",       "start": "2000-01-01"},
+    "Bertoua":      {"lat": 4.5833,  "lon": 13.6833, "climate": "equatorial",       "start": "2000-01-01"},
+    "Nkongsamba":   {"lat": 4.9547,  "lon": 9.9401,  "climate": "equatorial",       "start": "2000-01-01"},
+    "Buea":         {"lat": 4.1560,  "lon": 9.2420,  "climate": "equatorial",       "start": "2000-01-01"},
 }
 
 DEFAULT_END           = "2025-12-31"
