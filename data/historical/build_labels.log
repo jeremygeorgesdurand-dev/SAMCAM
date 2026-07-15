@@ -599,3 +599,284 @@
 2026-07-10 15:43:54,625 [INFO]     secheresse  :  1120/9512 jours positifs (11.8%)
 2026-07-10 15:43:54,625 [INFO]     chaleur     :   371/9512 jours positifs (3.9%)
 2026-07-10 15:43:54,717 [INFO] [Sauvegarde] data/historical/Yaounde_peri_labeled.csv
+2026-07-14 15:21:45,318 [INFO] Labellisation de 1 zones : ['Ndop']
+2026-07-14 15:21:45,318 [INFO] 
+=======================================================
+2026-07-14 15:21:45,318 [INFO] [Labels] Traitement de Ndop...
+2026-07-14 15:21:45,318 [INFO] =======================================================
+2026-07-14 15:21:45,340 [INFO] [Config] 'Ndop' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 10, 73, 197, 213, 253, 328, 334, 301, 193, 46, 4] mm/mois
+2026-07-14 15:21:45,340 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_bimodal
+2026-07-14 15:21:45,374 [INFO]     inondation  :  1532/13149 jours positifs (11.7%)
+2026-07-14 15:21:45,374 [INFO]     secheresse  :  4186/13149 jours positifs (31.8%)
+2026-07-14 15:21:45,374 [INFO]     chaleur     :  2357/13149 jours positifs (17.9%)
+2026-07-14 15:21:45,497 [INFO] [Sauvegarde] data/historical/Ndop_labeled.csv
+2026-07-14 15:25:24,994 [INFO] Labellisation de 1 zones : ['Ndop']
+2026-07-14 15:25:24,994 [INFO] 
+=======================================================
+2026-07-14 15:25:24,994 [INFO] [Labels] Traitement de Ndop...
+2026-07-14 15:25:24,994 [INFO] =======================================================
+2026-07-14 15:25:25,016 [INFO] [Config] 'Ndop' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 10, 73, 197, 213, 253, 328, 334, 301, 193, 46, 4] mm/mois
+2026-07-14 15:25:25,016 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_bimodal
+2026-07-14 15:25:25,053 [INFO]     inondation  :  1532/13149 jours positifs (11.7%)
+2026-07-14 15:25:25,053 [INFO]     secheresse  :  4186/13149 jours positifs (31.8%)
+2026-07-14 15:25:25,053 [INFO]     chaleur     :  2357/13149 jours positifs (17.9%)
+2026-07-14 15:25:25,181 [INFO] [Sauvegarde] data/historical/Ndop_labeled.csv
+2026-07-14 15:40:37,626 [INFO] Labellisation de 1 zones : ['Foumbot']
+2026-07-14 15:40:37,626 [INFO] 
+=======================================================
+2026-07-14 15:40:37,626 [INFO] [Labels] Traitement de Foumbot...
+2026-07-14 15:40:37,626 [INFO] =======================================================
+2026-07-14 15:40:37,650 [INFO] [Config] 'Foumbot' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 8, 61, 156, 184, 194, 248, 267, 244, 213, 61, 4] mm/mois
+2026-07-14 15:40:37,650 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_bimodal
+2026-07-14 15:40:37,692 [INFO]     inondation  :   965/13149 jours positifs (7.3%)
+2026-07-14 15:40:37,693 [INFO]     secheresse  :  2686/13149 jours positifs (20.4%)
+2026-07-14 15:40:37,693 [INFO]     chaleur     :  2575/13149 jours positifs (19.6%)
+2026-07-14 15:40:37,831 [INFO] [Sauvegarde] data/historical/Foumbot_labeled.csv
+2026-07-14 15:57:23,184 [INFO] Labellisation de 1 zones : ['Kaele']
+2026-07-14 15:57:23,185 [INFO] 
+=======================================================
+2026-07-14 15:57:23,185 [INFO] [Labels] Traitement de Kaele...
+2026-07-14 15:57:23,185 [INFO] =======================================================
+2026-07-14 15:57:23,213 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 116, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 15:57:23,213 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 15:57:23,244 [INFO]     inondation  :  1596/13149 jours positifs (12.1%)
+2026-07-14 15:57:23,244 [INFO]     secheresse  :  5022/13149 jours positifs (38.2%)
+2026-07-14 15:57:23,244 [INFO] ⚠️  chaleur     :  8007/13149 jours positifs (60.9%)
+2026-07-14 15:57:23,359 [INFO] [Sauvegarde] data/historical/Kaele_labeled.csv
+2026-07-14 16:04:54,772 [INFO] Labellisation de 1 zones : ['Guider']
+2026-07-14 16:04:54,773 [INFO] 
+=======================================================
+2026-07-14 16:04:54,773 [INFO] [Labels] Traitement de Guider...
+2026-07-14 16:04:54,773 [INFO] =======================================================
+2026-07-14 16:04:54,792 [INFO] [Config] 'Guider' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 13, 45, 84, 133, 182, 121, 44, 1, 0] mm/mois
+2026-07-14 16:04:54,792 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 16:04:54,824 [INFO]     inondation  :   976/13149 jours positifs (7.4%)
+2026-07-14 16:04:54,824 [INFO]     secheresse  :  5385/13149 jours positifs (41.0%)
+2026-07-14 16:04:54,824 [INFO] ⚠️  chaleur     :  8902/13149 jours positifs (67.7%)
+2026-07-14 16:04:54,943 [INFO] [Sauvegarde] data/historical/Guider_labeled.csv
+2026-07-14 16:12:43,732 [INFO] Labellisation de 1 zones : ['Meiganga']
+2026-07-14 16:12:43,733 [INFO] 
+=======================================================
+2026-07-14 16:12:43,733 [INFO] [Labels] Traitement de Meiganga...
+2026-07-14 16:12:43,733 [INFO] =======================================================
+2026-07-14 16:12:43,755 [INFO] [Config] 'Meiganga' → JSON chargé (hauts_plateaux_transition) | pluie_normales: [0, 3, 41, 150, 186, 186, 241, 269, 243, 174, 26, 1] mm/mois
+2026-07-14 16:12:43,755 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_transition
+2026-07-14 16:12:43,787 [INFO]     inondation  :  2667/13149 jours positifs (20.3%)
+2026-07-14 16:12:43,787 [INFO]     secheresse  :  3265/13149 jours positifs (24.8%)
+2026-07-14 16:12:43,787 [INFO]     chaleur     :  2614/13149 jours positifs (19.9%)
+2026-07-14 16:12:44,088 [INFO] [Sauvegarde] data/historical/Meiganga_labeled.csv
+2026-07-14 16:18:22,256 [INFO] Labellisation de 1 zones : ['Mbalmayo']
+2026-07-14 16:18:22,257 [INFO] 
+=======================================================
+2026-07-14 16:18:22,257 [INFO] [Labels] Traitement de Mbalmayo...
+2026-07-14 16:18:22,257 [INFO] =======================================================
+2026-07-14 16:18:22,280 [INFO] [Config] 'Mbalmayo' → JSON chargé (equatorial_bimodal) | pluie_normales: [31, 52, 128, 155, 162, 147, 131, 116, 190, 229, 155, 50] mm/mois
+2026-07-14 16:18:22,280 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 16:18:22,318 [INFO]     inondation  :   992/9497 jours positifs (10.4%)
+2026-07-14 16:18:22,318 [INFO]     secheresse  :  1160/9497 jours positifs (12.2%)
+2026-07-14 16:18:22,318 [INFO]     chaleur     :  1454/9497 jours positifs (15.3%)
+2026-07-14 16:18:22,442 [INFO] [Sauvegarde] data/historical/Mbalmayo_labeled.csv
+2026-07-14 17:48:35,828 [INFO] Labellisation de 1 zones : ['Bafia']
+2026-07-14 17:48:35,829 [INFO] 
+=======================================================
+2026-07-14 17:48:35,829 [INFO] [Labels] Traitement de Bafia...
+2026-07-14 17:48:35,829 [INFO] =======================================================
+2026-07-14 17:48:35,843 [INFO] [Config] 'Bafia' → JSON chargé (equatorial_bimodal) | pluie_normales: [4, 14, 59, 116, 130, 134, 128, 140, 184, 187, 74, 8] mm/mois
+2026-07-14 17:48:35,843 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 17:48:35,871 [INFO]     inondation  :  1583/9497 jours positifs (16.7%)
+2026-07-14 17:48:35,871 [INFO]     secheresse  :  1964/9497 jours positifs (20.7%)
+2026-07-14 17:48:35,871 [INFO]     chaleur     :  1729/9497 jours positifs (18.2%)
+2026-07-14 17:48:35,958 [INFO] [Sauvegarde] data/historical/Bafia_labeled.csv
+2026-07-14 17:55:30,482 [INFO] Labellisation de 1 zones : ['Bertoua']
+2026-07-14 17:55:30,483 [INFO] 
+=======================================================
+2026-07-14 17:55:30,483 [INFO] [Labels] Traitement de Bertoua...
+2026-07-14 17:55:30,483 [INFO] =======================================================
+2026-07-14 17:55:30,498 [INFO] [Config] 'Bertoua' → JSON chargé (equatorial_bimodal) | pluie_normales: [8, 24, 86, 149, 133, 118, 132, 145, 175, 213, 114, 22] mm/mois
+2026-07-14 17:55:30,498 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 17:55:30,525 [INFO]     inondation  :  1635/9497 jours positifs (17.2%)
+2026-07-14 17:55:30,525 [INFO]     secheresse  :  1823/9497 jours positifs (19.2%)
+2026-07-14 17:55:30,525 [INFO]     chaleur     :  1734/9497 jours positifs (18.3%)
+2026-07-14 17:55:30,612 [INFO] [Sauvegarde] data/historical/Bertoua_labeled.csv
+2026-07-14 17:59:53,381 [INFO] Labellisation de 1 zones : ['Nkongsamba']
+2026-07-14 17:59:53,381 [INFO] 
+=======================================================
+2026-07-14 17:59:53,381 [INFO] [Labels] Traitement de Nkongsamba...
+2026-07-14 17:59:53,381 [INFO] =======================================================
+2026-07-14 17:59:53,396 [INFO] [Config] 'Nkongsamba' → JSON chargé (equatorial_bimodal) | pluie_normales: [44, 86, 233, 276, 270, 302, 397, 438, 410, 373, 185, 50] mm/mois
+2026-07-14 17:59:53,396 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 17:59:53,423 [INFO]     inondation  :   975/9497 jours positifs (10.3%)
+2026-07-14 17:59:53,424 [INFO]     secheresse  :  2050/9497 jours positifs (21.6%)
+2026-07-14 17:59:53,424 [INFO]     chaleur     :  1348/9497 jours positifs (14.2%)
+2026-07-14 17:59:53,510 [INFO] [Sauvegarde] data/historical/Nkongsamba_labeled.csv
+2026-07-14 18:05:30,965 [INFO] Labellisation de 1 zones : ['Buea']
+2026-07-14 18:05:30,966 [INFO] 
+=======================================================
+2026-07-14 18:05:30,966 [INFO] [Labels] Traitement de Buea...
+2026-07-14 18:05:30,966 [INFO] =======================================================
+2026-07-14 18:05:30,981 [INFO] [Config] 'Buea' → JSON chargé (equatorial_bimodal) | pluie_normales: [110, 148, 230, 233, 259, 435, 738, 802, 719, 433, 195, 96] mm/mois
+2026-07-14 18:05:30,981 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:05:31,009 [INFO]     inondation  :   961/9497 jours positifs (10.1%)
+2026-07-14 18:05:31,009 [INFO]     secheresse  :  1765/9497 jours positifs (18.6%)
+2026-07-14 18:05:31,009 [INFO]     chaleur     :  1475/9497 jours positifs (15.5%)
+2026-07-14 18:05:31,096 [INFO] [Sauvegarde] data/historical/Buea_labeled.csv
+2026-07-14 18:28:35,517 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 116, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 18:30:04,686 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 113, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 18:30:48,971 [INFO] [Config] 'Ndop' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 10, 73, 197, 213, 253, 322, 334, 301, 193, 46, 4] mm/mois
+2026-07-14 18:30:51,389 [INFO] [Config] 'Foumbot' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 8, 61, 156, 184, 194, 244, 267, 244, 213, 61, 4] mm/mois
+2026-07-14 18:30:53,927 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 113, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 18:30:56,605 [INFO] [Config] 'Guider' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 13, 45, 84, 131, 182, 121, 44, 1, 0] mm/mois
+2026-07-14 18:30:59,195 [INFO] [Config] 'Meiganga' → JSON chargé (hauts_plateaux_transition) | pluie_normales: [0, 3, 41, 150, 186, 186, 236, 269, 243, 174, 26, 1] mm/mois
+2026-07-14 18:31:01,859 [INFO] [Config] 'Mbalmayo' → JSON chargé (equatorial_bimodal) | pluie_normales: [31, 52, 128, 155, 162, 147, 128, 116, 190, 229, 155, 50] mm/mois
+2026-07-14 18:31:04,198 [INFO] [Config] 'Bafia' → JSON chargé (equatorial_bimodal) | pluie_normales: [4, 14, 59, 116, 130, 134, 127, 140, 184, 187, 74, 8] mm/mois
+2026-07-14 18:31:06,954 [INFO] [Config] 'Bertoua' → JSON chargé (equatorial_bimodal) | pluie_normales: [8, 24, 86, 149, 133, 118, 129, 145, 175, 213, 114, 22] mm/mois
+2026-07-14 18:31:09,345 [INFO] [Config] 'Nkongsamba' → JSON chargé (equatorial_bimodal) | pluie_normales: [44, 86, 233, 276, 270, 302, 388, 438, 410, 373, 185, 50] mm/mois
+2026-07-14 18:31:11,991 [INFO] [Config] 'Buea' → JSON chargé (equatorial_bimodal) | pluie_normales: [110, 148, 230, 233, 259, 435, 718, 802, 719, 433, 195, 96] mm/mois
+2026-07-14 18:31:48,003 [INFO] Labellisation de 1 zones : ['Ndop']
+2026-07-14 18:31:48,003 [INFO] 
+=======================================================
+2026-07-14 18:31:48,003 [INFO] [Labels] Traitement de Ndop...
+2026-07-14 18:31:48,003 [INFO] =======================================================
+2026-07-14 18:31:48,033 [INFO] [Config] 'Ndop' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 10, 73, 197, 213, 253, 322, 334, 301, 193, 46, 4] mm/mois
+2026-07-14 18:31:48,033 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_bimodal
+2026-07-14 18:31:48,066 [INFO]     inondation  :   524/13157 jours positifs (4.0%)
+2026-07-14 18:31:48,066 [INFO]     secheresse  :   583/13157 jours positifs (4.4%)
+2026-07-14 18:31:48,066 [INFO]     chaleur     :  2534/13157 jours positifs (19.3%)
+2026-07-14 18:31:48,193 [INFO] [Sauvegarde] data/historical/Ndop_labeled.csv
+2026-07-14 18:31:48,394 [INFO] Labellisation de 1 zones : ['Foumbot']
+2026-07-14 18:31:48,395 [INFO] 
+=======================================================
+2026-07-14 18:31:48,395 [INFO] [Labels] Traitement de Foumbot...
+2026-07-14 18:31:48,395 [INFO] =======================================================
+2026-07-14 18:31:48,418 [INFO] [Config] 'Foumbot' → JSON chargé (hauts_plateaux_bimodal) | pluie_normales: [2, 8, 61, 156, 184, 194, 244, 267, 244, 213, 61, 4] mm/mois
+2026-07-14 18:31:48,418 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_bimodal
+2026-07-14 18:31:48,452 [INFO]     inondation  :   524/13157 jours positifs (4.0%)
+2026-07-14 18:31:48,452 [INFO]     secheresse  :   583/13157 jours positifs (4.4%)
+2026-07-14 18:31:48,452 [INFO]     chaleur     :  2535/13157 jours positifs (19.3%)
+2026-07-14 18:31:48,586 [INFO] [Sauvegarde] data/historical/Foumbot_labeled.csv
+2026-07-14 18:31:48,793 [INFO] Labellisation de 1 zones : ['Kaele']
+2026-07-14 18:31:48,793 [INFO] 
+=======================================================
+2026-07-14 18:31:48,793 [INFO] [Labels] Traitement de Kaele...
+2026-07-14 18:31:48,793 [INFO] =======================================================
+2026-07-14 18:31:48,816 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 113, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 18:31:48,816 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 18:31:48,852 [INFO]     inondation  :  1092/13157 jours positifs (8.3%)
+2026-07-14 18:31:48,853 [INFO] ⚠️  secheresse  :   205/13157 jours positifs (1.6%)
+2026-07-14 18:31:48,853 [INFO]     chaleur     :  1948/13157 jours positifs (14.8%)
+2026-07-14 18:31:48,982 [INFO] [Sauvegarde] data/historical/Kaele_labeled.csv
+2026-07-14 18:31:49,192 [INFO] Labellisation de 1 zones : ['Guider']
+2026-07-14 18:31:49,193 [INFO] 
+=======================================================
+2026-07-14 18:31:49,193 [INFO] [Labels] Traitement de Guider...
+2026-07-14 18:31:49,193 [INFO] =======================================================
+2026-07-14 18:31:49,215 [INFO] [Config] 'Guider' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 13, 45, 84, 131, 182, 121, 44, 1, 0] mm/mois
+2026-07-14 18:31:49,215 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 18:31:49,251 [INFO]     inondation  :  1096/13157 jours positifs (8.3%)
+2026-07-14 18:31:49,251 [INFO] ⚠️  secheresse  :    22/13157 jours positifs (0.2%)
+2026-07-14 18:31:49,251 [INFO]     chaleur     :  1931/13157 jours positifs (14.7%)
+2026-07-14 18:31:49,387 [INFO] [Sauvegarde] data/historical/Guider_labeled.csv
+2026-07-14 18:31:49,596 [INFO] Labellisation de 1 zones : ['Meiganga']
+2026-07-14 18:31:49,597 [INFO] 
+=======================================================
+2026-07-14 18:31:49,597 [INFO] [Labels] Traitement de Meiganga...
+2026-07-14 18:31:49,598 [INFO] =======================================================
+2026-07-14 18:31:49,620 [INFO] [Config] 'Meiganga' → JSON chargé (hauts_plateaux_transition) | pluie_normales: [0, 3, 41, 150, 186, 186, 236, 269, 243, 174, 26, 1] mm/mois
+2026-07-14 18:31:49,621 [INFO]   ✅ Config JSON individuelle → régime : hauts_plateaux_transition
+2026-07-14 18:31:49,658 [INFO]     inondation  :   524/13157 jours positifs (4.0%)
+2026-07-14 18:31:49,659 [INFO]     secheresse  :   583/13157 jours positifs (4.4%)
+2026-07-14 18:31:49,659 [INFO]     chaleur     :  2529/13157 jours positifs (19.2%)
+2026-07-14 18:31:49,797 [INFO] [Sauvegarde] data/historical/Meiganga_labeled.csv
+2026-07-14 18:31:50,008 [INFO] Labellisation de 1 zones : ['Mbalmayo']
+2026-07-14 18:31:50,009 [INFO] 
+=======================================================
+2026-07-14 18:31:50,009 [INFO] [Labels] Traitement de Mbalmayo...
+2026-07-14 18:31:50,009 [INFO] =======================================================
+2026-07-14 18:31:50,027 [INFO] [Config] 'Mbalmayo' → JSON chargé (equatorial_bimodal) | pluie_normales: [31, 52, 128, 155, 162, 147, 128, 116, 190, 229, 155, 50] mm/mois
+2026-07-14 18:31:50,027 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:31:50,059 [INFO]     inondation  :   590/9505 jours positifs (6.2%)
+2026-07-14 18:31:50,059 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:31:50,059 [INFO]     chaleur     :   608/9505 jours positifs (6.4%)
+2026-07-14 18:31:50,160 [INFO] [Sauvegarde] data/historical/Mbalmayo_labeled.csv
+2026-07-14 18:31:50,375 [INFO] Labellisation de 1 zones : ['Bafia']
+2026-07-14 18:31:50,375 [INFO] 
+=======================================================
+2026-07-14 18:31:50,375 [INFO] [Labels] Traitement de Bafia...
+2026-07-14 18:31:50,375 [INFO] =======================================================
+2026-07-14 18:31:50,394 [INFO] [Config] 'Bafia' → JSON chargé (equatorial_bimodal) | pluie_normales: [4, 14, 59, 116, 130, 134, 127, 140, 184, 187, 74, 8] mm/mois
+2026-07-14 18:31:50,394 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:31:50,425 [INFO]     inondation  :   590/9505 jours positifs (6.2%)
+2026-07-14 18:31:50,425 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:31:50,425 [INFO]     chaleur     :   605/9505 jours positifs (6.4%)
+2026-07-14 18:31:50,524 [INFO] [Sauvegarde] data/historical/Bafia_labeled.csv
+2026-07-14 18:31:50,763 [INFO] Labellisation de 1 zones : ['Bertoua']
+2026-07-14 18:31:50,763 [INFO] 
+=======================================================
+2026-07-14 18:31:50,764 [INFO] [Labels] Traitement de Bertoua...
+2026-07-14 18:31:50,764 [INFO] =======================================================
+2026-07-14 18:31:50,794 [INFO] [Config] 'Bertoua' → JSON chargé (equatorial_bimodal) | pluie_normales: [8, 24, 86, 149, 133, 118, 129, 145, 175, 213, 114, 22] mm/mois
+2026-07-14 18:31:50,794 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:31:50,830 [INFO]     inondation  :   590/9505 jours positifs (6.2%)
+2026-07-14 18:31:50,831 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:31:50,831 [INFO]     chaleur     :   607/9505 jours positifs (6.4%)
+2026-07-14 18:31:50,944 [INFO] [Sauvegarde] data/historical/Bertoua_labeled.csv
+2026-07-14 18:31:51,165 [INFO] Labellisation de 1 zones : ['Nkongsamba']
+2026-07-14 18:31:51,165 [INFO] 
+=======================================================
+2026-07-14 18:31:51,165 [INFO] [Labels] Traitement de Nkongsamba...
+2026-07-14 18:31:51,166 [INFO] =======================================================
+2026-07-14 18:31:51,184 [INFO] [Config] 'Nkongsamba' → JSON chargé (equatorial_bimodal) | pluie_normales: [44, 86, 233, 276, 270, 302, 388, 438, 410, 373, 185, 50] mm/mois
+2026-07-14 18:31:51,185 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:31:51,216 [INFO]     inondation  :   590/9505 jours positifs (6.2%)
+2026-07-14 18:31:51,216 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:31:51,216 [INFO]     chaleur     :   610/9505 jours positifs (6.4%)
+2026-07-14 18:31:51,320 [INFO] [Sauvegarde] data/historical/Nkongsamba_labeled.csv
+2026-07-14 18:31:51,534 [INFO] Labellisation de 1 zones : ['Buea']
+2026-07-14 18:31:51,534 [INFO] 
+=======================================================
+2026-07-14 18:31:51,534 [INFO] [Labels] Traitement de Buea...
+2026-07-14 18:31:51,534 [INFO] =======================================================
+2026-07-14 18:31:51,553 [INFO] [Config] 'Buea' → JSON chargé (equatorial_bimodal) | pluie_normales: [110, 148, 230, 233, 259, 435, 718, 802, 719, 433, 195, 96] mm/mois
+2026-07-14 18:31:51,553 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:31:51,584 [INFO]     inondation  :   590/9505 jours positifs (6.2%)
+2026-07-14 18:31:51,584 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:31:51,584 [INFO]     chaleur     :   605/9505 jours positifs (6.4%)
+2026-07-14 18:31:51,687 [INFO] [Sauvegarde] data/historical/Buea_labeled.csv
+2026-07-14 18:46:19,399 [INFO] Labellisation de 1 zones : ['Kaele']
+2026-07-14 18:46:19,399 [INFO] 
+=======================================================
+2026-07-14 18:46:19,399 [INFO] [Labels] Traitement de Kaele...
+2026-07-14 18:46:19,399 [INFO] =======================================================
+2026-07-14 18:46:19,446 [INFO] [Config] 'Kaele' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 10, 40, 64, 113, 164, 102, 34, 1, 0] mm/mois
+2026-07-14 18:46:19,446 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 18:46:19,516 [INFO]   [EM-DAT/OCHA] Kaele inondation 2024-08-15→2024-09-30 : 47 jours forcés à 1
+2026-07-14 18:46:19,517 [INFO]   [EM-DAT/OCHA] Kaele inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-14 18:46:19,517 [INFO]     inondation  :  1167/13157 jours positifs (8.9%)
+2026-07-14 18:46:19,517 [INFO] ⚠️  secheresse  :   205/13157 jours positifs (1.6%)
+2026-07-14 18:46:19,517 [INFO]     chaleur     :  1948/13157 jours positifs (14.8%)
+2026-07-14 18:46:19,766 [INFO] [Sauvegarde] data/historical/Kaele_labeled.csv
+2026-07-14 18:46:20,214 [INFO] Labellisation de 1 zones : ['Guider']
+2026-07-14 18:46:20,214 [INFO] 
+=======================================================
+2026-07-14 18:46:20,214 [INFO] [Labels] Traitement de Guider...
+2026-07-14 18:46:20,214 [INFO] =======================================================
+2026-07-14 18:46:20,259 [INFO] [Config] 'Guider' → JSON chargé (sahelien_monomodal) | pluie_normales: [0, 0, 0, 13, 45, 84, 131, 182, 121, 44, 1, 0] mm/mois
+2026-07-14 18:46:20,259 [INFO]   ✅ Config JSON individuelle → régime : sahelien_monomodal
+2026-07-14 18:46:20,324 [INFO]   [EM-DAT/OCHA] Guider inondation 2024-08-15→2024-09-30 : 47 jours forcés à 1
+2026-07-14 18:46:20,325 [INFO]   [EM-DAT/OCHA] Guider inondation 2012-08-01→2012-09-30 : 61 jours forcés à 1
+2026-07-14 18:46:20,325 [INFO]     inondation  :  1154/13157 jours positifs (8.8%)
+2026-07-14 18:46:20,325 [INFO] ⚠️  secheresse  :    22/13157 jours positifs (0.2%)
+2026-07-14 18:46:20,325 [INFO]     chaleur     :  1931/13157 jours positifs (14.7%)
+2026-07-14 18:46:20,573 [INFO] [Sauvegarde] data/historical/Guider_labeled.csv
+2026-07-14 18:46:20,980 [INFO] Labellisation de 1 zones : ['Buea']
+2026-07-14 18:46:20,980 [INFO] 
+=======================================================
+2026-07-14 18:46:20,980 [INFO] [Labels] Traitement de Buea...
+2026-07-14 18:46:20,980 [INFO] =======================================================
+2026-07-14 18:46:21,015 [INFO] [Config] 'Buea' → JSON chargé (equatorial_bimodal) | pluie_normales: [110, 148, 230, 233, 259, 435, 718, 802, 719, 433, 195, 96] mm/mois
+2026-07-14 18:46:21,015 [INFO]   ✅ Config JSON individuelle → régime : equatorial_bimodal
+2026-07-14 18:46:21,071 [INFO]   [EM-DAT/OCHA] Buea inondation 2023-03-25→2023-03-30 : 6 jours forcés à 1
+2026-07-14 18:46:21,072 [INFO]     inondation  :   596/9505 jours positifs (6.3%)
+2026-07-14 18:46:21,072 [INFO]     secheresse  :   836/9505 jours positifs (8.8%)
+2026-07-14 18:46:21,072 [INFO]     chaleur     :   605/9505 jours positifs (6.4%)
+2026-07-14 18:46:21,259 [INFO] [Sauvegarde] data/historical/Buea_labeled.csv

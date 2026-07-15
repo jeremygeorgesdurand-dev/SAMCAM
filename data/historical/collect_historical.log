@@ -238,3 +238,92 @@
 2026-07-08 15:09:32,614 [INFO] [NASA POWER] Maroua : 13149 jours collectés (1990-01-01 → 2025-12-31)
 2026-07-08 15:09:37,656 [INFO] [Merge] Maroua : 13149 lignes, 41 colonnes
 2026-07-08 15:09:37,782 [INFO] [Sauvegarde] data/historical/Maroua_historical.csv (13149 lignes)
+2026-07-14 15:03:08,295 [INFO] Collecte historique → 2025-12-31 pour : ['Ndop']
+2026-07-14 15:03:08,295 [INFO]   Ndop                 : 1990-01-01 → 2025-12-31
+2026-07-14 15:03:08,296 [INFO] [Open-Meteo] Ndop 1990-01-01 → 2025-12-31 (18 chunks de 2 an(s))
+2026-07-14 15:05:16,497 [ERROR] [Erreur fatale] Open-Meteo Ndop 1994-01-01→1995-12-31: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Max retries exceeded with url: /v1/archive?latitude=5.9833&longitude=10.45&start_date=1994-01-01&end_date=1995-12-31&daily=temperature_2m_max&daily=temperature_2m_min&daily=temperature_2m_mean&daily=precipitation_sum&daily=rain_sum&daily=et0_fao_evapotranspiration&daily=wind_speed_10m_max&daily=wind_gusts_10m_max&daily=shortwave_radiation_sum&daily=relative_humidity_2m_max&daily=relative_humidity_2m_min&daily=soil_moisture_0_to_7cm_mean&daily=soil_moisture_7_to_28cm_mean&daily=soil_moisture_28_to_100cm_mean&daily=precipitation_hours&daily=sunshine_duration&timezone=Africa%2FDouala (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1129)')))
+2026-07-14 15:05:16,501 [WARNING] [Open-Meteo] Chunk ignoré : 1994-01-01→1995-12-31 pour Ndop
+2026-07-14 15:16:34,525 [INFO] [Open-Meteo] Ndop : 12419 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:16:39,535 [INFO] [NASA POWER] Ndop 1990-01-01 → 2025-12-31 (8 chunks de 5 an(s))
+2026-07-14 15:19:40,092 [INFO] [NASA POWER] Ndop : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:19:45,155 [INFO] [Merge] Ndop : 13149 lignes, 41 colonnes
+2026-07-14 15:19:45,311 [INFO] [Sauvegarde] data/historical/Ndop_historical.csv (13149 lignes)
+2026-07-14 15:27:15,978 [INFO] Collecte historique → 2025-12-31 pour : ['Foumbot']
+2026-07-14 15:27:15,979 [INFO]   Foumbot              : 1990-01-01 → 2025-12-31
+2026-07-14 15:27:15,979 [INFO] [Open-Meteo] Foumbot 1990-01-01 → 2025-12-31 (18 chunks de 2 an(s))
+2026-07-14 15:34:32,955 [WARNING] [Retry 1/3] Timeout Open-Meteo Foumbot 2016-01-01→2017-12-31 — attente 30s
+2026-07-14 15:38:07,346 [INFO] [Open-Meteo] Foumbot : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:38:12,352 [INFO] [NASA POWER] Foumbot 1990-01-01 → 2025-12-31 (8 chunks de 5 an(s))
+2026-07-14 15:40:26,289 [INFO] [NASA POWER] Foumbot : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:40:31,365 [INFO] [Merge] Foumbot : 13149 lignes, 41 colonnes
+2026-07-14 15:40:31,534 [INFO] [Sauvegarde] data/historical/Foumbot_historical.csv (13149 lignes)
+2026-07-14 15:42:44,359 [INFO] Collecte historique → 2025-12-31 pour : ['Kaele']
+2026-07-14 15:42:44,360 [INFO]   Kaele                : 1990-01-01 → 2025-12-31
+2026-07-14 15:42:44,360 [INFO] [Open-Meteo] Kaele 1990-01-01 → 2025-12-31 (18 chunks de 2 an(s))
+2026-07-14 15:52:22,212 [ERROR] [Erreur fatale] Open-Meteo Kaele 2018-01-01→2019-12-31: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Max retries exceeded with url: /v1/archive?latitude=10.1167&longitude=14.45&start_date=2018-01-01&end_date=2019-12-31&daily=temperature_2m_max&daily=temperature_2m_min&daily=temperature_2m_mean&daily=precipitation_sum&daily=rain_sum&daily=et0_fao_evapotranspiration&daily=wind_speed_10m_max&daily=wind_gusts_10m_max&daily=shortwave_radiation_sum&daily=relative_humidity_2m_max&daily=relative_humidity_2m_min&daily=soil_moisture_0_to_7cm_mean&daily=soil_moisture_7_to_28cm_mean&daily=soil_moisture_28_to_100cm_mean&daily=precipitation_hours&daily=sunshine_duration&timezone=Africa%2FDouala (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1129)')))
+2026-07-14 15:52:22,214 [WARNING] [Open-Meteo] Chunk ignoré : 2018-01-01→2019-12-31 pour Kaele
+2026-07-14 15:54:20,784 [ERROR] [Erreur fatale] Open-Meteo Kaele 2022-01-01→2023-12-31: HTTPSConnectionPool(host='archive-api.open-meteo.com', port=443): Max retries exceeded with url: /v1/archive?latitude=10.1167&longitude=14.45&start_date=2022-01-01&end_date=2023-12-31&daily=temperature_2m_max&daily=temperature_2m_min&daily=temperature_2m_mean&daily=precipitation_sum&daily=rain_sum&daily=et0_fao_evapotranspiration&daily=wind_speed_10m_max&daily=wind_gusts_10m_max&daily=shortwave_radiation_sum&daily=relative_humidity_2m_max&daily=relative_humidity_2m_min&daily=soil_moisture_0_to_7cm_mean&daily=soil_moisture_7_to_28cm_mean&daily=soil_moisture_28_to_100cm_mean&daily=precipitation_hours&daily=sunshine_duration&timezone=Africa%2FDouala (Caused by SSLError(SSLEOFError(8, 'EOF occurred in violation of protocol (_ssl.c:1129)')))
+2026-07-14 15:54:20,787 [WARNING] [Open-Meteo] Chunk ignoré : 2022-01-01→2023-12-31 pour Kaele
+2026-07-14 15:55:20,206 [INFO] [Open-Meteo] Kaele : 11689 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:55:25,220 [INFO] [NASA POWER] Kaele 1990-01-01 → 2025-12-31 (8 chunks de 5 an(s))
+2026-07-14 15:57:12,091 [INFO] [NASA POWER] Kaele : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 15:57:17,175 [INFO] [Merge] Kaele : 13149 lignes, 41 colonnes
+2026-07-14 15:57:17,303 [INFO] [Sauvegarde] data/historical/Kaele_historical.csv (13149 lignes)
+2026-07-14 15:59:07,577 [INFO] Collecte historique → 2025-12-31 pour : ['Guider']
+2026-07-14 15:59:07,577 [INFO]   Guider               : 1990-01-01 → 2025-12-31
+2026-07-14 15:59:07,579 [INFO] [Open-Meteo] Guider 1990-01-01 → 2025-12-31 (18 chunks de 2 an(s))
+2026-07-14 16:03:11,042 [INFO] [Open-Meteo] Guider : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 16:03:16,052 [INFO] [NASA POWER] Guider 1990-01-01 → 2025-12-31 (8 chunks de 5 an(s))
+2026-07-14 16:04:43,770 [INFO] [NASA POWER] Guider : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 16:04:48,815 [INFO] [Merge] Guider : 13149 lignes, 41 colonnes
+2026-07-14 16:04:48,953 [INFO] [Sauvegarde] data/historical/Guider_historical.csv (13149 lignes)
+2026-07-14 16:06:41,663 [INFO] Collecte historique → 2025-12-31 pour : ['Meiganga']
+2026-07-14 16:06:41,664 [INFO]   Meiganga             : 1990-01-01 → 2025-12-31
+2026-07-14 16:06:41,664 [INFO] [Open-Meteo] Meiganga 1990-01-01 → 2025-12-31 (18 chunks de 2 an(s))
+2026-07-14 16:11:20,460 [INFO] [Open-Meteo] Meiganga : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 16:11:25,474 [INFO] [NASA POWER] Meiganga 1990-01-01 → 2025-12-31 (8 chunks de 5 an(s))
+2026-07-14 16:12:32,552 [INFO] [NASA POWER] Meiganga : 13149 jours collectés (1990-01-01 → 2025-12-31)
+2026-07-14 16:12:37,595 [INFO] [Merge] Meiganga : 13149 lignes, 41 colonnes
+2026-07-14 16:12:37,730 [INFO] [Sauvegarde] data/historical/Meiganga_historical.csv (13149 lignes)
+2026-07-14 16:14:27,979 [INFO] Collecte historique → 2025-12-31 pour : ['Mbalmayo']
+2026-07-14 16:14:27,980 [INFO]   Mbalmayo             : 2000-01-01 → 2025-12-31
+2026-07-14 16:14:27,980 [INFO] [Open-Meteo] Mbalmayo 2000-01-01 → 2025-12-31 (13 chunks de 2 an(s))
+2026-07-14 16:15:55,153 [WARNING] [Retry 1/3] HTTP 429 Client Error: Too Many Requests for url: https://archive-api.open-meteo.com/v1/archive?latitude=3.5167&longitude=11.5&start_date=2022-01-01&end_date=2023-12-31&daily=temperature_2m_max&daily=temperature_2m_min&daily=temperature_2m_mean&daily=precipitation_sum&daily=rain_sum&daily=et0_fao_evapotranspiration&daily=wind_speed_10m_max&daily=wind_gusts_10m_max&daily=shortwave_radiation_sum&daily=relative_humidity_2m_max&daily=relative_humidity_2m_min&daily=soil_moisture_0_to_7cm_mean&daily=soil_moisture_7_to_28cm_mean&daily=soil_moisture_28_to_100cm_mean&daily=precipitation_hours&daily=sunshine_duration&timezone=Africa%2FDouala Open-Meteo Mbalmayo 2022-01-01→2023-12-31 — attente 30s
+2026-07-14 16:17:29,173 [INFO] [Open-Meteo] Mbalmayo : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 16:17:34,182 [INFO] [NASA POWER] Mbalmayo 2000-01-01 → 2025-12-31 (6 chunks de 5 an(s))
+2026-07-14 16:18:11,148 [INFO] [NASA POWER] Mbalmayo : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 16:18:16,201 [INFO] [Merge] Mbalmayo : 9497 lignes, 41 colonnes
+2026-07-14 16:18:16,303 [INFO] [Sauvegarde] data/historical/Mbalmayo_historical.csv (9497 lignes)
+2026-07-14 16:19:59,140 [INFO] Collecte historique → 2025-12-31 pour : ['Bafia']
+2026-07-14 16:19:59,140 [INFO]   Bafia                : 2000-01-01 → 2025-12-31
+2026-07-14 16:19:59,140 [INFO] [Open-Meteo] Bafia 2000-01-01 → 2025-12-31 (13 chunks de 2 an(s))
+2026-07-14 16:23:12,389 [INFO] [Open-Meteo] Bafia : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 16:23:17,413 [INFO] [NASA POWER] Bafia 2000-01-01 → 2025-12-31 (6 chunks de 5 an(s))
+2026-07-14 17:43:28,709 [WARNING] [Retry 1/3] Timeout NASA POWER Bafia 2005-01-01→2009-12-31 — attente 30s
+2026-07-14 17:48:24,797 [INFO] [NASA POWER] Bafia : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 17:48:29,898 [INFO] [Merge] Bafia : 9497 lignes, 41 colonnes
+2026-07-14 17:48:30,012 [INFO] [Sauvegarde] data/historical/Bafia_historical.csv (9497 lignes)
+2026-07-14 17:49:50,546 [INFO] Collecte historique → 2025-12-31 pour : ['Bertoua']
+2026-07-14 17:49:50,547 [INFO]   Bertoua              : 2000-01-01 → 2025-12-31
+2026-07-14 17:49:50,547 [INFO] [Open-Meteo] Bertoua 2000-01-01 → 2025-12-31 (13 chunks de 2 an(s))
+2026-07-14 17:54:09,972 [INFO] [Open-Meteo] Bertoua : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 17:54:14,984 [INFO] [NASA POWER] Bertoua 2000-01-01 → 2025-12-31 (6 chunks de 5 an(s))
+2026-07-14 17:55:19,530 [INFO] [NASA POWER] Bertoua : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 17:55:24,590 [INFO] [Merge] Bertoua : 9497 lignes, 41 colonnes
+2026-07-14 17:55:24,692 [INFO] [Sauvegarde] data/historical/Bertoua_historical.csv (9497 lignes)
+2026-07-14 17:56:56,565 [INFO] Collecte historique → 2025-12-31 pour : ['Nkongsamba']
+2026-07-14 17:56:56,565 [INFO]   Nkongsamba           : 2000-01-01 → 2025-12-31
+2026-07-14 17:56:56,566 [INFO] [Open-Meteo] Nkongsamba 2000-01-01 → 2025-12-31 (13 chunks de 2 an(s))
+2026-07-14 17:58:50,596 [INFO] [Open-Meteo] Nkongsamba : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 17:58:55,606 [INFO] [NASA POWER] Nkongsamba 2000-01-01 → 2025-12-31 (6 chunks de 5 an(s))
+2026-07-14 17:59:42,597 [INFO] [NASA POWER] Nkongsamba : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 17:59:47,646 [INFO] [Merge] Nkongsamba : 9497 lignes, 41 colonnes
+2026-07-14 17:59:47,753 [INFO] [Sauvegarde] data/historical/Nkongsamba_historical.csv (9497 lignes)
+2026-07-14 18:01:18,254 [INFO] Collecte historique → 2025-12-31 pour : ['Buea']
+2026-07-14 18:01:18,254 [INFO]   Buea                 : 2000-01-01 → 2025-12-31
+2026-07-14 18:01:18,255 [INFO] [Open-Meteo] Buea 2000-01-01 → 2025-12-31 (13 chunks de 2 an(s))
+2026-07-14 18:04:32,791 [INFO] [Open-Meteo] Buea : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 18:04:37,800 [INFO] [NASA POWER] Buea 2000-01-01 → 2025-12-31 (6 chunks de 5 an(s))
+2026-07-14 18:05:20,091 [INFO] [NASA POWER] Buea : 9497 jours collectés (2000-01-01 → 2025-12-31)
+2026-07-14 18:05:25,126 [INFO] [Merge] Buea : 9497 lignes, 41 colonnes
+2026-07-14 18:05:25,230 [INFO] [Sauvegarde] data/historical/Buea_historical.csv (9497 lignes)
