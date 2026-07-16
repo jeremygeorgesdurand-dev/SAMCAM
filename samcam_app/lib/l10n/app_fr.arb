@@ -1,0 +1,215 @@
+{
+  "@@locale": "fr",
+
+  "settingsTitle": "Réglages",
+  "settingsDemoMode": "Mode Démo",
+  "settingsDemoModeCardTitle": "Mode Démo météo",
+  "settingsDemoModeCardSubtitle": "9 conditions météo • Animations premium • Auto 5 s",
+  "settingsFavoriteZone": "Zone par défaut",
+  "settingsFavoriteZoneHint": "Zone affichée au démarrage de l'app, à la place du mode GPS automatique.",
+  "settingsGpsPosition": "Position GPS",
+  "settingsAlerts": "Alertes personnalisées",
+  "settingsNotificationsEnabled": "Notifications activées",
+  "settingsNotificationsHint": "Recevoir une notification quand un risque dépasse votre seuil",
+  "settingsNotificationsCheckedHint": "Vérifiées à chaque ouverture/rafraîchissement de l'app (pas en tâche de fond).",
+  "riskFlood": "Inondation",
+  "riskDrought": "Sécheresse",
+  "riskHeat": "Chaleur",
+  "settingsServer": "Connexion serveur",
+  "settingsServerUrlLabel": "URL du serveur SAMCAM",
+  "settingsServerUrlExample": "Exemple réseau local : http://192.168.1.42:8000",
+  "settingsSave": "Sauvegarder",
+  "settingsTest": "Tester",
+  "settingsUrlSaved": "URL sauvegardée",
+  "settingsTestSuccess": "✅ Connecté — Version {version} | Dernière MAJ : {lastUpdate}",
+  "@settingsTestSuccess": {
+    "placeholders": { "version": {"type": "String"}, "lastUpdate": {"type": "String"} }
+  },
+  "settingsTestFailure": "❌ Connexion échouée : {error}",
+  "@settingsTestFailure": {
+    "placeholders": { "error": {"type": "String"} }
+  },
+  "settingsLanguage": "Langue",
+  "settingsLanguageFrench": "Français",
+  "settingsLanguageEnglish": "English",
+
+  "yaoundePeri": "Yaoundé (péri.)",
+
+  "homeServerUnreachable": "Serveur SAMCAM inaccessible",
+  "homeOverviewTooltip": "Vue d'ensemble",
+  "homeRetry": "Réessayer",
+  "homeOfflineBanner": "Mode hors-ligne — données{suffix}",
+  "@homeOfflineBanner": {
+    "placeholders": { "suffix": {"type": "String"} }
+  },
+  "homeOfflineSince": " du {date}",
+  "@homeOfflineSince": {
+    "placeholders": { "date": {"type": "String"} }
+  },
+  "homeWindStat": "Vent",
+  "homeHumidityStat": "Humidité",
+  "homeHourlyForecastTitle": "PRÉVISIONS PAR HEURE",
+  "homeDailyForecastTitle": "PRÉVISIONS 7 JOURS",
+  "homeToday": "Aujourd'hui",
+  "homeTodayShort": "Auj.",
+  "homeWeekdaySun": "Dim",
+  "homeWeekdayMon": "Lun",
+  "homeWeekdayTue": "Mar",
+  "homeWeekdayWed": "Mer",
+  "homeWeekdayThu": "Jeu",
+  "homeWeekdayFri": "Ven",
+  "homeWeekdaySat": "Sam",
+  "homeUvIndexLabel": "INDICE UV",
+  "homeUvProtectionUntil": "Protection jusqu'à {time}.",
+  "@homeUvProtectionUntil": {
+    "placeholders": { "time": {"type": "String"} }
+  },
+  "homeSunSectionLabel": "SOLEIL",
+  "homeSunsetLabel": "Coucher",
+  "homeSunriseAt": "Lever : {time}",
+  "@homeSunriseAt": {
+    "placeholders": { "time": {"type": "String"} }
+  },
+  "homeWindSectionLabel": "VENT",
+  "homeGusts": "Rafales : {value} km/h",
+  "@homeGusts": {
+    "placeholders": { "value": {"type": "String"} }
+  },
+  "homeWindAvgSurface": "Vent moyen en surface.",
+  "homePrecipitationLabel": "PRÉCIPITATIONS",
+  "homePrecipTomorrow": "{value} mm demain.",
+  "@homePrecipTomorrow": {
+    "placeholders": { "value": {"type": "String"} }
+  },
+  "homeFeelsLikeLabel": "RESSENTI",
+  "homeFeelsHigher": "Ressenti plus élevé que la réalité.",
+  "homeFeelsSimilar": "Similaire à la température réelle.",
+  "homePressureLabel": "PRESSION",
+  "homePressureLow": "Pression basse.",
+  "homePressureHigh": "Pression haute.",
+  "homePressureNormal": "Pression normale.",
+  "homeVisibilityLabel": "VISIBILITÉ",
+  "homeVisibilityClear": "Vue parfaitement dégagée.",
+  "homeVisibilityReduced": "Visibilité réduite.",
+  "homeVisibilityFog": "Brouillard possible.",
+  "homeHumidityLabel": "HUMIDITÉ",
+  "homeHumidityVeryHigh": "Humidité très élevée.",
+  "homeHumidityModerate": "Humidité modérée.",
+  "homeHumidityDry": "Air relativement sec.",
+  "homeRainReceived7d": "Pluie reçue (7j)",
+  "homeRainReceivedTooltip": "Quantité totale de pluie tombée ces 7 derniers jours",
+  "homeRainExpected7d": "Pluie prévue (7j)",
+  "homeRainExpectedTooltip": "Précipitations attendues dans les 7 prochains jours",
+  "homeClimateRisksTitle": "RISQUES CLIMATIQUES",
+  "homeMethodAiRf": "IA + RF",
+  "homeMethodRules": "Règles",
+  "homeRiskTrendTitle": "TENDANCE DES RISQUES",
+  "homeRiskTrendSubtitle": "Comment les risques évoluent-ils dans les prochains jours ?",
+  "homeReportThanks": "Merci ! Votre signalement a été enregistré.",
+  "homeReportButton": "Signaler un événement observé",
+  "homeFloodNone": "Pas de risque d'inondation en ce moment.",
+  "homeFloodHeavyRain": "Beaucoup de pluie : {value} mm en 7 jours.",
+  "@homeFloodHeavyRain": {
+    "placeholders": { "value": {"type": "String"} }
+  },
+  "homeFloodMonitoring": "Surveillance active des précipitations.",
+  "homeDroughtHydrated": "La végétation est bien hydratée.",
+  "homeDroughtSevere": "Végétation {state} — le sol manque significativement d'eau.",
+  "@homeDroughtSevere": {
+    "placeholders": { "state": {"type": "String"} }
+  },
+  "homeDroughtMild": "Végétation {state} — légère sécheresse détectée.",
+  "@homeDroughtMild": {
+    "placeholders": { "state": {"type": "String"} }
+  },
+  "homeHeatNormal": "Températures normales pour la saison.",
+  "homeHeatWarning": "Attention : {value}°C relevés, restez à l'ombre.",
+  "@homeHeatWarning": {
+    "placeholders": { "value": {"type": "String"} }
+  },
+  "homeHeatHydrate": "Températures élevées, pensez à bien vous hydrater.",
+  "homeDataUnavailable": "Données indisponibles",
+  "homeRiskLevelNone": "Nul",
+  "homeRiskLevelLow": "Faible",
+  "homeRiskLevelModerate": "Modéré",
+  "homeRiskLevelHigh": "Élevé",
+  "homeRiskLevelCritical": "Critique",
+  "homeAlertNormal": "Normal",
+  "homeAlertVigilance": "Vigilance",
+  "homeAlertModerate": "Modéré",
+  "homeAlertHigh": "Élevé",
+  "homeAlertUnknown": "Inconnu",
+
+  "overviewTitle": "Vue d'ensemble",
+  "overviewGridViewTooltip": "Vue grille",
+  "overviewMapViewTooltip": "Vue carte",
+
+  "historyTitle": "Historique",
+  "historyEmptyState": "Aucun historique disponible",
+
+  "drawerNoLocationFound": "Aucun lieu trouvé pour \"{query}\"",
+  "@drawerNoLocationFound": {
+    "placeholders": { "query": {"type": "String"} }
+  },
+  "drawerAddLocationTitle": "Ajouter un endroit",
+  "drawerCityNameHint": "Nom de la ville",
+  "drawerSelectLocationHint": "Sélectionnez le lieu correspondant :",
+  "drawerCancel": "Annuler",
+  "drawerZonesLabel": "Zones",
+  "drawerLocationSectionLabel": "LOCALISATION",
+  "drawerZonesSamcamLabel": "ZONES SAMCAM",
+  "drawerMyPlacesLabel": "MES ENDROITS",
+  "drawerFooterTagline": "Système d'Alerte Météo Cameroun",
+
+  "signalementTitle": "Signaler un événement observé",
+  "signalementZoneLabel": "Zone : {zone}",
+  "@signalementZoneLabel": {
+    "placeholders": { "zone": {"type": "String"} }
+  },
+  "signalementTypeOther": "Autre",
+  "signalementDescriptionHint": "Décrivez ce que vous observez (lieu, ampleur…)",
+  "signalementSendError": "Envoi impossible — vérifiez votre connexion.",
+  "signalementSending": "Envoi…",
+  "signalementSendButton": "Envoyer le signalement",
+
+  "assistantTitle": "Assistant SAMCAM",
+  "assistantError": "L'assistant est indisponible pour le moment (le modèle local peut mettre du temps à démarrer — réessayez).",
+  "assistantLoading": "Analyse en cours (peut prendre jusqu'à une minute)…",
+  "assistantQuestionHint": "Posez une question (ex. puis-je semer ?)",
+
+  "demoAutoCountdown": "Auto  {countdown} s",
+  "@demoAutoCountdown": {
+    "placeholders": { "countdown": {"type": "String"} }
+  },
+  "demoManualLabel": "Manuel",
+  "demoBadgeLabel": "DÉMO",
+  "demoAvgDayLabel": "Moy. jour",
+
+  "demoScenarioClearDayLabel": "Ciel dégagé — Jour",
+  "demoScenarioClearDayDescription": "Beau temps, ensoleillement maximal",
+  "demoScenarioClearDayCondition": "Ensoleillé",
+  "demoScenarioClearNightLabel": "Ciel dégagé — Nuit",
+  "demoScenarioClearNightDescription": "Nuit claire, étoiles visibles",
+  "demoScenarioClearNightCondition": "Nuit claire",
+  "demoScenarioPartlyCloudyLabel": "Partiellement nuageux",
+  "demoScenarioPartlyCloudyDescription": "Alternance soleil et nuages",
+  "demoScenarioPartlyCloudyCondition": "Peu nuageux",
+  "demoScenarioCloudyLabel": "Nuageux",
+  "demoScenarioCloudyDescription": "Couverture nuageuse totale",
+  "demoScenarioCloudyCondition": "Très nuageux",
+  "demoScenarioLightRainLabel": "Pluie légère",
+  "demoScenarioLightRainDescription": "Bruine intermittente",
+  "demoScenarioLightRainCondition": "Pluie légère",
+  "demoScenarioHeavyRainLabel": "Forte pluie",
+  "demoScenarioHeavyRainDescription": "Averses intenses",
+  "demoScenarioHeavyRainCondition": "Pluie forte",
+  "demoScenarioStormLabel": "Orage",
+  "demoScenarioStormDescription": "Orages violents, éclairs",
+  "demoScenarioStormCondition": "Orage violent",
+  "demoScenarioFoggyLabel": "Brouillard",
+  "demoScenarioFoggyDescription": "Visibilité réduite",
+  "demoScenarioFoggyCondition": "Brouillard dense",
+  "demoScenarioSnowLabel": "Neige",
+  "demoScenarioSnowDescription": "Chutes de neige modérées",
+  "demoScenarioSnowCondition": "Neige modérée"
+}

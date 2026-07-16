@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../config.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../widgets/cameroon_map.dart';
 
@@ -38,24 +39,27 @@ class _OverviewScreenState extends State<OverviewScreen> {
   Color _alertColor(String niveau) =>
       Color(Config.alertColors[niveau] ?? Config.alertColors['INCONNU']!);
 
+  late AppLocalizations t;
+
   String _displayZoneName(String name) {
-    if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
+    if (name == 'Yaounde_peri') return t.yaoundePeri;
     if (name == 'Kaele') return 'Kaélé';
     return name;
   }
 
   @override
   Widget build(BuildContext context) {
+    t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text("Vue d'ensemble",
-          style: TextStyle(color: Colors.white)),
+        title: Text(t.overviewTitle,
+          style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            tooltip: _showMap ? 'Vue grille' : 'Vue carte',
+            tooltip: _showMap ? t.overviewGridViewTooltip : t.overviewMapViewTooltip,
             icon: Icon(_showMap ? Icons.grid_view_rounded : Icons.map_outlined,
               color: Colors.white70),
             onPressed: () => setState(() => _showMap = !_showMap),

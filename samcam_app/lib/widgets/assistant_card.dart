@@ -4,6 +4,7 @@
 // calcule jamais de risque lui-même).
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 
 class AssistantCard extends StatefulWidget {
@@ -20,6 +21,7 @@ class _AssistantCardState extends State<AssistantCard> {
   String? _error;
   bool _loading = false;
   bool _ouvert = false;
+  late AppLocalizations t;
 
   @override
   void didUpdateWidget(covariant AssistantCard old) {
@@ -47,14 +49,14 @@ class _AssistantCardState extends State<AssistantCard> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = "L'assistant est indisponible pour le moment "
-            "(le modèle local peut mettre du temps à démarrer — réessayez).";
+        _error = t.assistantError;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    t = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF161B22),
@@ -77,9 +79,9 @@ class _AssistantCardState extends State<AssistantCard> {
                   const Icon(Icons.auto_awesome_outlined,
                     color: Color(0xFFB39DDB), size: 18),
                   const SizedBox(width: 10),
-                  const Expanded(
-                    child: Text('Assistant SAMCAM',
-                      style: TextStyle(
+                  Expanded(
+                    child: Text(t.assistantTitle,
+                      style: const TextStyle(
                         color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
                   ),
                   Icon(_ouvert ? Icons.expand_less : Icons.expand_more,
@@ -95,19 +97,19 @@ class _AssistantCardState extends State<AssistantCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (_loading)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Row(
                         children: [
-                          SizedBox(
+                          const SizedBox(
                             width: 14, height: 14,
                             child: CircularProgressIndicator(
                               strokeWidth: 2, color: Color(0xFFB39DDB))),
-                          SizedBox(width: 10),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              "Analyse en cours (peut prendre jusqu'à une minute)…",
-                              style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              t.assistantLoading,
+                              style: const TextStyle(color: Colors.white54, fontSize: 12)),
                           ),
                         ],
                       ),
@@ -128,7 +130,7 @@ class _AssistantCardState extends State<AssistantCard> {
                           enabled: !_loading,
                           style: const TextStyle(color: Colors.white, fontSize: 13),
                           decoration: InputDecoration(
-                            hintText: 'Posez une question (ex. puis-je semer ?)',
+                            hintText: t.assistantQuestionHint,
                             hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                             isDense: true,
                             filled: true,

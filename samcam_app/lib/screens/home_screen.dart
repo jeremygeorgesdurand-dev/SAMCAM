@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../l10n/app_localizations.dart';
 import '../models/risk_report.dart';
 import '../models/weather_forecast.dart';
 import '../models/custom_location.dart';
@@ -42,6 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
   final _scrollCtrl  = ScrollController();
   final _drawerKey   = GlobalKey<ScaffoldState>();
   double _scrollOffset = 0;
+
+  /// Résolu au début de [build] puis réutilisé par toutes les méthodes de
+  /// rendu internes à cet écran (évite de faire remonter `context` partout).
+  late AppLocalizations t;
 
   @override
   void initState() {
@@ -100,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _weather  = weather;
         _cityName = city;
         if (_selectedZone == null && custom == null) _gpsCity = city;
-        _error    = 'Serveur SAMCAM inaccessible';
+        _error    = t.homeServerUnreachable;
         _loading  = false;
       });
     }
@@ -139,12 +144,12 @@ class _HomeScreenState extends State<HomeScreen> {
       Color(Config.alertColors[niveau] ?? Config.alertColors['INCONNU']!);
 
   String _alertShort(String niveau) {
-    const short = {
-      'VERT':    'Normal',
-      'JAUNE':   'Vigilance',
-      'ORANGE':  'Modéré',
-      'ROUGE':   'Élevé',
-      'INCONNU': 'Inconnu',
+    final short = {
+      'VERT':    t.homeAlertNormal,
+      'JAUNE':   t.homeAlertVigilance,
+      'ORANGE':  t.homeAlertModerate,
+      'ROUGE':   t.homeAlertHigh,
+      'INCONNU': t.homeAlertUnknown,
     };
     return short[niveau] ?? niveau;
   }
@@ -166,6 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    t = AppLocalizations.of(context)!;
     final hour     = DateTime.now().hour;
     final animType = _loading
         ? (hour < 6 || hour >= 21 ? WeatherAnimType.clearNight : WeatherAnimType.clearDay)
@@ -287,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.grid_view_rounded, color: Colors.white70),
-                      tooltip: "Vue d'ensemble",
+                      tooltip: t.homeOverviewTooltip,
                       onPressed: () async {
                         final zone = await Navigator.push<String>(
                           context,
@@ -347,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 5),
             Flexible(
               child: Text(
-                _error ?? 'Serveur SAMCAM inaccessible',
+                _error ?? t.homeServerUnreachable,
                 style: const TextStyle(color: Colors.white70, fontSize: 11),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
@@ -356,9 +362,9 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 6),
             GestureDetector(
               onTap: _fetchAll,
-              child: const Text(
-                'Réessayer',
-                style: TextStyle(
+              child: Text(
+                t.homeRetry,
+                style: const TextStyle(
                   color: Colors.white54,
                   fontSize: 11,
                   decoration: TextDecoration.underline,
@@ -488,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final when = r.cachedAt;
     final quand = when == null
         ? ''
-        : ' du ${DateFormat('dd/MM à HH:mm').format(when)}';
+        : t.homeOfflineSince(DateFormat('dd/MM à HH:mm').format(when));
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
@@ -504,7 +510,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Mode hors-ligne — données$quand',
+              t.homeOfflineBanner(quand),
               style: const TextStyle(color: Colors.white70, fontSize: 12),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
@@ -607,11 +613,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             child: Row(mainAxisSize: MainAxisSize.min, children: [
-              _headerStat(Icons.water_drop_outlined, '$humidity %', 'Humidité'),
+              _headerStat(Icons.water_drop_outlined, '$humidity %', t.homeHumidityStat),
               Container(width: 1, height: 28,
                 margin: const EdgeInsets.symmetric(horizontal: 22),
                 color: Colors.white.withOpacity(0.20)),
-              _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', 'Vent'),
+              _headerStat(Icons.air, '${wind.toStringAsFixed(0)} km/h', t.homeWindStat),
             ]),
           ),
           const SizedBox(height: 8),
@@ -636,7 +642,7 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(children: [
       _expandableHeader(
         icon: Icons.access_time_outlined,
-        title: 'PRÉVISIONS PAR HEURE',
+        title: t.homeHourlyForecastTitle,
         expanded: _hourlyExpanded,
         onTap: () => setState(() => _hourlyExpanded = !_hourlyExpanded)),
       if (_hourlyExpanded) ..._buildHourlyContent(weather),
@@ -687,7 +693,7 @@ class _HomeScreenState extends State<HomeScreen> {
     child: Column(children: [
       _expandableHeader(
         icon: Icons.calendar_month_outlined,
-        title: 'PRÉVISIONS 7 JOURS',
+        title: t.homeDailyForecastTitle,
         expanded: _dailyExpanded,
         onTap: () => setState(() => _dailyExpanded = !_dailyExpanded)),
       if (_dailyExpanded) ..._buildDailyContent(weather),
@@ -710,10 +716,13 @@ class _HomeScreenState extends State<HomeScreen> {
     String dayLabel;
     try {
       final raw = DateFormat('EEEE', 'fr_FR').format(d.date);
-      dayLabel = isToday ? "Aujourd'hui" : _capitalize(raw);
+      dayLabel = isToday ? t.homeToday : _capitalize(raw);
     } catch (_) {
-      const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-      dayLabel = isToday ? "Auj." : days[d.date.weekday % 7];
+      final days = [
+        t.homeWeekdaySun, t.homeWeekdayMon, t.homeWeekdayTue, t.homeWeekdayWed,
+        t.homeWeekdayThu, t.homeWeekdayFri, t.homeWeekdaySat,
+      ];
+      dayLabel = isToday ? t.homeTodayShort : days[d.date.weekday % 7];
     }
 
     final range    = (globalMax - globalMin).clamp(1.0, double.infinity);
@@ -795,7 +804,7 @@ class _HomeScreenState extends State<HomeScreen> {
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
-            icon: Icons.wb_sunny_outlined, label: 'INDICE UV',
+            icon: Icons.wb_sunny_outlined, label: t.homeUvIndexLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('$uv', style: const TextStyle(
                 color: Colors.white, fontSize: 36,
@@ -824,22 +833,22 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 8),
               if (today?.sunset != null)
-                Text('Protection jusqu\'\u00e0 $sunsetStr.',
+                Text(t.homeUvProtectionUntil(sunsetStr),
                   style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
           const SizedBox(width: 10),
           _appleCard(
-            icon: Icons.wb_twilight_outlined, label: 'SOLEIL',
+            icon: Icons.wb_twilight_outlined, label: t.homeSunSectionLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Coucher', style: TextStyle(color: Colors.white60, fontSize: 13)),
+              Text(t.homeSunsetLabel, style: const TextStyle(color: Colors.white60, fontSize: 13)),
               Text(sunsetStr, style: const TextStyle(
                 color: Colors.white, fontSize: 36,
                 fontWeight: FontWeight.w200, height: 1.1)),
               const SizedBox(height: 8),
               _sunArc(sunriseStr, sunsetStr),
               const SizedBox(height: 6),
-              Text('Lever : $sunriseStr', style: const TextStyle(
+              Text(t.homeSunriseAt(sunriseStr), style: const TextStyle(
                 color: Colors.white60, fontSize: 12)),
             ]),
           ),
@@ -849,23 +858,23 @@ class _HomeScreenState extends State<HomeScreen> {
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
-            icon: Icons.air, label: 'VENT',
+            icon: Icons.air, label: t.homeWindSectionLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('${windSpeed.toStringAsFixed(0)} km/h', style: const TextStyle(
                 color: Colors.white, fontSize: 30,
                 fontWeight: FontWeight.w200, height: 1.1)),
               const SizedBox(height: 4),
               if (gusts > 0)
-                Text('Rafales : ${gusts.toStringAsFixed(0)} km/h',
+                Text(t.homeGusts(gusts.toStringAsFixed(0)),
                   style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              const Text('Vent moyen en surface.',
-                style: TextStyle(color: Colors.white60, fontSize: 12)),
+              Text(t.homeWindAvgSurface,
+                style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
           const SizedBox(width: 10),
           _appleCard(
-            icon: Icons.water_drop_outlined, label: 'PRÉCIPITATIONS',
+            icon: Icons.water_drop_outlined, label: t.homePrecipitationLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text('${precipToday.toStringAsFixed(0)}', style: const TextStyle(
@@ -875,10 +884,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: EdgeInsets.only(bottom: 6, left: 3),
                   child: Text('mm', style: TextStyle(color: Colors.white70, fontSize: 16))),
               ]),
-              const Text("Aujourd'hui", style: TextStyle(
+              Text(t.homeToday, style: const TextStyle(
                 color: Colors.white, fontSize: 15, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
-              Text('${precipTomorrow.toStringAsFixed(0)} mm demain.',
+              Text(t.homePrecipTomorrow(precipTomorrow.toStringAsFixed(0)),
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
@@ -888,7 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
-            icon: Icons.thermostat_outlined, label: 'RESSENTI',
+            icon: Icons.thermostat_outlined, label: t.homeFeelsLikeLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('${feelsLike.toStringAsFixed(0)}°', style: const TextStyle(
                 color: Colors.white, fontSize: 36,
@@ -896,14 +905,14 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 8),
               Text(
                 feelsLike > (cur?.temperature ?? feelsLike)
-                  ? 'Ressenti plus élevé que la réalité.'
-                  : 'Similaire à la température réelle.',
+                  ? t.homeFeelsHigher
+                  : t.homeFeelsSimilar,
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
           const SizedBox(width: 10),
           _appleCard(
-            icon: Icons.compress, label: 'PRESSION',
+            icon: Icons.compress, label: t.homePressureLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(pressure.toStringAsFixed(0), style: const TextStyle(
@@ -915,8 +924,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
               const SizedBox(height: 8),
               Text(
-                pressure < 1005 ? 'Pression basse.' :
-                pressure > 1020 ? 'Pression haute.' : 'Pression normale.',
+                pressure < 1005 ? t.homePressureLow :
+                pressure > 1020 ? t.homePressureHigh : t.homePressureNormal,
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
@@ -926,7 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
       IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           _appleCard(
-            icon: Icons.visibility_outlined, label: 'VISIBILITÉ',
+            icon: Icons.visibility_outlined, label: t.homeVisibilityLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(visibility.toStringAsFixed(0), style: const TextStyle(
@@ -938,14 +947,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
               const SizedBox(height: 8),
               Text(
-                visibility >= 10 ? 'Vue parfaitement dégagée.' :
-                visibility >= 5  ? 'Visibilité réduite.' : 'Brouillard possible.',
+                visibility >= 10 ? t.homeVisibilityClear :
+                visibility >= 5  ? t.homeVisibilityReduced : t.homeVisibilityFog,
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
           const SizedBox(width: 10),
           _appleCard(
-            icon: Icons.water_drop_outlined, label: 'HUMIDITÉ',
+            icon: Icons.water_drop_outlined, label: t.homeHumidityLabel,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text('$humidity', style: const TextStyle(
@@ -957,8 +966,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
               const SizedBox(height: 8),
               Text(
-                humidity >= 80 ? 'Humidité très élevée.' :
-                humidity >= 60 ? 'Humidité modérée.' : 'Air relativement sec.',
+                humidity >= 80 ? t.homeHumidityVeryHigh :
+                humidity >= 60 ? t.homeHumidityModerate : t.homeHumidityDry,
                 style: const TextStyle(color: Colors.white60, fontSize: 12)),
             ]),
           ),
@@ -997,15 +1006,15 @@ class _HomeScreenState extends State<HomeScreen> {
           _numericTile(
             icon: Icons.water_drop_outlined,
             value: '${r.indicateurs.pluie7j.toStringAsFixed(0)} mm',
-            label: 'Pluie reçue (7j)',
-            tooltip: 'Quantité totale de pluie tombée ces 7 derniers jours',
+            label: t.homeRainReceived7d,
+            tooltip: t.homeRainReceivedTooltip,
           ),
           const SizedBox(width: 10),
           _numericTile(
             icon: Icons.umbrella_outlined,
             value: '${r.indicateurs.pluiePrevue7j.toStringAsFixed(0)} mm',
-            label: 'Pluie prévue (7j)',
-            tooltip: 'Précipitations attendues dans les 7 prochains jours',
+            label: t.homeRainExpected7d,
+            tooltip: t.homeRainExpectedTooltip,
           ),
         ]),
       ),
@@ -1019,7 +1028,7 @@ class _HomeScreenState extends State<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                _sectionLabel('RISQUES CLIMATIQUES'),
+                _sectionLabel(t.homeClimateRisksTitle),
                 const Spacer(),
                 // Partage du bulletin en texte (WhatsApp, SMS, e-mail…)
                 InkWell(
@@ -1050,7 +1059,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       size: 11),
                     const SizedBox(width: 4),
                     Text(
-                      isML ? 'IA + RF' : 'Règles',
+                      isML ? t.homeMethodAiRf : t.homeMethodRules,
                       style: TextStyle(
                         color: isML ? const Color(0xFFB39DDB) : Colors.white38,
                         fontSize: 10, fontWeight: FontWeight.w600)),
@@ -1059,13 +1068,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ]),
               const SizedBox(height: 14),
               _riskBar(
-                icon: Icons.water_outlined, label: 'Inondation',
+                icon: Icons.water_outlined, label: t.riskFlood,
                 score: r.actuel.scores.inondation, detail: _floodDetail(r)),
               _riskBar(
-                icon: Icons.grass_outlined, label: 'Sécheresse',
+                icon: Icons.grass_outlined, label: t.riskDrought,
                 score: r.actuel.scores.secheresse, detail: _droughtDetail(r)),
               _riskBar(
-                icon: Icons.local_fire_department_outlined, label: 'Chaleur',
+                icon: Icons.local_fire_department_outlined, label: t.riskHeat,
                 score: r.actuel.scores.chaleur, detail: _heatDetail(r)),
             ],
           ),
@@ -1078,11 +1087,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionLabel('TENDANCE DES RISQUES'),
+              _sectionLabel(t.homeRiskTrendTitle),
               const SizedBox(height: 6),
-              const Text(
-                'Comment les risques évoluent-ils dans les prochains jours ?',
-                style: TextStyle(color: Colors.white38, fontSize: 11)),
+              Text(
+                t.homeRiskTrendSubtitle,
+                style: const TextStyle(color: Colors.white38, fontSize: 11)),
               const SizedBox(height: 14),
               _riskTrendChart(r),
             ],
@@ -1100,9 +1109,9 @@ class _HomeScreenState extends State<HomeScreen> {
           final sent = await showSignalementSheet(context, zone);
           if (sent == true && mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Merci ! Votre signalement a été enregistré.'),
-                backgroundColor: Color(0xFF01696F),
+              SnackBar(
+                content: Text(t.homeReportThanks),
+                backgroundColor: const Color(0xFF01696F),
               ),
             );
           }
@@ -1113,7 +1122,7 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.symmetric(vertical: 13),
         ),
         icon: const Icon(Icons.campaign_outlined, size: 18),
-        label: const Text('Signaler un événement observé'),
+        label: Text(t.homeReportButton),
       ),
     ];
   }
@@ -1179,7 +1188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       if (v != v.roundToDouble()) return const SizedBox.shrink();
                       final i = v.round();
                       if (i < 0 || i >= horizons.length) return const SizedBox.shrink();
-                      final lbl = horizons[i].label == 'Aujourd\'hui' ? 'Auj.' : horizons[i].label;
+                      final lbl = horizons[i].label == 'Aujourd\'hui' ? t.homeTodayShort : horizons[i].label;
                       return Padding(
                         padding: const EdgeInsets.only(top: 6),
                         child: Text(lbl, style: const TextStyle(color: Colors.white38, fontSize: 10)));
@@ -1206,11 +1215,11 @@ class _HomeScreenState extends State<HomeScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _chartLegendItem(_colorInondation, 'Inondation'),
+            _chartLegendItem(_colorInondation, t.riskFlood),
             const SizedBox(width: 18),
-            _chartLegendItem(_colorSecheresse, 'Sécheresse'),
+            _chartLegendItem(_colorSecheresse, t.riskDrought),
             const SizedBox(width: 18),
-            _chartLegendItem(_colorChaleur, 'Chaleur'),
+            _chartLegendItem(_colorChaleur, t.riskHeat),
           ],
         ),
       ],
@@ -1229,24 +1238,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _floodDetail(RiskReport r) {
     final p = r.indicateurs.pluie7j;
-    if (r.actuel.scores.inondation < 0.05) return "Pas de risque d'inondation en ce moment.";
-    if (p > 80) return 'Beaucoup de pluie : ${p.toStringAsFixed(0)} mm en 7 jours.';
-    return 'Surveillance active des précipitations.';
+    if (r.actuel.scores.inondation < 0.05) return t.homeFloodNone;
+    if (p > 80) return t.homeFloodHeavyRain(p.toStringAsFixed(0));
+    return t.homeFloodMonitoring;
   }
 
   String _droughtDetail(RiskReport r) {
-    if (r.actuel.scores.secheresse < 0.1) return 'La végétation est bien hydratée.';
+    if (r.actuel.scores.secheresse < 0.1) return t.homeDroughtHydrated;
     final etat = r.indicateurs.etatVegetation;
     if (r.actuel.scores.secheresse >= 0.5)
-      return 'Végétation $etat — le sol manque significativement d\'eau.';
-    return 'Végétation $etat — légère sécheresse détectée.';
+      return t.homeDroughtSevere(etat);
+    return t.homeDroughtMild(etat);
   }
 
   String _heatDetail(RiskReport r) {
-    final t = r.indicateurs.temperatureMax;
-    if (r.actuel.scores.chaleur < 0.05) return 'Températures normales pour la saison.';
-    if (t > 35) return 'Attention : ${t.toStringAsFixed(0)}°C relevés, restez à l\'ombre.';
-    return 'Températures élevées, pensez à bien vous hydrater.';
+    final tempMax = r.indicateurs.temperatureMax;
+    if (r.actuel.scores.chaleur < 0.05) return t.homeHeatNormal;
+    if (tempMax > 35) return t.homeHeatWarning(tempMax.toStringAsFixed(0));
+    return t.homeHeatHydrate;
   }
 
   Color _riskColor(double score) {
@@ -1329,10 +1338,10 @@ class _HomeScreenState extends State<HomeScreen> {
       required double score, String detail = ''}) {
     final color = _riskColor(score);
     final pct   = (score * 100).toStringAsFixed(0);
-    final String levelLabel = score < 0.05 ? 'Nul'
-      : score < 0.25 ? 'Faible'
-      : score < 0.50 ? 'Modéré'
-      : score < 0.75 ? 'Élevé' : 'Critique';
+    final String levelLabel = score < 0.05 ? t.homeRiskLevelNone
+      : score < 0.25 ? t.homeRiskLevelLow
+      : score < 0.50 ? t.homeRiskLevelModerate
+      : score < 0.75 ? t.homeRiskLevelHigh : t.homeRiskLevelCritical;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
@@ -1472,15 +1481,15 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
   );
 
-  Widget _emptyState() => const Padding(
-    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+  Widget _emptyState() => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 15),
-        SizedBox(width: 8),
-        Text('Données indisponibles',
-          style: TextStyle(color: Colors.white54, fontSize: 13)),
+        const Icon(Icons.cloud_off_outlined, color: Colors.white38, size: 15),
+        const SizedBox(width: 8),
+        Text(t.homeDataUnavailable,
+          style: const TextStyle(color: Colors.white54, fontSize: 13)),
       ],
     ),
   );

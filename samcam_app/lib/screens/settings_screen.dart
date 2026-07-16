@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/locale_controller.dart';
 import '../services/notification_service.dart';
 import '../widgets/zone_drawer.dart' show kSamcamZones;
 import 'demo_screen.dart';
@@ -84,9 +86,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await ApiService.setServerUrl(url);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('URL sauvegardée'),
-          backgroundColor: Color(0xFF01696F),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.settingsUrlSaved),
+          backgroundColor: const Color(0xFF01696F),
         ),
       );
     }
@@ -100,14 +102,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final health = await ApiService.getHealth();
       setState(() {
         _testOk     = true;
-        _testResult = '✅ Connecté — Version ${health["version"]} '
-            '| Dernière MAJ : ${health["derniere_maj"] ?? "N/A"}';
+        _testResult = AppLocalizations.of(context)!.settingsTestSuccess(
+            '${health["version"]}', '${health["derniere_maj"] ?? "N/A"}');
         _testing    = false;
       });
     } catch (e) {
       setState(() {
         _testOk     = false;
-        _testResult = '❌ Connexion échouée : $e';
+        _testResult = AppLocalizations.of(context)!.settingsTestFailure('$e');
         _testing    = false;
       });
     }
@@ -121,12 +123,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text('Réglages',
-          style: TextStyle(color: Colors.white)),
+        title: Text(t.settingsTitle,
+          style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -135,9 +138,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
+            // ══ Section : Langue ═════════════════════════════════════════════
+            _SectionHeader(icon: Icons.language_rounded, label: t.settingsLanguage),
+            const SizedBox(height: 12),
+            ValueListenableBuilder<Locale>(
+              valueListenable: LocaleController.locale,
+              builder: (context, locale, _) => Wrap(
+                spacing: 8, runSpacing: 8,
+                children: [
+                  _FavoriteChip(
+                    label: t.settingsLanguageFrench,
+                    selected: locale.languageCode == 'fr',
+                    onTap: () => LocaleController.setLocale(const Locale('fr', 'FR')),
+                  ),
+                  _FavoriteChip(
+                    label: t.settingsLanguageEnglish,
+                    selected: locale.languageCode == 'en',
+                    onTap: () => LocaleController.setLocale(const Locale('en', 'US')),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
             // ══ Section : Mode Démo ══════════════════════════════════════════
             _SectionHeader(icon: Icons.play_circle_outline_rounded,
-                label: 'Mode Démo'),
+                label: t.settingsDemoMode),
             const SizedBox(height: 12),
             _DemoCard(
               onTap: () => Navigator.push(
@@ -154,24 +181,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 32),
 
             // ══ Section : Zone favorite ══════════════════════════════════════
-            _SectionHeader(icon: Icons.star_outline_rounded, label: 'Zone par défaut'),
+            _SectionHeader(icon: Icons.star_outline_rounded, label: t.settingsFavoriteZone),
             const SizedBox(height: 12),
-            const Text(
-              "Zone affichée au démarrage de l'app, à la place du mode GPS automatique.",
-              style: TextStyle(color: Colors.white54, fontSize: 12)),
+            Text(
+              t.settingsFavoriteZoneHint,
+              style: const TextStyle(color: Colors.white54, fontSize: 12)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8, runSpacing: 8,
               children: [
                 _FavoriteChip(
-                  label: 'Position GPS',
+                  label: t.settingsGpsPosition,
                   selected: _favoriteZone == null,
                   onTap: () => _setFavoriteZone(null),
                 ),
                 for (final z in kSamcamZones)
                   _FavoriteChip(
                     label: (z['name'] as String) == 'Yaounde_peri'
-                        ? 'Yaoundé (péri.)' : z['name'] as String,
+                        ? t.yaoundePeri : z['name'] as String,
                     selected: _favoriteZone == z['name'],
                     onTap: () => _setFavoriteZone(z['name'] as String),
                   ),
@@ -181,15 +208,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 32),
 
             // ══ Section : Alertes ════════════════════════════════════════════
-            _SectionHeader(icon: Icons.notifications_active_outlined, label: 'Alertes personnalisées'),
+            _SectionHeader(icon: Icons.notifications_active_outlined, label: t.settingsAlerts),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: Text(
                     _notificationsEnabled
-                        ? 'Notifications activées'
-                        : 'Recevoir une notification quand un risque dépasse votre seuil',
+                        ? t.settingsNotificationsEnabled
+                        : t.settingsNotificationsHint,
                     style: const TextStyle(color: Colors.white70, fontSize: 13)),
                 ),
                 Switch(
@@ -201,22 +228,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             if (_notificationsEnabled) ...[
               const SizedBox(height: 8),
-              const Text(
-                "Vérifiées à chaque ouverture/rafraîchissement de l'app (pas en tâche de fond).",
-                style: TextStyle(color: Colors.white38, fontSize: 11)),
+              Text(
+                t.settingsNotificationsCheckedHint,
+                style: const TextStyle(color: Colors.white38, fontSize: 11)),
               const SizedBox(height: 16),
               _ThresholdSlider(
-                icon: Icons.water_outlined, label: 'Inondation',
+                icon: Icons.water_outlined, label: t.riskFlood,
                 value: _thresholds['inondation']!,
                 onChanged: (v) => _setThreshold('inondation', v)),
               const SizedBox(height: 12),
               _ThresholdSlider(
-                icon: Icons.grass_outlined, label: 'Sécheresse',
+                icon: Icons.grass_outlined, label: t.riskDrought,
                 value: _thresholds['secheresse']!,
                 onChanged: (v) => _setThreshold('secheresse', v)),
               const SizedBox(height: 12),
               _ThresholdSlider(
-                icon: Icons.local_fire_department_outlined, label: 'Chaleur',
+                icon: Icons.local_fire_department_outlined, label: t.riskHeat,
                 value: _thresholds['chaleur']!,
                 onChanged: (v) => _setThreshold('chaleur', v)),
             ],
@@ -224,11 +251,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 32),
 
             // ══ Section : Serveur ════════════════════════════════════════════
-            _SectionHeader(icon: Icons.dns_rounded, label: 'Connexion serveur'),
+            _SectionHeader(icon: Icons.dns_rounded, label: t.settingsServer),
             const SizedBox(height: 12),
 
-            const Text('URL du serveur SAMCAM',
-              style: TextStyle(
+            Text(t.settingsServerUrlLabel,
+              style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 13,
                   fontWeight: FontWeight.w600)),
@@ -257,9 +284,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Exemple réseau local : http://192.168.1.42:8000',
-              style: TextStyle(color: Colors.white38, fontSize: 11),
+            Text(
+              t.settingsServerUrlExample,
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
             ),
             const SizedBox(height: 20),
             Row(
@@ -273,7 +300,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: _saveUrl,
-                    child: const Text('Sauvegarder'),
+                    child: Text(t.settingsSave),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -294,7 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               strokeWidth: 2,
                               color: Color(0xFF4F98A3),
                             ))
-                        : const Text('Tester'),
+                        : Text(t.settingsTest),
                   ),
                 ),
               ],
@@ -479,20 +506,20 @@ class _DemoCard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 14),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Mode Démo météo',
-                    style: TextStyle(
+                  Text(AppLocalizations.of(context)!.settingsDemoModeCardTitle,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     )),
-                  SizedBox(height: 3),
+                  const SizedBox(height: 3),
                   Text(
-                    '9 conditions météo • Animations premium • Auto 5 s',
-                    style: TextStyle(
+                    AppLocalizations.of(context)!.settingsDemoModeCardSubtitle,
+                    style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 12,
                     )),

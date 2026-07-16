@@ -5,6 +5,7 @@
 // de vérité terrain pour recalibrer les modèles côté serveur.
 
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 
 /// Ouvre la feuille de signalement pour [zone] (nom de zone SAMCAM, sans
@@ -30,17 +31,27 @@ class _SignalementSheet extends StatefulWidget {
 }
 
 class _SignalementSheetState extends State<_SignalementSheet> {
-  static const _types = [
-    ('inondation', 'Inondation', Icons.water_outlined),
-    ('secheresse', 'Sécheresse', Icons.grass_outlined),
-    ('chaleur',    'Chaleur',    Icons.local_fire_department_outlined),
-    ('autre',      'Autre',      Icons.report_problem_outlined),
+  static const _typeKeys = [
+    ('inondation', Icons.water_outlined),
+    ('secheresse', Icons.grass_outlined),
+    ('chaleur',    Icons.local_fire_department_outlined),
+    ('autre',      Icons.report_problem_outlined),
   ];
+
+  String _typeLabel(AppLocalizations t, String key) {
+    switch (key) {
+      case 'inondation': return t.riskFlood;
+      case 'secheresse': return t.riskDrought;
+      case 'chaleur':    return t.riskHeat;
+      default:           return t.signalementTypeOther;
+    }
+  }
 
   String _type = 'inondation';
   final _descCtrl = TextEditingController();
   bool _sending = false;
   String? _error;
+  late AppLocalizations t;
 
   @override
   void dispose() {
@@ -71,13 +82,14 @@ class _SignalementSheetState extends State<_SignalementSheet> {
     } catch (e) {
       setState(() {
         _sending = false;
-        _error = 'Envoi impossible — vérifiez votre connexion.';
+        _error = t.signalementSendError;
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    t = AppLocalizations.of(context)!;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 16, 20, 20 + bottomInset),
@@ -94,11 +106,11 @@ class _SignalementSheetState extends State<_SignalementSheet> {
             ),
           ),
           const SizedBox(height: 16),
-          const Text('Signaler un événement observé',
-            style: TextStyle(
+          Text(t.signalementTitle,
+            style: const TextStyle(
               color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('Zone : ${widget.zone}',
+          Text(t.signalementZoneLabel(widget.zone),
             style: const TextStyle(color: Colors.white54, fontSize: 13)),
           const SizedBox(height: 16),
 
@@ -107,13 +119,13 @@ class _SignalementSheetState extends State<_SignalementSheet> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              for (final (key, label, icon) in _types)
+              for (final (key, icon) in _typeKeys)
                 ChoiceChip(
                   selected: _type == key,
                   onSelected: (_) => setState(() => _type = key),
                   avatar: Icon(icon, size: 16,
                     color: _type == key ? Colors.white : Colors.white54),
-                  label: Text(label),
+                  label: Text(_typeLabel(t, key)),
                   labelStyle: TextStyle(
                     color: _type == key ? Colors.white : Colors.white70,
                     fontSize: 13),
@@ -133,7 +145,7 @@ class _SignalementSheetState extends State<_SignalementSheet> {
             maxLength: 500,
             style: const TextStyle(color: Colors.white, fontSize: 14),
             decoration: InputDecoration(
-              hintText: 'Décrivez ce que vous observez (lieu, ampleur…)',
+              hintText: t.signalementDescriptionHint,
               hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
               counterStyle: const TextStyle(color: Colors.white38, fontSize: 11),
               filled: true,
@@ -164,7 +176,7 @@ class _SignalementSheetState extends State<_SignalementSheet> {
                       child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                   : const Icon(Icons.send_outlined, size: 17),
-              label: Text(_sending ? 'Envoi…' : 'Envoyer le signalement'),
+              label: Text(_sending ? t.signalementSending : t.signalementSendButton),
             ),
           ),
         ],

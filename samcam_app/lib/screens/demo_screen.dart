@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/weather_animation.dart';
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -7,8 +8,7 @@ import '../widgets/weather_animation.dart';
 // ══════════════════════════════════════════════════════════════════════════════
 
 class _DemoScenario {
-  final String label;
-  final String description;
+  final String id;
   final String emoji;
   final WeatherAnimType animType;
   final double temperature;
@@ -16,12 +16,10 @@ class _DemoScenario {
   final double wind;
   final double tempMin;
   final double tempMax;
-  final String condition;
   final Color accentColor;
 
   const _DemoScenario({
-    required this.label,
-    required this.description,
+    required this.id,
     required this.emoji,
     required this.animType,
     required this.temperature,
@@ -29,15 +27,61 @@ class _DemoScenario {
     required this.wind,
     required this.tempMin,
     required this.tempMax,
-    required this.condition,
     required this.accentColor,
   });
 }
 
+/// Libellé localisé (titre du scénario), ex. "Ciel dégagé — Jour".
+String _scenarioLabel(AppLocalizations t, String id) {
+  switch (id) {
+    case 'clearDay':      return t.demoScenarioClearDayLabel;
+    case 'clearNight':    return t.demoScenarioClearNightLabel;
+    case 'partlyCloudy':  return t.demoScenarioPartlyCloudyLabel;
+    case 'cloudy':        return t.demoScenarioCloudyLabel;
+    case 'lightRain':     return t.demoScenarioLightRainLabel;
+    case 'heavyRain':     return t.demoScenarioHeavyRainLabel;
+    case 'storm':         return t.demoScenarioStormLabel;
+    case 'foggy':         return t.demoScenarioFoggyLabel;
+    case 'snow':          return t.demoScenarioSnowLabel;
+    default:              return '';
+  }
+}
+
+/// Description localisée (sous-titre du scénario).
+String _scenarioDescription(AppLocalizations t, String id) {
+  switch (id) {
+    case 'clearDay':      return t.demoScenarioClearDayDescription;
+    case 'clearNight':    return t.demoScenarioClearNightDescription;
+    case 'partlyCloudy':  return t.demoScenarioPartlyCloudyDescription;
+    case 'cloudy':        return t.demoScenarioCloudyDescription;
+    case 'lightRain':     return t.demoScenarioLightRainDescription;
+    case 'heavyRain':     return t.demoScenarioHeavyRainDescription;
+    case 'storm':         return t.demoScenarioStormDescription;
+    case 'foggy':         return t.demoScenarioFoggyDescription;
+    case 'snow':          return t.demoScenarioSnowDescription;
+    default:              return '';
+  }
+}
+
+/// Nom de condition météo localisé, affiché sous la température.
+String _scenarioCondition(AppLocalizations t, String id) {
+  switch (id) {
+    case 'clearDay':      return t.demoScenarioClearDayCondition;
+    case 'clearNight':    return t.demoScenarioClearNightCondition;
+    case 'partlyCloudy':  return t.demoScenarioPartlyCloudyCondition;
+    case 'cloudy':        return t.demoScenarioCloudyCondition;
+    case 'lightRain':     return t.demoScenarioLightRainCondition;
+    case 'heavyRain':     return t.demoScenarioHeavyRainCondition;
+    case 'storm':         return t.demoScenarioStormCondition;
+    case 'foggy':         return t.demoScenarioFoggyCondition;
+    case 'snow':          return t.demoScenarioSnowCondition;
+    default:              return '';
+  }
+}
+
 const _scenarios = [
   _DemoScenario(
-    label: 'Ciel dégagé — Jour',
-    description: 'Beau temps, ensoleillement maximal',
+    id: 'clearDay',
     emoji: '☀️',
     animType: WeatherAnimType.clearDay,
     temperature: 34.0,
@@ -45,12 +89,10 @@ const _scenarios = [
     wind: 8,
     tempMin: 26,
     tempMax: 36,
-    condition: 'Ensoleillé',
     accentColor: Color(0xFFFFCC30),
   ),
   _DemoScenario(
-    label: 'Ciel dégagé — Nuit',
-    description: 'Nuit claire, étoiles visibles',
+    id: 'clearNight',
     emoji: '🌙',
     animType: WeatherAnimType.clearNight,
     temperature: 22.0,
@@ -58,12 +100,10 @@ const _scenarios = [
     wind: 5,
     tempMin: 20,
     tempMax: 24,
-    condition: 'Nuit claire',
     accentColor: Color(0xFF6688CC),
   ),
   _DemoScenario(
-    label: 'Partiellement nuageux',
-    description: 'Alternance soleil et nuages',
+    id: 'partlyCloudy',
     emoji: '⛅',
     animType: WeatherAnimType.partlyCloudyDay,
     temperature: 28.0,
@@ -71,12 +111,10 @@ const _scenarios = [
     wind: 14,
     tempMin: 23,
     tempMax: 30,
-    condition: 'Peu nuageux',
     accentColor: Color(0xFF4EB3E8),
   ),
   _DemoScenario(
-    label: 'Nuageux',
-    description: 'Couverture nuageuse totale',
+    id: 'cloudy',
     emoji: '☁️',
     animType: WeatherAnimType.cloudy,
     temperature: 24.0,
@@ -84,12 +122,10 @@ const _scenarios = [
     wind: 18,
     tempMin: 20,
     tempMax: 26,
-    condition: 'Très nuageux',
     accentColor: Color(0xFF8899AA),
   ),
   _DemoScenario(
-    label: 'Pluie légère',
-    description: 'Bruine intermittente',
+    id: 'lightRain',
     emoji: '🌦️',
     animType: WeatherAnimType.lightRain,
     temperature: 21.0,
@@ -97,12 +133,10 @@ const _scenarios = [
     wind: 22,
     tempMin: 18,
     tempMax: 23,
-    condition: 'Pluie légère',
     accentColor: Color(0xFF5599CC),
   ),
   _DemoScenario(
-    label: 'Forte pluie',
-    description: 'Averses intenses',
+    id: 'heavyRain',
     emoji: '🌧️',
     animType: WeatherAnimType.heavyRain,
     temperature: 18.0,
@@ -110,12 +144,10 @@ const _scenarios = [
     wind: 35,
     tempMin: 16,
     tempMax: 20,
-    condition: 'Pluie forte',
     accentColor: Color(0xFF4477AA),
   ),
   _DemoScenario(
-    label: 'Orage',
-    description: 'Orages violents, éclairs',
+    id: 'storm',
     emoji: '⛈️',
     animType: WeatherAnimType.storm,
     temperature: 17.0,
@@ -123,12 +155,10 @@ const _scenarios = [
     wind: 68,
     tempMin: 15,
     tempMax: 19,
-    condition: 'Orage violent',
     accentColor: Color(0xFF6655BB),
   ),
   _DemoScenario(
-    label: 'Brouillard',
-    description: 'Visibilité réduite',
+    id: 'foggy',
     emoji: '🌫️',
     animType: WeatherAnimType.foggy,
     temperature: 16.0,
@@ -136,12 +166,10 @@ const _scenarios = [
     wind: 4,
     tempMin: 14,
     tempMax: 18,
-    condition: 'Brouillard dense',
     accentColor: Color(0xFF99AABB),
   ),
   _DemoScenario(
-    label: 'Neige',
-    description: 'Chutes de neige modérées',
+    id: 'snow',
     emoji: '❄️',
     animType: WeatherAnimType.snow,
     temperature: -2.0,
@@ -149,7 +177,6 @@ const _scenarios = [
     wind: 16,
     tempMin: -5,
     tempMax: 1,
-    condition: 'Neige modérée',
     accentColor: Color(0xFFAADDFF),
   ),
 ];
@@ -233,6 +260,7 @@ class _DemoScreenState extends State<DemoScreen>
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       body: Stack(
@@ -288,10 +316,10 @@ class _DemoScreenState extends State<DemoScreen>
                             color: Colors.white, size: 20),
                         onPressed: () => Navigator.pop(context),
                       ),
-                      const Expanded(
-                        child: Text('Mode Démo',
+                      Expanded(
+                        child: Text(t.settingsDemoMode,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
@@ -330,8 +358,8 @@ class _DemoScreenState extends State<DemoScreen>
                               const SizedBox(width: 4),
                               Text(
                                 _autoPlay
-                                    ? 'Auto  $_countdown s'
-                                    : 'Manuel',
+                                    ? t.demoAutoCountdown('$_countdown')
+                                    : t.demoManualLabel,
                                 style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 12,
@@ -467,6 +495,7 @@ class _WeatherInfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final s = scenario;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -487,7 +516,7 @@ class _WeatherInfoPanel extends StatelessWidget {
                       color: s.accentColor.withOpacity(0.5)),
                 ),
                 child: Text(
-                  'DÉMO',
+                  t.demoBadgeLabel,
                   style: TextStyle(
                     color: s.accentColor,
                     fontSize: 10,
@@ -502,7 +531,7 @@ class _WeatherInfoPanel extends StatelessWidget {
 
           // Condition
           Text(
-            s.label,
+            _scenarioLabel(t, s.id),
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -513,7 +542,7 @@ class _WeatherInfoPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            s.description,
+            _scenarioDescription(t, s.id),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white.withOpacity(0.65),
@@ -535,7 +564,7 @@ class _WeatherInfoPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            s.condition,
+            _scenarioCondition(t, s.id),
             style: TextStyle(
               color: Colors.white.withOpacity(0.80),
               fontSize: 18,
@@ -570,7 +599,7 @@ class _WeatherInfoPanel extends StatelessWidget {
                   _StatTile(
                     icon: Icons.water_drop_outlined,
                     value: '${s.humidity.toStringAsFixed(0)} %',
-                    label: 'Humidité',
+                    label: t.homeHumidityStat,
                     color: s.accentColor,
                   ),
                   VerticalDivider(
@@ -578,7 +607,7 @@ class _WeatherInfoPanel extends StatelessWidget {
                   _StatTile(
                     icon: Icons.air_rounded,
                     value: '${s.wind.toStringAsFixed(0)} km/h',
-                    label: 'Vent',
+                    label: t.homeWindStat,
                     color: s.accentColor,
                   ),
                   VerticalDivider(
@@ -586,7 +615,7 @@ class _WeatherInfoPanel extends StatelessWidget {
                   _StatTile(
                     icon: Icons.thermostat_rounded,
                     value: '${((s.tempMax + s.tempMin) / 2).toStringAsFixed(0)}°',
-                    label: 'Moy. jour',
+                    label: t.demoAvgDayLabel,
                     color: s.accentColor,
                   ),
                 ],

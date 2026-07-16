@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../config.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../widgets/zone_drawer.dart' show kSamcamZones;
 
@@ -52,8 +53,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return const Color(0xFFEF5350);
   }
 
+  late AppLocalizations t;
+
   String _displayZoneName(String name) {
-    if (name == 'Yaounde_peri') return 'Yaoundé (péri.)';
+    if (name == 'Yaounde_peri') return t.yaoundePeri;
     if (name == 'Kaele') return 'Kaélé';
     return name;
   }
@@ -72,12 +75,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    t = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
       appBar: AppBar(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text('Historique',
-          style: TextStyle(color: Colors.white)),
+        title: Text(t.historyTitle,
+          style: const TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -98,8 +102,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ? Center(child: Text(_error!,
                         style: const TextStyle(color: Colors.white54)))
                     : _history.isEmpty
-                        ? const Center(child: Text('Aucun historique disponible',
-                            style: TextStyle(color: Colors.white54)))
+                        ? Center(child: Text(t.historyEmptyState,
+                            style: const TextStyle(color: Colors.white54)))
                         : ListView.builder(
                             padding: const EdgeInsets.all(16),
                             itemCount: _history.length,
@@ -174,11 +178,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ],
           ),
           const SizedBox(height: 14),
-          _miniRiskRow(Icons.water_outlined, 'Inondation', score('score_inondation')),
+          _miniRiskRow(Icons.water_outlined, t.riskFlood, score('score_inondation')),
           const SizedBox(height: 9),
-          _miniRiskRow(Icons.grass_outlined, 'Sécheresse', score('score_secheresse')),
+          _miniRiskRow(Icons.grass_outlined, t.riskDrought, score('score_secheresse')),
           const SizedBox(height: 9),
-          _miniRiskRow(Icons.local_fire_department_outlined, 'Chaleur', score('score_chaleur')),
+          _miniRiskRow(Icons.local_fire_department_outlined, t.riskHeat, score('score_chaleur')),
         ],
       ),
     );

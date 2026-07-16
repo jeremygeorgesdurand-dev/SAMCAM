@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
 import '../services/weather_service.dart';
 import '../models/custom_location.dart';
@@ -122,6 +123,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
   }
 
   Future<void> _showAddLocationDialog() async {
+    final t = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     bool searching = false;
     String? error;
@@ -139,14 +141,14 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
             setDialogState(() {
               searching = false;
               results    = found;
-              error      = found.isEmpty ? 'Aucun lieu trouvé pour "$query"' : null;
+              error      = found.isEmpty ? t.drawerNoLocationFound(query) : null;
             });
           }
 
           return AlertDialog(
             backgroundColor: const Color(0xFF0D1A2E),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Ajouter un endroit', style: TextStyle(color: Colors.white)),
+            title: Text(t.drawerAddLocationTitle, style: const TextStyle(color: Colors.white)),
             content: SizedBox(
               width: 320,
               child: Column(
@@ -161,7 +163,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                           autofocus: true,
                           style: const TextStyle(color: Colors.white),
                           decoration: InputDecoration(
-                            hintText: 'Nom de la ville',
+                            hintText: t.drawerCityNameHint,
                             hintStyle: const TextStyle(color: Colors.white38),
                             filled: true,
                             fillColor: Colors.white.withOpacity(0.06),
@@ -190,8 +192,8 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                   ],
                   if (results.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    const Text('Sélectionnez le lieu correspondant :',
-                      style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    Text(t.drawerSelectLocationHint,
+                      style: const TextStyle(color: Colors.white38, fontSize: 11)),
                     const SizedBox(height: 4),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 260),
@@ -228,7 +230,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Annuler', style: TextStyle(color: Colors.white54)),
+                child: Text(t.drawerCancel, style: const TextStyle(color: Colors.white54)),
               ),
             ],
           );
@@ -246,6 +248,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Drawer(
@@ -295,9 +298,9 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                     ),
                   ),
                   const Spacer(),
-                  const Text(
-                    'Zones',
-                    style: TextStyle(
+                  Text(
+                    t.drawerZonesLabel,
+                    style: const TextStyle(
                       color: Colors.white38,
                       fontSize: 12,
                       letterSpacing: 0.5,
@@ -307,11 +310,11 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
               ),
             ),
             const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
-                'LOCALISATION',
-                style: TextStyle(
+                t.drawerLocationSectionLabel,
+                style: const TextStyle(
                   color: Colors.white38,
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
@@ -324,7 +327,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
             _LocationTile(
               cityName: widget.currentCity.isNotEmpty
                   ? widget.currentCity
-                  : 'Position GPS',
+                  : t.settingsGpsPosition,
               isSelected: _isGpsMode,
               temp: widget.currentTemp,
               weatherCode: widget.currentWeatherCode,
@@ -339,11 +342,11 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
               child: ListView(
                 padding: const EdgeInsets.only(bottom: 24),
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      'ZONES SAMCAM',
-                      style: TextStyle(
+                      t.drawerZonesSamcamLabel,
+                      style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -363,11 +366,11 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                       },
                     ),
                   const SizedBox(height: 20),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      'MES ENDROITS',
-                      style: TextStyle(
+                      t.drawerMyPlacesLabel,
+                      style: const TextStyle(
                         color: Colors.white38,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
@@ -387,7 +390,7 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                       },
                       onDelete: () => _removeCustomLocation(loc),
                     ),
-                  _AddLocationTile(onTap: _showAddLocationDialog),
+                  _AddLocationTile(onTap: _showAddLocationDialog, label: t.drawerAddLocationTitle),
                 ],
               ),
             ),
@@ -400,9 +403,9 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
                   top: BorderSide(color: Colors.white.withOpacity(0.08)),
                 ),
               ),
-              child: const Text(
-                'Système d\'Alerte Météo Cameroun',
-                style: TextStyle(
+              child: Text(
+                t.drawerFooterTagline,
+                style: const TextStyle(
                   color: Colors.white24,
                   fontSize: 10,
                   letterSpacing: 0.3,
@@ -600,7 +603,8 @@ class _ZoneTile extends StatelessWidget {
 // ── Tuile « Ajouter un endroit » ─────────────────────────────────────────────
 class _AddLocationTile extends StatelessWidget {
   final VoidCallback onTap;
-  const _AddLocationTile({required this.onTap});
+  final String label;
+  const _AddLocationTile({required this.onTap, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -625,9 +629,9 @@ class _AddLocationTile extends StatelessWidget {
               children: [
                 const Icon(Icons.add, color: Colors.white54, size: 16),
                 const SizedBox(width: 10),
-                const Text(
-                  'Ajouter un endroit',
-                  style: TextStyle(color: Colors.white54, fontSize: 14),
+                Text(
+                  label,
+                  style: const TextStyle(color: Colors.white54, fontSize: 14),
                 ),
               ],
             ),
