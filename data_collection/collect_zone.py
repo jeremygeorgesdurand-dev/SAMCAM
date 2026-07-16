@@ -10,7 +10,7 @@ Sources :
     · MODIS MOD13A1                           → NDVI, EVI (500m, fallback S2)
     · NASA SMAP SPL4SMGP/008                  → humidité sol surface + racinaire (9km)
     · CHIRPS UCSB-CHG/CHIRPS/DAILY            → précipitations 5km, latence 2j ★
-    · GPM IMERG NASA/GPM_L3/IMERG_V07/DAILY   → précipitations 11km, fallback CHIRPS ★ FIX DAILY
+    · GPM IMERG NASA/GPM_L3/IMERG_V07         → précipitations 11km, fallback CHIRPS ★
     · ERA5 ECMWF/ERA5_LAND/DAILY_AGGR         → vent, humidité sol ERA5, temp (9km) ★
 
 Usage :
@@ -460,12 +460,17 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
 def fetch_gee_imerg(lat: float, lon: float, days_back: int = 30) -> dict:
     """
     Précipitations GPM IMERG — fallback automatique CHIRPS.
-    FIX v3.2.1 : utilise DAILY (Early/Late Run) au lieu de MONTHLY.
-    Collections testées dans l'ordre :
-      1. NASA/GPM_L3/IMERG_V07/DAILY  — latence ~4j (Late Run)
-      2. NASA/GPM_L3/IMERG_V06/DAILY  — latence ~4j (Late Run, archive)
-    Résolution ~11km. Bande 'precipitation' en mm/h × 24h → mm/j.
-    Même structure de sortie que fetch_gee_chirps → pipeline downstream inchangé.
+    FIX v3.2.2 (audit 2026-07-16) : "NASA/GPM_L3/IMERG_V07/DAILY" et
+    "NASA/GPM_L3/IMERG_V06/DAILY" n'existent pas dans le catalogue GEE (asset
+    introuvable à 100% du temps) — ce fallback n'a donc JAMAIS fonctionné
+    depuis son introduction : dès que CHIRPS avait un trou de données, la
+    pluie retombait silencieusement à 0mm en aval, ce qui gonflait
+    artificiellement le score de sécheresse ML (faux positifs). La collection
+    réelle est "NASA/GPM_L3/IMERG_V07" (V06 est dépréciée), en demi-horaire
+    (bande 'precipitation' en mm/h) — agrégée ici en totaux journaliers avant
+    reproduction de la même logique que l'ancien code (DAILY).
+    Résolution ~11km. Même structure de sortie que fetch_gee_chirps → pipeline
+    downstream inchangé.
     """
     import ee
     today = datetime.date.today()
@@ -473,24 +478,31 @@ def fetch_gee_imerg(lat: float, lon: float, days_back: int = 30) -> dict:
     start = end   - datetime.timedelta(days=max(days_back, 30))
     zone  = ee.Geometry.Point([lon, lat]).buffer(10000)
 
-    for collection_id in [
-        "NASA/GPM_L3/IMERG_V07/DAILY",
-        "NASA/GPM_L3/IMERG_V06/DAILY",
-    ]:
+    for collection_id in ["NASA/GPM_L3/IMERG_V07"]:
         try:
-            col = (
+            col_halfhourly = (
                 ee.ImageCollection(collection_id)
                 .filterDate(start.isoformat(), end.isoformat())
                 .filterBounds(zone)
                 .select(["precipitation"])
             )
-            count = col.size().getInfo()
+            count = col_halfhourly.size().getInfo()
             if count == 0:
                 print(f"  [GEE IMERG] ⚠️  {collection_id} : 0 image sur la période")
                 continue
 
-            # IMERG DAILY : bande en mm/h → convertir en mm/j (× 24h)
-            col_mm = col.map(lambda img: img.multiply(24).copyProperties(img, ["system:time_start"]))
+            # Demi-horaire (mm/h) → totaux journaliers (mm/j) : somme des
+            # créneaux de 30 min (rate × 0.5h) sur chaque jour calendaire.
+            n_days = (end - start).days
+            days   = ee.List.sequence(0, max(n_days - 1, 0))
+
+            def _daily_sum(d):
+                d0 = ee.Date(start.isoformat()).advance(d, "day")
+                d1 = d0.advance(1, "day")
+                daily = col_halfhourly.filterDate(d0, d1).sum().multiply(0.5)
+                return daily.set("system:time_start", d0.millis())
+
+            col_mm = ee.ImageCollection(days.map(_daily_sum))
 
             stats_full = col_mm.sum().reduceRegion(
                 reducer=ee.Reducer.mean(), geometry=zone, scale=11000, maxPixels=1e9
@@ -532,7 +544,7 @@ def fetch_gee_imerg(lat: float, lon: float, days_back: int = 30) -> dict:
                 "pluie_chirps_30j_mm": pluie_30j,
                 "intensite_max_mm":    intensite,
                 "jours_pluie_30j":     nb_jours,
-                "note":                f"GPM IMERG DAILY fallback CHIRPS — {label} — résolution 11km",
+                "note":                f"GPM IMERG demi-horaire agrégé/jour, fallback CHIRPS — {label} — résolution 11km",
             }
         except Exception as ex:
             print(f"  [GEE IMERG] ⚠️  {collection_id} : {ex}")
@@ -841,7 +853,7 @@ def aggregate_and_save(zone: dict, openmeteo: dict, nasa: dict, gee: dict) -> st
                 "NASA POWER (rayonnement solaire, AG)",
                 "Copernicus Sentinel-2 via GEE (NDVI/NDWI/NDRE/NBR 10-20m)",
                 "NASA SMAP SPL4SMGP/008 via GEE (humidité sol 9km)",
-                "CHIRPS UCSB-CHG/DAILY via GEE (précipitations 5km) + fallback GPM IMERG V07/DAILY",
+                "CHIRPS UCSB-CHG/DAILY via GEE (précipitations 5km) + fallback GPM IMERG V07",
                 "ERA5-Land ECMWF via GEE (vent, sol, ruissellement 9km)",
             ],
         },
