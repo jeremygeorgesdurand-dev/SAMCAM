@@ -15,17 +15,14 @@ class Config {
   // AUCUNE configuration à faire si le serveur est joignable par l'une de
   // ces adresses. Une URL saisie dans les réglages garde toujours la priorité.
   static const List<String> defaultServerCandidates = [
-    // Mac de développement, publié via Tailscale Funnel — actuellement la
-    // SEULE station active, donc en premier pour une connexion immédiate
-    // (voir server/start.sh + docs/RAPPORT_SAMCAM.md §9.5).
+    // Station Raspberry Pi « Cameroun » — serveur permanent, publié via
+    // Tailscale Funnel (voir install_pi.sh + docs/DEPLOIEMENT_RASPBERRY_PI.md).
+    'https://cameroun.tail7296d8.ts.net',
+    // Mac de développement — conservé en secours (utile en local pendant le dev).
     'https://macbook-neo-de-jrmy.tail7296d8.ts.net',
     'http://192.168.1.186:8000', // IP LAN actuelle du Mac (change parfois — DHCP)
     'http://localhost:8000',     // même machine (dev, web)
     'http://10.0.2.2:8000',      // émulateur Android → machine hôte
-    // Station Raspberry Pi « Cameroun » — à remonter en 1ère position (et
-    // retirer l'entrée macbook-neo-de-jrmy ci-dessus) une fois déployée et
-    // publiée en permanence via Tailscale Funnel.
-    'https://cameroun.tail7296d8.ts.net',
   ];
 
   // Timeout des requêtes HTTP
