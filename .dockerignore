@@ -1,0 +1,14 @@
+.git
+.venv
+venv
+samcam_app/
+docs/
+branding/
+data/
+models/
+logs/
+reports/
+dashboard/
+**/__pycache__
+*.pyc
+.DS_Store

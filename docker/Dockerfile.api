@@ -1,0 +1,24 @@
+# SAMCAM — Image API (serveur FastAPI + moteur d'inférence zonal)
+# Pensée pour Raspberry Pi 4 (arm64) à mémoire limitée : dépendances minimales,
+# pas de earthengine-api (réservé à l'image collecteur), 1 seul worker uvicorn.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Dépendances système minimales pour compiler certaines roues scikit-learn/numpy sur arm64
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY server/requirements.txt /tmp/requirements-server.txt
+COPY inference/requirements_v4.txt /tmp/requirements-inference.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-server.txt \
+    && pip install --no-cache-dir -r /tmp/requirements-inference.txt
+
+# Le code applicatif est monté en volume (voir docker-compose.yml) pour permettre
+# des mises à jour via `git pull` sans reconstruire l'image. En production isolée,
+# on pourrait aussi faire un `COPY . /app` ici.
+
+EXPOSE 8000
+
+CMD ["uvicorn", "server.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

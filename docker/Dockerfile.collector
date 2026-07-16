@@ -1,0 +1,22 @@
+# SAMCAM — Image collecteur (pipeline quotidien météo/satellite)
+# Isolée de l'API pour ne pas alourdir son image avec earthengine-api (lourd,
+# dépendances Google Cloud) : ce conteneur ne tourne qu'une fois par jour,
+# le reste du temps le script bash de planification ne consomme presque rien.
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY data_collection/requirements.txt /tmp/requirements-collect.txt
+COPY inference/requirements_v4.txt /tmp/requirements-inference.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-collect.txt \
+    && pip install --no-cache-dir -r /tmp/requirements-inference.txt \
+    && pip install --no-cache-dir pandas python-dateutil
+
+COPY docker/collector_loop.sh /usr/local/bin/collector_loop.sh
+RUN chmod +x /usr/local/bin/collector_loop.sh
+
+CMD ["/usr/local/bin/collector_loop.sh"]

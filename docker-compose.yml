@@ -1,0 +1,41 @@
+# SAMCAM — Déploiement Raspberry Pi 4 (2 Go RAM, partagé entre plusieurs projets)
+# Ollama tourne NATIVEMENT sur le Pi (hors Docker), partagé avec les autres projets —
+# ce compose ne lance donc PAS de conteneur ollama, seulement l'API et le collecteur.
+# Budget mémoire de ces 2 conteneurs : api(300M) + collector(250M) = 550M,
+# le reste de la RAM est disponible pour Ollama et les autres projets du Pi.
+# Voir docs/DEPLOIEMENT_RASPBERRY_PI.md pour le détail.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: samcam-api
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - .:/app
+    working_dir: /app
+    environment:
+      # network_mode: host → le conteneur partage la pile réseau de l'hôte,
+      # "localhost" désigne donc le Pi lui-même (où tourne Ollama nativement).
+      - OLLAMA_URL=http://localhost:11434/api/generate
+      - OLLAMA_MODEL=qwen3:0.6b
+    env_file:
+      - server/.env.docker
+    mem_limit: 300m
+
+  collector:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.collector
+    container_name: samcam-collector
+    restart: unless-stopped
+    volumes:
+      - .:/app
+      - ${GEE_KEY_DIR:-~/.config/gee}:/root/.config/gee:ro
+    working_dir: /app
+    env_file:
+      - server/.env.docker
+    environment:
+      - EE_PRIVATE_KEY_PATH=/root/.config/gee/kribi-key.json
+    mem_limit: 250m
