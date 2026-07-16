@@ -1,12 +1,8 @@
 # 🌦️ SAMCAM — Système d'Alerte Météorologique du Cameroun
 
-> Prototype de système d'alerte climatique précoce pour smartphone, appuyé par un serveur local hébergeant le modèle d'analyse. Le système exploite des données météorologiques et satellitaires open source pour estimer des risques de sécheresse, d'inondation et de vague de chaleur, afin d'aider les autorités locales, les habitants et les agriculteurs au Cameroun.
+> Système d'alerte climatique précoce (inondation, sécheresse, vague de chaleur) pour 18 zones du Cameroun, appuyé par un serveur local (Raspberry Pi) hébergeant 54 modèles d'apprentissage automatique. Application mobile Flutter offline-first, bilingue français/anglais.
 
----
-
-## 📄 Document de projet
-
-Le document de présentation complet du projet est disponible ici : [`SAMCAM.pdf`](./SAMCAM.pdf)
+**Rapport de projet complet** (architecture, choix techniques, guide d'installation détaillé, évaluation de fiabilité) : [`docs/RAPPORT_SAMCAM.md`](docs/RAPPORT_SAMCAM.md)
 
 ---
 
@@ -14,59 +10,47 @@ Le document de présentation complet du projet est disponible ici : [`SAMCAM.pdf
 
 Le Cameroun est exposé à plusieurs aléas climatiques majeurs : inondations en saison de fortes pluies, sécheresses affectant l'agriculture, et vagues de chaleur. Ces phénomènes ont des conséquences directes sur les populations, les exploitations agricoles, les infrastructures locales et l'organisation des services publics.
 
-La problématique adressée : **comment concevoir un système d'alerte météorologique léger, accessible sur smartphone, capable d'exploiter des données météorologiques et satellitaires pour estimer des risques climatiques, tout en restant utilisable dans un contexte de connectivité limitée ?**
+**Problématique** : comment concevoir un système d'alerte météorologique léger, accessible sur smartphone, capable d'exploiter des données météorologiques et satellitaires pour estimer des risques climatiques localisés, tout en restant utilisable dans un contexte de connectivité intermittente et de ressources matérielles limitées ?
 
 ---
 
-## 🏗️ Architecture du système
+## 🏗️ Architecture
 
-La solution repose sur une **architecture hybride** : le traitement principal n'est pas effectué sur le téléphone, mais sur un serveur local qui collecte les données, exécute le modèle d'analyse et expose une API REST à l'application mobile.
+Traitement centralisé sur un serveur (Raspberry Pi ou machine de développement) qui collecte les données, exécute les modèles et expose une API REST légère ; l'application mobile ne fait qu'interroger cette API et conserve un cache local pour fonctionner hors-ligne.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      SOURCES DE DONNÉES                     │
-│         API météo open source  ·  Données satellitaires     │
-└────────────────────────────┬────────────────────────────────┘
-                             │ Récupération automatique (cron toutes les 6h)
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      SERVEUR LOCAL                          │
-│  Collecte  →  Prétraitement  →  GradientBoosting  →  API   │
-│  (sécheresse · inondation · vague de chaleur)               │
-│  FastAPI · uvicorn · port 8000                              │
-└────────────────────────────┬────────────────────────────────┘
-                             │ API JSON légère
-                             ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  APPLICATION MOBILE (V5)                    │
-│  Alertes · Niveau de risque · Carte · Historique local      │
-│  Mode offline-first : cache local si réseau indisponible    │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                      SOURCES DE DONNÉES                       │
+│   Open-Meteo · NASA POWER · Google Earth Engine (Sentinel-2,  │
+│   MODIS, SMAP, CHIRPS, IMERG, ERA5)                            │
+└────────────────────────────┬───────────────────────────────────┘
+                              │ Collecte quotidienne (cron, 05h00 UTC)
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                 SERVEUR (Raspberry Pi ou dev)                  │
+│  Collecte → Prétraitement → 54 modèles zonaux (RandomForest/   │
+│  GradientBoosting) → Cache prédictions → API FastAPI :8000      │
+│  + Assistant IA (Ollama, RAG léger) + Bot WhatsApp (prêt)       │
+└────────────────────────────┬───────────────────────────────────┘
+                              │ API JSON légère (Tailscale Funnel
+                              │ pour l'accès distant gratuit)
+                              ▼
+┌──────────────────────────────────────────────────────────────┐
+│                  APPLICATION MOBILE (Flutter)                  │
+│  Alertes multi-horizon · Carte · Historique · Signalement      │
+│  communautaire · Mode offline-first · Français/Anglais         │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🎯 Objectifs du projet
+## 🗺️ Les 18 zones surveillées
 
-- **Exploiter** des données météorologiques et satellitaires open source pertinentes pour le contexte camerounais
-- **Concevoir** un modèle d'analyse léger capable d'attribuer un niveau de risque simple (faible / modéré / élevé) pour les inondations, sécheresses et vagues de chaleur
-- **Héberger** ce modèle sur un serveur local afin de centraliser les traitements et de faciliter les mises à jour
-- **Développer** une application mobile capable d'interroger ce serveur pour récupérer alertes, résumés et historique
-- **Limiter** les échanges réseau au strict nécessaire pour un fonctionnement acceptable en cas de faible connectivité
+**8 zones climatiques initiales** : Kribi, Ebolowa, Kumba, Bafoussam, Yaoundé (périphérie), Ngaoundéré, Garoua, Maroua.
 
----
+**10 zones agricoles ajoutées** (couvrant riz, coton, cacao, café, palmier à huile, élevage) : Ndop, Foumbot, Kaélé, Guider, Meiganga, Mbalmayo, Bafia, Bertoua, Nkongsamba, Buea.
 
-## ⚙️ Fonctionnement du prototype
-
-1. Le serveur local récupère à intervalles réguliers des données météorologiques et satellitaires open source
-2. Ces données sont nettoyées et transformées en indicateurs exploitables
-3. Le modèle **GradientBoosting** (scikit-learn, V4) calcule un niveau de risque J0/J+3/J+7 pour inondation, sécheresse et vague de chaleur
-4. Les résultats sont exposés à l'application mobile via une API REST légère
-5. L'application affiche les alertes simplement et notifie l'utilisateur lorsqu'un seuil critique est dépassé
-
-En cas de connexion limitée, l'application continue d'afficher les dernières informations synchronisées localement (**offline-first**), puis se met à jour dès que le réseau redevient disponible.
-
-> **Fallback** : si les modèles `.pkl` sont absents, le serveur revient automatiquement sur Phi-3 mini via Ollama (comportement V3).
+Détail complet (région, filière, climat) : `docs/RAPPORT_SAMCAM.md` §2.3.
 
 ---
 
@@ -74,184 +58,124 @@ En cas de connexion limitée, l'application continue d'afficher les dernières i
 
 ```
 SAMCAM/
-├── SAMCAM.pdf                              ← Document de présentation
-├── README.md
+├── docs/
+│   ├── RAPPORT_SAMCAM.md            ← Rapport de projet complet
+│   ├── DEPLOIEMENT_RASPBERRY_PI.md  ← Guide déploiement Docker sur Pi
+│   └── NOTIFICATIONS_PUSH_FCM.md    ← Guide notifications push (Firebase)
 │
-├── data_collection/
-│   ├── collect_kribi.py                    ← Collecte Open-Meteo + GEE + NASA POWER
-│   ├── scheduler.sh                        ← Scheduler shell (manuel)
-│   ├── scheduler_cron.sh                   ← Installation du cron automatique (V3)
-│   └── requirements.txt
+├── config/zones/            ← Climatologie de chaque zone (18 fichiers .json)
 │
-├── inference/
-│   ├── build_dataset.py                    ← Construction dataset historique (V4.6.1)
-│   ├── train_model.py                      ← Entraînement GradientBoosting multi-horizon (V4.4)
-│   ├── risk_model.py                       ← Inférence ML (chargement .pkl + prédiction)
-│   ├── analyser_kribi.py                   ← Analyse Phi-3 mini via Ollama (fallback)
-│   ├── pipeline_complet.py                 ← Orchestration collecte → analyse → JSON
-│   └── requirements_v4.txt
+├── data_collection/         ← Collecte (Open-Meteo, NASA POWER, Google Earth Engine)
+│   ├── collect_all_zones.py         (orchestrateur, 18 zones)
+│   ├── collect_historical.py        (backfill historique 20-36 ans)
+│   └── append_daily_to_historical.py
 │
-├── models/                                 ← [V4] Modèles entraînés
-│   ├── model_inondation.pkl                ← J0  (AUC=0.942, F1=0.804)
-│   ├── model_inondation_j1.pkl             ← J+1 (AUC=0.884)
-│   ├── model_inondation_j3.pkl             ← J+3 (AUC=0.887)
-│   ├── model_inondation_j7.pkl             ← J+7 (AUC=0.862)
-│   ├── model_secheresse.pkl                ← J0  (AUC=0.940, F1=0.732)
-│   ├── model_secheresse_j1.pkl             ← J+1 (AUC=0.897)
-│   ├── model_secheresse_j3.pkl             ← J+3 (AUC=0.898)
-│   ├── model_secheresse_j7.pkl             ← J+7 (AUC=0.891)
-│   ├── model_metadata.json                 ← Métadonnées entraînement (V4.4)
-│   └── evaluate_model.py                   ← Script d'évaluation
+├── training/                 ← Génération des labels + entraînement
+│   ├── build_labels.py              (labels par règles climatologiques + événements réels)
+│   ├── generate_zone_config.py      (calibration climatique depuis l'historique réel)
+│   ├── calibrate_zone_thresholds.py (ré-étalonnage statistique des seuils)
+│   ├── train_zonal_models.py        (54 modèles : 18 zones × 3 risques)
+│   ├── onboard_new_zones.sh         (pipeline complet pour une nouvelle zone)
+│   └── evaluate_real_events.py      (validation contre catastrophes documentées)
 │
-├── server/                                 ← [V4] Serveur API REST
-│   ├── api.py                              ← FastAPI V4 : ML branché sur /api/risk
-│   ├── start.sh                            ← Script de lancement
-│   ├── requirements.txt                    ← fastapi, uvicorn
-│   └── README.md
+├── inference/                ← Moteur de prédiction
+│   ├── infer_zonal.py               (inférence multi-horizon J0 → J+14)
+│   └── compute_daily_predictions.py (pré-calcul quotidien → cache)
 │
-├── dashboard/
-│   ├── kribi-weather-dashboard.html        ← Dashboard météo multi-zones (V1)
-│   ├── samcam-v4-dashboard.html            ← Dashboard risques + météo (V4)
-│   └── latest_report.json                 ← Dernier rapport (généré par pipeline)
+├── models/zonal/             ← 54 modèles entraînés (.pkl) + métriques
 │
-├── data/                                   ← Données collectées (kribi_YYYY-MM-DD.json)
-├── reports/                                ← Rapports générés (rapport_kribi_*.json/txt)
-└── logs/                                   ← Logs cron (samcam_cron.log)
+├── server/
+│   ├── api.py                       (API REST FastAPI)
+│   ├── whatsapp_bot.py              (bot WhatsApp)
+│   ├── send_push_alerts.py          (notifications push)
+│   └── start.sh                     (démarrage natif + Tailscale Funnel)
+│
+├── docker/                   ← Images Docker (API + collecteur) pour Raspberry Pi
+├── docker-compose.yml
+├── install_pi.sh             ← Installation automatique sur Raspberry Pi
+│
+├── dashboard/                 ← Tableau de bord HTML (écran local)
+└── samcam_app/                ← Application mobile Flutter (FR/EN)
 ```
 
 ---
 
-## 🚀 Démarrage rapide — V4
+## 🚀 Démarrage rapide
 
-### 1. Prérequis
+### Sur une machine de développement (Mac/Linux/PC)
 
 ```bash
-# Dépendances collecte + analyse
+git clone <url-du-depot> SAMCAM && cd SAMCAM
+python3 -m venv venv && source venv/bin/activate
+
 pip install -r data_collection/requirements.txt
-
-# Dépendances ML V4
 pip install -r inference/requirements_v4.txt
-
-# Dépendances serveur
 pip install -r server/requirements.txt
 
-# (Optionnel) Ollama + Phi-3 mini — fallback si modèles ML absents
-ollama pull phi3:mini
-```
+python3 data_collection/collect_all_zones.py
+python3 data_collection/append_daily_to_historical.py
+python3 inference/compute_daily_predictions.py
 
-### 2. Construire le dataset et entraîner les modèles
-
-```bash
-# Dataset historique 1984→2024 (vraies données Open-Meteo)
-python3 inference/build_dataset.py --openmeteo
-
-# Entraînement tous horizons (J0, J+1, J+3, J+7)
-python3 inference/train_model.py --all-horizons
-
-# Évaluation
-python3 models/evaluate_model.py
-```
-
-### 3. Lancer le pipeline et le serveur
-
-```bash
-# Collecte + génération latest_report.json
-python3 inference/pipeline_complet.py
-
-# Démarrer le serveur
 bash server/start.sh
-# Serveur  : http://localhost:8000
-# API risk : http://localhost:8000/api/risk   ← scores ML J0/J+3/J+7
+# API      : http://localhost:8000
+# Docs     : http://localhost:8000/docs
 # Dashboard: http://localhost:8000/dashboard/samcam-v4-dashboard.html
-# API docs : http://localhost:8000/docs
 ```
 
-### 4. Activer la collecte automatique (cron toutes les 6h)
+### Sur Raspberry Pi 4 (recommandé si RAM limitée, ex. 2 Go)
 
 ```bash
-bash data_collection/scheduler_cron.sh
-# Logs : tail -f logs/samcam_cron.log
+git clone <url-du-depot> SAMCAM && cd SAMCAM
+bash install_pi.sh
 ```
+
+Installation Docker automatisée (swap, Docker Engine, vérification Ollama, Tailscale
+Funnel). Détail complet : [`docs/DEPLOIEMENT_RASPBERRY_PI.md`](docs/DEPLOIEMENT_RASPBERRY_PI.md).
+
+### Application mobile
+
+```bash
+cd samcam_app
+flutter pub get
+flutter build apk --release --split-per-abi
+adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+```
+
+L'app détecte automatiquement le serveur au premier lancement — aucune configuration
+manuelle requise dans le cas normal. Guide complet : `docs/RAPPORT_SAMCAM.md` §9.6-9.7.
 
 ---
 
-## 🌐 API REST — Endpoints
+## 🌐 API REST — Principaux endpoints
 
 | Méthode | Route | Description |
 |---|---|---|
-| `GET` | `/health` | Statut + modèle ML chargé + date du dernier rapport |
-| `GET` | `/api/risk` | Scores ML J0/J+3/J+7 + niveau d'alerte global |
-| `GET` | `/api/meteo` | Météo actuelle + prévisions 7j |
-| `GET` | `/api/report` | Rapport complet |
-| `GET` | `/api/history?limit=30` | Historique des N derniers rapports |
-| `GET` | `/dashboard/*` | Dashboard HTML (fichiers statiques) |
+| `GET` | `/health` | Statut du serveur, modèles chargés, zones disponibles |
+| `GET` | `/api/zones` | Liste des 18 zones |
+| `GET` | `/api/risk?zone=X` | Bulletin de risque complet (J0 → J+14) |
+| `GET` | `/api/nearest?lat=&lon=` | Bulletin de la zone la plus proche d'une position GPS |
+| `GET` | `/api/overview` | Niveau d'alerte des 18 zones en une requête |
+| `GET` | `/api/history?zone=&days=` | Évolution jour par jour des scores |
+| `POST` | `/api/assistant` | Résumé/question en langage naturel (Ollama, ancré sur les données réelles) |
+| `POST` | `/api/signalement` | Dépôt d'un signalement terrain par un utilisateur |
 | `GET` | `/docs` | Documentation Swagger interactive |
-
-### Exemple de réponse `/api/risk` (V4)
-
-```json
-{
-  "date": "2026-07-02",
-  "zone": "Kribi",
-  "niveau_alerte": "JAUNE",
-  "methode_risque": "ml_gradient_boosting",
-  "risque_actuel": {
-    "scores": { "inondation": 0.38, "secheresse": 0.12, "chaleur": 0.05 },
-    "niveau_alerte": "JAUNE"
-  },
-  "risque_prevu_3j": {
-    "scores": { "inondation": 0.45, "secheresse": 0.10, "chaleur": 0.04 },
-    "niveau_alerte": "ORANGE"
-  },
-  "risque_prevu_7j": {
-    "scores": { "inondation": 0.52, "secheresse": 0.09, "chaleur": 0.04 },
-    "niveau_alerte": "ORANGE"
-  },
-  "indicateurs": {
-    "pluie_cumulee_7j_mm": 142.5,
-    "pluie_prevue_7j_mm": 98.2,
-    "ndvi_moyen": 0.712
-  },
-  "capteur": "Open-Meteo"
-}
-```
-
----
-
-## 🗺️ Dashboard météo multi-zones — V1
-
-**Fichier :** `dashboard/kribi-weather-dashboard.html`
-
-Interface web autonome (HTML/CSS/JS) pour la surveillance météo en temps réel de **8 zones** autour de Kribi.
-
-### 🗺️ Zones couvertes
-
-| Zone | Latitude | Longitude |
-|---|---|---|
-| Kribi Centre | 2.9397 | 9.9132 |
-| Kribi Port | 2.9500 | 9.9200 |
-| Campo | 2.3667 | 9.8167 |
-| Bipindi | 3.0833 | 10.4167 |
-| Lokoundjé | 3.1167 | 10.3000 |
-| Akom II | 3.0000 | 10.5833 |
-| Lolodorf | 3.2333 | 10.7333 |
-| Ebolowa | 2.9000 | 11.1500 |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [x] **V1** — Dashboard météo multi-zones (Open-Meteo)
-- [x] **V2** — Intégration images satellites (Sentinel-2, MODIS, SMAP) + indicateurs de risque
-- [x] **V3** — Serveur local FastAPI : collecte automatisée (cron), API REST, dashboard servi
-- [x] **V4** — Modèle de classification de risque (GradientBoosting, scikit-learn, 40 ans de données)
-  - Dataset historique 1984→2024 (2139 semaines, vraies données Open-Meteo + 47 événements catalogués)
-  - 8 modèles entraînés : inondation + sécheresse × J0/J+1/J+3/J+7
-  - AUC > 0.86 sur tous les horizons, split temporel strict (train<2020, test≥2020)
-  - Branchement ML dans `server/api.py` avec fallback Phi-3 mini
-  - Fix `label_chaleur` : anomalie thermique relative (V4.6.1)
-- [ ] **V5** — Application mobile Flutter (offline-first, notifications, historique)
-- [ ] **V6** — Diffusion multi-canaux (push notifications, SMS / WhatsApp)
+- [x] **V1-V3** — Dashboard météo multi-zones, intégration satellite, serveur FastAPI + collecte automatisée
+- [x] **V4** — Modèle de classification de risque (GradientBoosting), historique réel
+- [x] **V5** — Architecture zonale (un modèle par zone et par risque), application mobile Flutter offline-first
+- [x] **Zones agricoles** — Extension de 8 à 18 zones, méthode de calibration reproductible
+- [x] **Assistant IA** — Résumés/questions en langage naturel via Ollama, ancrés sur les données réelles
+- [x] **Bilingue** — Interface français/anglais
+- [x] **Déploiement Raspberry Pi** — Installation Docker en une commande, budget mémoire 2 Go
+- [x] **Bot WhatsApp** — Code prêt, activation bloquée par une vérification anti-fraude côté Meta (indépendante du projet)
+- [ ] **Notifications push** — Scaffolding prêt (Firebase), activation à finaliser
+- [ ] **Publication Play Store**
+
+Détail complet des perspectives : `docs/RAPPORT_SAMCAM.md` §10.
 
 ---
 
@@ -259,13 +183,13 @@ Interface web autonome (HTML/CSS/JS) pour la surveillance météo en temps réel
 
 | Couche | Technologie |
 |---|---|
-| Collecte météo | Open-Meteo API, NASA POWER |
-| Satellite | Google Earth Engine (Sentinel-2, MODIS, SMAP) |
-| Modèle ML | GradientBoostingClassifier (scikit-learn), multi-horizon J0/J+1/J+3/J+7 |
-| Analyse LLM (fallback) | Phi-3 mini via Ollama |
-| Serveur API | FastAPI + uvicorn |
-| Dashboard | HTML/CSS/JS, Leaflet.js, Chart.js |
-| Automatisation | cron, bash |
+| Collecte | Open-Meteo, NASA POWER, Google Earth Engine (Sentinel-2, MODIS, SMAP, CHIRPS, IMERG, ERA5) |
+| Modèles ML | scikit-learn (RandomForest, GradientBoosting), TimeSeriesSplit, 54 modèles zonaux |
+| Assistant IA | Ollama (Phi-3 mini en dev, Qwen 3 0.6B partagé sur Pi) |
+| Serveur API | FastAPI, uvicorn |
+| Déploiement Pi | Docker Engine, Docker Compose, Tailscale Funnel |
+| Application | Flutter/Dart, offline-first, français/anglais |
+| Bot WhatsApp | Meta WhatsApp Business Cloud API |
 
 ---
 

@@ -1,154 +1,79 @@
-# Guide de réentraînement du modèle ML — Multi-zones Cameroun
+# Guide de réentraînement des modèles — SAMCAM
+
+> Ce guide décrit l'architecture **actuelle** (un modèle par zone et par risque). Pour le
+> détail complet de la méthode, voir `docs/RAPPORT_SAMCAM.md` §5.3, §6.6 et §9.8.
 
 ## Pourquoi réentraîner ?
 
-Le modèle actuel a été entraîné principalement sur les données de **Kribi**.
-Pour qu'il soit précis sur l'ensemble du Cameroun (8 zones, 3 grandes régions
-climatiques), il doit voir des données de **chaque zone** sur au moins
-**6 à 12 mois** de collecte quotidienne.
+Chaque zone SAMCAM a son propre modèle par risque (54 modèles = 18 zones × 3 risques :
+inondation, sécheresse, chaleur), entraîné sur l'historique météo réel de sa zone. Un
+réentraînement est nécessaire après :
 
----
+- l'enrichissement de l'historique d'une zone (nouvelles années de données) ;
+- la correction d'une configuration de zone (`config/zones/<slug>.json`) ;
+- l'ajout d'un événement documenté (EM-DAT/OCHA) à `training/build_labels.py` ;
+- ou périodiquement (trimestriel recommandé), pour intégrer les données collectées depuis.
 
-## Les 3 régions climatiques à couvrir
+## Les zones et leur classe climatique
 
-| Région | Zones | Particularités |
-|---|---|---|
-| **Guinéen / Équatorial** | Kribi, Ebolowa, Kumba | 2 saisons des pluies, humidité élevée, risque inondation fort |
-| **Tropical de transition** | Yaounde_peri, Bafoussam, Ngaoundere | 1 saison sèche marquée, risque sécheresse modéré |
-| **Sahélien / Semi-aride** | Garoua, Maroua | Longue saison sèche, risque chaleur et sécheresse élevés |
+| Classe climatique | Zones |
+|---|---|
+| **Équatorial** | Kribi, Ebolowa, Kumba, Yaounde_peri, Mbalmayo, Bafia, Bertoua, Nkongsamba, Buea |
+| **Hauts plateaux** | Bafoussam, Ngaoundere, Ndop, Foumbot, Meiganga |
+| **Sahélien** | Garoua, Maroua, Kaele, Guider |
 
----
-
-## Étape 1 — Accumuler les données multi-zones
-
-Le scheduler lance automatiquement la collecte chaque jour à 06h00 WAT :
+## Réentraîner une zone existante
 
 ```bash
-bash server/start.sh
+cd /chemin/SAMCAM && source venv/bin/activate   # ou .venv selon votre installation
+
+python training/build_labels.py --zone <Nom>              # 1. Régénérer les labels
+python training/train_zonal_models.py --zone <Nom> --force  # 2. Réentraîner (3 risques)
+python inference/compute_daily_predictions.py             # 3. Rafraîchir le cache de prédictions
 ```
 
-Pour lancer une collecte manuelle sur toutes les zones :
+Réentraîner **toutes les zones** en une fois : omettre `--zone`. Limiter à un seul risque :
+ajouter `--risk inondation|secheresse|chaleur` à `train_zonal_models.py`.
+
+⚠️ **Sans `--force`, un modèle `.pkl` déjà existant est sauté** — indispensable pour un
+vrai réentraînement.
+
+## Valider après réentraînement
 
 ```bash
-python3 data_collection/collect_all_zones.py
+# Métriques détaillées (AUC, F1) par modèle
+cat models/zonal/metrics/metrics_<risque>_<zone>.json
+
+# Validation contre des événements réels documentés (zones initiales)
+python training/evaluate_real_events.py
 ```
 
-Pour une zone spécifique :
+## Ajouter une toute nouvelle zone
+
+Voir `training/README.md` (section « Ajouter une TOUTE NOUVELLE zone ») et
+`docs/RAPPORT_SAMCAM.md` §6.6 pour la méthode complète (calibration climatique depuis
+l'historique réel + ré-étalonnage statistique des seuils, pour éviter des labels trop
+sensibles). En résumé :
 
 ```bash
-python3 data_collection/collect_all_zones.py --zones Garoua Maroua
+python data_collection/collect_historical.py --zone <Nom> --start 2000-01-01
+python training/generate_zone_config.py --zone <Nom> --climate <classe>
+python training/calibrate_zone_thresholds.py --zone <Nom>
+python training/build_labels.py --zone <Nom>
+python training/train_zonal_models.py --zone <Nom> --force
 ```
 
-Vérifier les données disponibles :
+Ou en une commande : `bash training/onboard_new_zones.sh` (après y avoir ajouté le nom
+de la zone).
 
-```bash
-ls data/ | sort
-# Attendu : kribi_2026-07-03.json, garoua_2026-07-03.json, etc.
-```
-
----
-
-## Étape 2 — Préparer le dataset d'entraînement
-
-Après au moins **30 jours** de collecte multi-zones (idéalement 90+), lancer :
-
-```bash
-python3 inference/prepare_dataset.py \
-    --zones Kribi Ebolowa Kumba Yaounde_peri Bafoussam Ngaoundere Garoua Maroua \
-    --output data/training_dataset_multizone.csv
-```
-
-Ce script :
-- Fusionne les fichiers `data/<zone>_*.json` de toutes les zones
-- Ajoute une colonne `zone` et `region_climatique` comme features
-- Normalise les indicateurs (pluie, NDVI, humidité sol) par région
-- Génère les labels `risque_inondation`, `risque_secheresse`, `risque_chaleur`
-
----
-
-## Étape 3 — Réentraîner le modèle
-
-```bash
-python3 inference/train_model.py \
-    --dataset data/training_dataset_multizone.csv \
-    --output models/ \
-    --zones-aware          # active les features région climatique
-```
-
-Options importantes :
-- `--zones-aware` : ajoute `zone_encoded` et `region_encoded` comme features
-- `--cross-validate` : validation croisée par zone (recommandé)
-- `--min-samples 50` : exclut les zones avec moins de 50 jours de données
-
-### Métriques cibles par type de risque
-
-| Risque | AUC-ROC cible | Notes |
-|---|---|---|
-| Inondation | > 0.82 | Surtout Kribi, Kumba, Yaounde_peri |
-| Sécheresse | > 0.80 | Surtout Garoua, Maroua, Ngaoundere |
-| Chaleur | > 0.78 | Toutes zones Nord |
-
----
-
-## Étape 4 — Valider et déployer
-
-```bash
-# Test sur les données récentes (les 7 derniers jours de chaque zone)
-python3 inference/evaluate_model.py \
-    --model models/ \
-    --zones Garoua Maroua Ngaoundere  # zones les plus éloignées de Kribi
-
-# Si métriques OK → remplacer les modèles en production
-cp models/risk_model_multizone_*.pkl models/risk_model.pkl
-
-# Redémarrer le serveur pour charger le nouveau modèle
-bash server/start.sh
-```
-
----
-
-## Stratégie de réentraînement continu
-
-Une fois le scheduler actif, ajouter ce cron **mensuel** :
+## Réentraînement continu (cron mensuel)
 
 ```cron
-# Réentraînement automatique le 1er de chaque mois à 03:00 UTC
-0 3 1 * * cd /chemin/vers/SAMCAM && python3 inference/train_model.py \
-    --dataset data/training_dataset_multizone.csv \
-    --output models/ --zones-aware >> logs/retrain.log 2>&1
+# 1er de chaque mois à 03:00 UTC — réentraîne toutes les zones
+0 3 1 * * cd /chemin/vers/SAMCAM && venv/bin/python training/build_labels.py && venv/bin/python training/train_zonal_models.py --force >> logs/retrain.log 2>&1
 ```
 
-### Priorité des zones pour les premières semaines
-
-Les zones les plus différentes de Kribi (zone d'entraînement initial) doivent
-être collectées en priorité :
-
-1. **Maroua** — Sahel, risques très différents
-2. **Garoua** — Semi-aride, coton/mil
-3. **Ngaoundere** — Altitude, élevage bovin
-4. Les autres zones progressivement
-
----
-
-## Résumé du flux complet
-
-```
-[06:00 WAT chaque jour]
-  └── collect_all_zones.py
-        └── data/kribi_YYYY-MM-DD.json
-        └── data/garoua_YYYY-MM-DD.json
-        └── ... (8 zones)
-
-[Appli Flutter]
-  └── GET /api/nearest?lat=X&lon=Y    (< 50 ms)
-        └── trouve zone la plus proche
-        └── charge JSON du jour
-        └── calcule scores ML
-        └── retourne au téléphone
-
-[1er du mois à 03:00 UTC]
-  └── train_model.py --zones-aware
-        └── dataset fusionné 8 zones
-        └── nouveau modèle → models/
-        └── server rechargé
-```
+Sur Raspberry Pi (installation Docker, voir `docs/DEPLOIEMENT_RASPBERRY_PI.md`), le
+réentraînement n'est **pas** destiné à tourner sur la station elle-même (charge CPU trop
+lourde pour 2 Go de RAM) — il se fait sur une machine de développement, puis les
+`.pkl` mis à jour sont poussés via `git push` / `git pull`.
