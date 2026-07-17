@@ -131,6 +131,12 @@ class ApiService {
       } catch (e) {
         final report = await _riskFromCache(cacheKey, null);
         if (report != null) return report;
+        // Zone jamais consultée en détail hors-ligne (pas de cache risk_<zone>)
+        // → repli sur /api/overview mis en cache, qui couvre les 18 zones en
+        // un seul appel et est donc disponible même pour une zone jamais
+        // ouverte individuellement.
+        final fromOverview = await _riskFromOverviewCache(zone);
+        if (fromOverview != null) return fromOverview;
         rethrow;
       }
     }
@@ -173,6 +179,37 @@ class ApiService {
     try {
       final json = jsonDecode(entry.json) as Map<String, dynamic>;
       return _nearestToRiskReport(json, pos,
+          fromCache: true, cachedAt: entry.cachedAt);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Repli hors-ligne pour une zone jamais consultée individuellement :
+  /// reconstruit un RiskReport minimal (risque actuel uniquement, pas de
+  /// météo ni de prévisions à 3j/7j/10j/14j) à partir du cache 'overview',
+  /// qui liste le score courant des 18 zones en une seule entrée.
+  static Future<RiskReport?> _riskFromOverviewCache(String zone) async {
+    final entry = await OfflineCache.get('overview');
+    if (entry == null) return null;
+    try {
+      final data  = jsonDecode(entry.json) as Map<String, dynamic>;
+      final zones = (data['zones'] as List?) ?? [];
+      final match = zones
+          .cast<Map<String, dynamic>>()
+          .where((z) => (z['zone'] as String?)?.toLowerCase() == zone.toLowerCase())
+          .toList();
+      if (match.isEmpty) return null;
+
+      final z = match.first;
+      final fakeJson = {
+        'zone': z['zone'],
+        'risque_actuel': {
+          'scores':        z['scores'],
+          'niveau_alerte': z['niveau_alerte'],
+        },
+      };
+      return _nearestToRiskReport(fakeJson, null,
           fromCache: true, cachedAt: entry.cachedAt);
     } catch (_) {
       return null;
