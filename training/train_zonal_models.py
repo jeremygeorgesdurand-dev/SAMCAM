@@ -18,6 +18,15 @@ Usage :
   python training/train_zonal_models.py --zone Kribi
   python training/train_zonal_models.py --risk inondation
   python training/train_zonal_models.py --force     # ré-entraîne même si pkl existant
+
+  python training/train_zonal_models.py --sensor-only --force
+    → variante "boîtier terrain 100% offline" : entraîne avec UNIQUEMENT les
+      features qu'un capteur de terrain (pression/température/humidité/pluie/
+      sol) peut fournir localement, sans Open-Meteo/NASA POWER/GEE (vent,
+      rayonnement, ET0, NDVI...). Sauvegarde dans models/zonal_sensor/ (ne
+      touche PAS aux modèles de production models/zonal/). Validé le
+      2026-07-19 : perte d'AUC négligeable (< 0.011) sur 9 combos zone/risque
+      testées vs le modèle complet — voir training/scratch/test_sensor_only.py.
 """
 
 import os
@@ -48,9 +57,15 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-DATA_DIR    = Path("data/historical")
-MODELS_DIR  = Path("models/zonal")
-METRICS_DIR = Path("models/zonal/metrics")
+DATA_DIR = Path("data/historical")
+
+_parser_pre = argparse.ArgumentParser(add_help=False)
+_parser_pre.add_argument("--sensor-only", action="store_true")
+_pre_args, _ = _parser_pre.parse_known_args()
+SENSOR_ONLY = _pre_args.sensor_only
+
+MODELS_DIR  = Path("models/zonal_sensor")  if SENSOR_ONLY else Path("models/zonal")
+METRICS_DIR = MODELS_DIR / "metrics"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 METRICS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -65,7 +80,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler("models/zonal/train_zonal.log"),
+        logging.FileHandler(str(MODELS_DIR / "train_zonal.log")),
         logging.StreamHandler(),
     ],
 )
@@ -99,11 +114,27 @@ FEATURE_GROUPS = {
     ],
 }
 
-RISK_FEATURES = {
-    "inondation": FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["derived"] + FEATURE_GROUPS["soil"],
-    "secheresse": FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["nasa"]   + FEATURE_GROUPS["derived"] + FEATURE_GROUPS["soil"],
-    "chaleur":    FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["nasa"]   + FEATURE_GROUPS["derived"],
-}
+# Sous-ensemble réellement mesurable par un boîtier de terrain autonome
+# (pression, température, humidité, pluie, sol) — sans vent, rayonnement,
+# ET0 calculé (Open-Meteo) ni aucun champ NASA POWER/GEE (tous internet).
+SENSOR_FEATURES = [
+    "temperature_2m_max", "temperature_2m_min", "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max", "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean", "soil_moisture_7_to_28cm_mean", "soil_moisture_28_to_100cm_mean",
+    "rain_7d", "rain_14d", "rain_30d", "rain_90d",
+    "spi3_approx", "temp_anom_30d", "temp_max_7d",
+    "month", "day_of_year", "week",
+]
+
+if SENSOR_ONLY:
+    RISK_FEATURES = {risk: list(SENSOR_FEATURES) for risk in RISKS}
+else:
+    RISK_FEATURES = {
+        "inondation": FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["derived"] + FEATURE_GROUPS["soil"],
+        "secheresse": FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["nasa"]   + FEATURE_GROUPS["derived"] + FEATURE_GROUPS["soil"],
+        "chaleur":    FEATURE_GROUPS["meteo"] + FEATURE_GROUPS["nasa"]   + FEATURE_GROUPS["derived"],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -386,6 +417,8 @@ def main():
     parser.add_argument("--zone",  default=None, help="Zone spécifique (défaut: toutes)")
     parser.add_argument("--risk",  default=None, choices=RISKS)
     parser.add_argument("--force", action="store_true", help="Ré-entraîner même si pkl existant")
+    parser.add_argument("--sensor-only", action="store_true",
+                         help="Variante boîtier terrain offline (voir docstring du module)")
     args = parser.parse_args()
 
     if args.zone:
