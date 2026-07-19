@@ -1,0 +1,83 @@
+{
+  "zone": "Ebolowa",
+  "risk": "inondation",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 9512,
+  "n_positive_total": 182,
+  "class_ratio": 51.26,
+  "cv_folds": 1,
+  "cv_auc_mean": 0.9554,
+  "cv_auc_std": 0.0,
+  "smote_applied_folds": 1,
+  "n_test_last_fold": 1585,
+  "n_positive_last_fold": 77,
+  "f1_last_fold": 0.4955,
+  "precision_last_fold": 0.3793,
+  "recall_last_fold": 0.7143,
+  "decision_threshold": 0.2,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "day_of_year",
+      "importance": 0.2489
+    },
+    {
+      "feature": "month",
+      "importance": 0.215
+    },
+    {
+      "feature": "week",
+      "importance": 0.1513
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0956
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0795
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.0429
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.0412
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0228
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.0212
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0172
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Kumba",
+  "risk": "chaleur",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 9512,
+  "n_positive_total": 1637,
+  "class_ratio": 4.81,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9729,
+  "cv_auc_std": 0.0208,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1585,
+  "n_positive_last_fold": 611,
+  "f1_last_fold": 0.8434,
+  "precision_last_fold": 0.854,
+  "recall_last_fold": 0.8331,
+  "decision_threshold": 0.35,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.2256
+    },
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.1776
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.1055
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.0943
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0918
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.0765
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.052
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.0392
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.0327
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0207
+    }
+  ]
+}

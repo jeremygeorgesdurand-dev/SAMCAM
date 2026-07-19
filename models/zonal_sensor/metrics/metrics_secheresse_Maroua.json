@@ -1,0 +1,83 @@
+{
+  "zone": "Maroua",
+  "risk": "secheresse",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 13164,
+  "n_positive_total": 547,
+  "class_ratio": 23.07,
+  "cv_folds": 1,
+  "cv_auc_mean": 0.6475,
+  "cv_auc_std": 0.0,
+  "smote_applied_folds": 1,
+  "n_test_last_fold": 2194,
+  "n_positive_last_fold": 183,
+  "f1_last_fold": 0.168,
+  "precision_last_fold": 0.1056,
+  "recall_last_fold": 0.4098,
+  "decision_threshold": 0.15,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.1821
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.1109
+    },
+    {
+      "feature": "week",
+      "importance": 0.082
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0792
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0792
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0668
+    },
+    {
+      "feature": "month",
+      "importance": 0.0565
+    },
+    {
+      "feature": "temperature_2m_min",
+      "importance": 0.0419
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.0411
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.0361
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Ngaoundere",
+  "risk": "chaleur",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 13164,
+  "n_positive_total": 2897,
+  "class_ratio": 3.54,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9802,
+  "cv_auc_std": 0.0164,
+  "smote_applied_folds": 2,
+  "n_test_last_fold": 2194,
+  "n_positive_last_fold": 593,
+  "f1_last_fold": 0.8434,
+  "precision_last_fold": 0.8612,
+  "recall_last_fold": 0.8263,
+  "decision_threshold": 0.3,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.26
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.1126
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.1101
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.0854
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.0741
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0538
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.053
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.0404
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0285
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.0284
+    }
+  ]
+}

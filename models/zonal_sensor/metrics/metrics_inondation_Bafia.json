@@ -1,0 +1,83 @@
+{
+  "zone": "Bafia",
+  "risk": "inondation",
+  "model": "GradientBoosting",
+  "status": "OK",
+  "n_total": 9505,
+  "n_positive_total": 590,
+  "class_ratio": 15.11,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.997,
+  "cv_auc_std": 0.0025,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1584,
+  "n_positive_last_fold": 184,
+  "f1_last_fold": 0.9811,
+  "precision_last_fold": 0.9733,
+  "recall_last_fold": 0.9891,
+  "decision_threshold": 0.8,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.6986
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.2507
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.0242
+    },
+    {
+      "feature": "month",
+      "importance": 0.0068
+    },
+    {
+      "feature": "week",
+      "importance": 0.0063
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.0043
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.0018
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0018
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.001
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0009
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Kaele",
+  "risk": "secheresse",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 13157,
+  "n_positive_total": 205,
+  "class_ratio": 63.18,
+  "cv_folds": 3,
+  "cv_auc_mean": 0.9541,
+  "cv_auc_std": 0.0355,
+  "smote_applied_folds": 3,
+  "n_test_last_fold": 2192,
+  "n_positive_last_fold": 144,
+  "f1_last_fold": 0.2165,
+  "precision_last_fold": 0.42,
+  "recall_last_fold": 0.1458,
+  "decision_threshold": 0.25,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "rain_90d",
+      "importance": 0.1646
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.1547
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.0992
+    },
+    {
+      "feature": "week",
+      "importance": 0.09
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.084
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0814
+    },
+    {
+      "feature": "month",
+      "importance": 0.0701
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.0497
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.0424
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0356
+    }
+  ]
+}

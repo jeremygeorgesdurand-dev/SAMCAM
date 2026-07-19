@@ -1,0 +1,83 @@
+{
+  "zone": "Yaounde_peri",
+  "risk": "inondation",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 9512,
+  "n_positive_total": 921,
+  "class_ratio": 9.33,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9221,
+  "cv_auc_std": 0.0673,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1585,
+  "n_positive_last_fold": 138,
+  "f1_last_fold": 0.6853,
+  "precision_last_fold": 0.7611,
+  "recall_last_fold": 0.6232,
+  "decision_threshold": 0.55,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.2115
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.1516
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.1186
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.0765
+    },
+    {
+      "feature": "month",
+      "importance": 0.058
+    },
+    {
+      "feature": "week",
+      "importance": 0.0538
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0419
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.0405
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.0362
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.036
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Kribi",
+  "risk": "secheresse",
+  "model": "GradientBoosting",
+  "status": "OK",
+  "n_total": 9528,
+  "n_positive_total": 972,
+  "class_ratio": 8.8,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9158,
+  "cv_auc_std": 0.0322,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1588,
+  "n_positive_last_fold": 226,
+  "f1_last_fold": 0.5842,
+  "precision_last_fold": 0.5393,
+  "recall_last_fold": 0.6372,
+  "decision_threshold": 0.35,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "spi3_approx",
+      "importance": 0.2137
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.1558
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.105
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.1034
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.0791
+    },
+    {
+      "feature": "temp_anom_30d",
+      "importance": 0.0745
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.0494
+    },
+    {
+      "feature": "relative_humidity_2m_max",
+      "importance": 0.0434
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.032
+    },
+    {
+      "feature": "month",
+      "importance": 0.0273
+    }
+  ]
+}

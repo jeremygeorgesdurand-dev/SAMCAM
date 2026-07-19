@@ -1,0 +1,83 @@
+{
+  "zone": "Bafia",
+  "risk": "secheresse",
+  "model": "GradientBoosting",
+  "status": "OK",
+  "n_total": 9505,
+  "n_positive_total": 836,
+  "class_ratio": 10.37,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9425,
+  "cv_auc_std": 0.0406,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1584,
+  "n_positive_last_fold": 179,
+  "f1_last_fold": 0.7342,
+  "precision_last_fold": 0.7204,
+  "recall_last_fold": 0.7486,
+  "decision_threshold": 0.35,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "rain_30d",
+      "importance": 0.1971
+    },
+    {
+      "feature": "month",
+      "importance": 0.16
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.1496
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.1141
+    },
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.09
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0683
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.0663
+    },
+    {
+      "feature": "temp_anom_30d",
+      "importance": 0.0393
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0301
+    },
+    {
+      "feature": "relative_humidity_2m_max",
+      "importance": 0.014
+    }
+  ]
+}

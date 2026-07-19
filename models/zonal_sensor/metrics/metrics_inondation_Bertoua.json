@@ -1,0 +1,83 @@
+{
+  "zone": "Bertoua",
+  "risk": "inondation",
+  "model": "GradientBoosting",
+  "status": "OK",
+  "n_total": 9505,
+  "n_positive_total": 590,
+  "class_ratio": 15.11,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9976,
+  "cv_auc_std": 0.0019,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1584,
+  "n_positive_last_fold": 148,
+  "f1_last_fold": 0.9735,
+  "precision_last_fold": 0.9545,
+  "recall_last_fold": 0.9932,
+  "decision_threshold": 0.8,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.7633
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.1828
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.018
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.015
+    },
+    {
+      "feature": "week",
+      "importance": 0.0041
+    },
+    {
+      "feature": "month",
+      "importance": 0.0033
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.0026
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0021
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0016
+    },
+    {
+      "feature": "temperature_2m_min",
+      "importance": 0.0014
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Foumbot",
+  "risk": "chaleur",
+  "model": "GradientBoosting",
+  "status": "OK",
+  "n_total": 13157,
+  "n_positive_total": 2535,
+  "class_ratio": 4.19,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9648,
+  "cv_auc_std": 0.0157,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 2192,
+  "n_positive_last_fold": 950,
+  "f1_last_fold": 0.9159,
+  "precision_last_fold": 0.8875,
+  "recall_last_fold": 0.9463,
+  "decision_threshold": 0.6,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.5104
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.1779
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.1119
+    },
+    {
+      "feature": "temp_anom_30d",
+      "importance": 0.0557
+    },
+    {
+      "feature": "month",
+      "importance": 0.0425
+    },
+    {
+      "feature": "week",
+      "importance": 0.0212
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0141
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.0118
+    },
+    {
+      "feature": "rain_7d",
+      "importance": 0.0097
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.008
+    }
+  ]
+}

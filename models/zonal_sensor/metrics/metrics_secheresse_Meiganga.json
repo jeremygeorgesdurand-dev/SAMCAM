@@ -1,0 +1,83 @@
+{
+  "zone": "Meiganga",
+  "risk": "secheresse",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 13157,
+  "n_positive_total": 583,
+  "class_ratio": 21.57,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9323,
+  "cv_auc_std": 0.0389,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 2192,
+  "n_positive_last_fold": 194,
+  "f1_last_fold": 0.4528,
+  "precision_last_fold": 0.4746,
+  "recall_last_fold": 0.433,
+  "decision_threshold": 0.4,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.1261
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.1092
+    },
+    {
+      "feature": "spi3_approx",
+      "importance": 0.1084
+    },
+    {
+      "feature": "temp_anom_30d",
+      "importance": 0.0878
+    },
+    {
+      "feature": "relative_humidity_2m_max",
+      "importance": 0.0805
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.0744
+    },
+    {
+      "feature": "month",
+      "importance": 0.0681
+    },
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.0621
+    },
+    {
+      "feature": "week",
+      "importance": 0.0464
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0329
+    }
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "zone": "Garoua",
+  "risk": "chaleur",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 13164,
+  "n_positive_total": 2216,
+  "class_ratio": 4.94,
+  "cv_folds": 4,
+  "cv_auc_mean": 0.8185,
+  "cv_auc_std": 0.2516,
+  "smote_applied_folds": 0,
+  "n_test_last_fold": 2194,
+  "n_positive_last_fold": 379,
+  "f1_last_fold": 0.7812,
+  "precision_last_fold": 0.8222,
+  "recall_last_fold": 0.7441,
+  "decision_threshold": 0.35,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.1485
+    },
+    {
+      "feature": "temp_anom_30d",
+      "importance": 0.0986
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.0911
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0815
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.0757
+    },
+    {
+      "feature": "month",
+      "importance": 0.0713
+    },
+    {
+      "feature": "week",
+      "importance": 0.0597
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0576
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0548
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.0411
+    }
+  ]
+}

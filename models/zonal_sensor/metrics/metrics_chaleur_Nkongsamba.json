@@ -1,0 +1,83 @@
+{
+  "zone": "Nkongsamba",
+  "risk": "chaleur",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 9505,
+  "n_positive_total": 610,
+  "class_ratio": 14.58,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9913,
+  "cv_auc_std": 0.0032,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1584,
+  "n_positive_last_fold": 99,
+  "f1_last_fold": 0.8037,
+  "precision_last_fold": 0.7478,
+  "recall_last_fold": 0.8687,
+  "decision_threshold": 0.55,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "rain_7d",
+      "importance": 0.241
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.1734
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.1376
+    },
+    {
+      "feature": "temperature_2m_max",
+      "importance": 0.0919
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0752
+    },
+    {
+      "feature": "rain_14d",
+      "importance": 0.0744
+    },
+    {
+      "feature": "temperature_2m_mean",
+      "importance": 0.036
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.0316
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.0314
+    },
+    {
+      "feature": "temp_max_7d",
+      "importance": 0.0238
+    }
+  ]
+}

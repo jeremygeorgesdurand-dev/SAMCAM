@@ -1,0 +1,83 @@
+{
+  "zone": "Buea",
+  "risk": "secheresse",
+  "model": "RandomForest",
+  "status": "OK",
+  "n_total": 9505,
+  "n_positive_total": 836,
+  "class_ratio": 10.37,
+  "cv_folds": 5,
+  "cv_auc_mean": 0.9486,
+  "cv_auc_std": 0.019,
+  "smote_applied_folds": 5,
+  "n_test_last_fold": 1584,
+  "n_positive_last_fold": 257,
+  "f1_last_fold": 0.716,
+  "precision_last_fold": 0.716,
+  "recall_last_fold": 0.716,
+  "decision_threshold": 0.5,
+  "n_features": 19,
+  "features": [
+    "temperature_2m_max",
+    "temperature_2m_min",
+    "temperature_2m_mean",
+    "precipitation_sum",
+    "relative_humidity_2m_max",
+    "relative_humidity_2m_min",
+    "soil_moisture_0_to_7cm_mean",
+    "soil_moisture_7_to_28cm_mean",
+    "soil_moisture_28_to_100cm_mean",
+    "rain_7d",
+    "rain_14d",
+    "rain_30d",
+    "rain_90d",
+    "spi3_approx",
+    "temp_anom_30d",
+    "temp_max_7d",
+    "month",
+    "day_of_year",
+    "week"
+  ],
+  "top_features": [
+    {
+      "feature": "spi3_approx",
+      "importance": 0.1988
+    },
+    {
+      "feature": "precipitation_sum",
+      "importance": 0.1221
+    },
+    {
+      "feature": "soil_moisture_0_to_7cm_mean",
+      "importance": 0.1165
+    },
+    {
+      "feature": "soil_moisture_28_to_100cm_mean",
+      "importance": 0.0838
+    },
+    {
+      "feature": "relative_humidity_2m_min",
+      "importance": 0.0726
+    },
+    {
+      "feature": "rain_30d",
+      "importance": 0.0653
+    },
+    {
+      "feature": "day_of_year",
+      "importance": 0.059
+    },
+    {
+      "feature": "soil_moisture_7_to_28cm_mean",
+      "importance": 0.0458
+    },
+    {
+      "feature": "rain_90d",
+      "importance": 0.0379
+    },
+    {
+      "feature": "week",
+      "importance": 0.0372
+    }
+  ]
+}
