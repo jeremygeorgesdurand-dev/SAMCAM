@@ -7,8 +7,8 @@
 | **Projet** | SAMCAM — Surveillance et Alerte climatique Multi-zones du CAMeroun |
 | **Type** | Système d'alerte précoce (inondation, sécheresse, vague de chaleur) |
 | **Plateformes** | Serveur embarqué Raspberry Pi · Application mobile Flutter (Android/iOS) |
-| **Technologies** | Python, FastAPI, scikit-learn, Flutter/Dart, Google Earth Engine |
-| **Date** | Juillet 2026 (mis à jour le 15 juillet 2026) |
+| **Technologies** | Python, FastAPI, scikit-learn, Flutter/Dart, Google Earth Engine, Ollama |
+| **Date** | Juillet 2026 (mis à jour le 20 juillet 2026) |
 
 ---
 
@@ -16,15 +16,14 @@
 
 1. [Introduction](#1-introduction)
 2. [Contexte et problématique](#2-contexte-et-problématique)
-3. [Architecture générale du système](#3-architecture-générale-du-système)
-4. [Le serveur : la station Raspberry Pi](#4-le-serveur--la-station-raspberry-pi)
-5. [Le cœur intelligent : données, algorithmes et modèles IA](#5-le-cœur-intelligent--données-algorithmes-et-modèles-ia)
-6. [Problématiques rencontrées et solutions apportées](#6-problématiques-rencontrées-et-solutions-apportées)
-7. [L'application mobile SAMCAM](#7-lapplication-mobile-samcam)
-8. [Évaluation de la fiabilité du système](#8-évaluation-de-la-fiabilité-du-système)
-9. [Prise en main et guide d'utilisation](#9-prise-en-main-et-guide-dutilisation)
-10. [Perspectives d'évolution](#10-perspectives-dévolution)
-11. [Conclusion](#11-conclusion)
+3. [Présentation du système](#3-présentation-du-système)
+4. [Architecture technique du projet](#4-architecture-technique-du-projet)
+5. [Conception et implémentation](#5-conception-et-implémentation)
+6. [Difficultés rencontrées et solutions apportées](#6-difficultés-rencontrées-et-solutions-apportées)
+7. [Résultats et fonctionnalités livrées](#7-résultats-et-fonctionnalités-livrées)
+8. [Guide d'utilisation](#8-guide-dutilisation)
+9. [Perspectives et évolutions futures](#9-perspectives-et-évolutions-futures)
+10. [Conclusion](#10-conclusion)
 
 ---
 
@@ -34,9 +33,9 @@ SAMCAM est un prototype de **système d'alerte climatique précoce** conçu pour
 
 Le système repose sur trois piliers :
 
-1. **Une station serveur autonome** (Raspberry Pi) qui collecte les données, exécute les modèles d'intelligence artificielle et affiche la situation sur un écran local ;
-2. **Des données météorologiques et satellitaires open source**, complétées par des capteurs locaux reliés à la station ;
-3. **Une application mobile** (Flutter) qui restitue les alertes de façon simple et lisible pour les habitants, agriculteurs et autorités locales, y compris en cas de connectivité limitée.
+1. **Une station serveur autonome** (Raspberry Pi), aujourd'hui déployée et opérationnelle en continu, qui collecte les données et exécute les modèles d'intelligence artificielle ;
+2. **Des données météorologiques et satellitaires open source** (Open-Meteo, NASA POWER, Google Earth Engine), avec une variante entièrement hors-ligne (capteurs de terrain) déjà validée sur le plan algorithmique ;
+3. **Une application mobile** (Flutter) qui restitue les alertes de façon simple et lisible pour les habitants, agriculteurs et autorités locales, y compris en cas de connectivité limitée, en français ou en anglais.
 
 L'ambition du projet n'est pas de remplacer les services météorologiques nationaux, mais de démontrer qu'un système d'alerte **léger, peu coûteux et déployable localement** peut fournir une information de risque exploitable là où l'accès à l'information climatique fait défaut.
 
@@ -66,11 +65,11 @@ Cette problématique se décompose en plusieurs sous-questions :
 | Comment produire une prédiction de risque locale ? | Chaque zone a sa propre climatologie (Kribi ≠ Maroua) |
 | Où exécuter les calculs ? | Le téléphone des utilisateurs est souvent d'entrée de gamme |
 | Comment servir l'information sans connexion permanente ? | Couverture réseau intermittente en zone rurale |
-| Comment rendre l'alerte compréhensible ? | Publics variés : agriculteurs, habitants, autorités |
+| Comment rendre l'alerte compréhensible ? | Publics variés : agriculteurs, habitants, autorités, francophones et anglophones |
 
 ### 2.3 Les dix-huit zones surveillées
 
-Les 8 zones initiales couvraient les grandes villes et leur climat régional. Une deuxième vague de **10 zones agricoles** a été ajoutée pour couvrir des filières et régions non représentées (riziculture, coton, cacao, café, palmier à huile, élevage) — voir §6.6 pour la méthode d'intégration.
+Les 8 zones initiales couvraient les grandes villes et leur climat régional. Une deuxième vague de **10 zones agricoles** a été ajoutée pour couvrir des filières et régions non représentées (riziculture, coton, cacao, café, palmier à huile, élevage) — voir §6.5 pour la méthode d'intégration.
 
 **Zones initiales**
 
@@ -102,11 +101,11 @@ Les 8 zones initiales couvraient les grandes villes et leur climat régional. Un
 
 ---
 
-## 3. Architecture générale du système
+## 3. Présentation du système
 
 ### 3.1 Vue d'ensemble
 
-Le système suit une **architecture hybride centrée sur la station serveur** : le traitement lourd (collecte, IA) est centralisé sur la Raspberry Pi ; l'application mobile ne fait qu'interroger une API REST légère et conserve un cache local pour fonctionner hors-ligne.
+Le système suit une **architecture centrée sur la station serveur** : le traitement lourd (collecte, IA) est centralisé sur la Raspberry Pi ; l'application mobile ne fait qu'interroger une API REST légère et conserve un cache local pour fonctionner hors-ligne.
 
 ```mermaid
 flowchart TB
@@ -116,13 +115,17 @@ flowchart TB
         GEE["Google Earth Engine<br/>Sentinel-2 · MODIS · SMAP<br/>CHIRPS · IMERG · ERA5"]
     end
 
-    subgraph STATION["🖥️ STATION SERVEUR — RASPBERRY PI"]
-        CAPTEURS["🌡️ Capteurs locaux<br/>(température, humidité, pluviométrie)<br/>— autonomie sans réseau,<br/>précision moindre"]
-        COLLECTE["Collecte quotidienne<br/>(cron)"]
+    subgraph STATION["🖥️ STATION SERVEUR — RASPBERRY PI (déployée)"]
+        COLLECTE["Collecte quotidienne<br/>(conteneur collector)"]
         PIPELINE["Prétraitement +<br/>features dérivées"]
         IA["54 modèles IA zonaux<br/>(RandomForest / GradientBoosting)"]
         API["API REST FastAPI<br/>(port 8000)"]
-        ECRAN["🖵 Écran local<br/>(dashboard HTML)"]
+        ASSIST["Assistant IA local<br/>(Ollama, Qwen 3 0.6B)"]
+    end
+
+    subgraph OFFLINE["🌡️ VARIANTE 100% HORS-LIGNE (validée, non déployée)"]
+        CAPTEURS["Capteurs de terrain<br/>(pression, T°, humidité, pluie, sol)"]
+        SENSORMOD["54 modèles « capteurs seuls »<br/>(models/zonal_sensor/)"]
     end
 
     subgraph CLIENTS["📱 CLIENTS"]
@@ -133,52 +136,59 @@ flowchart TB
     OM -->|"si réseau disponible"| COLLECTE
     NASA -->|"si réseau disponible"| COLLECTE
     GEE -->|"si réseau disponible"| COLLECTE
-    CAPTEURS -->|"liaison locale permanente"| COLLECTE
     COLLECTE --> PIPELINE --> IA --> API
-    IA --> ECRAN
-    API -->|"JSON léger, si réseau"| APP
+    API --> ASSIST
+    CAPTEURS -.->|"perspective : boîtier local"| SENSORMOD
+    API -->|"JSON léger via Tailscale Funnel"| APP
     API -.->|"perspective"| WA
 ```
 
 ### 3.2 Principe de fonctionnement
 
-1. **En local, en permanence** : les capteurs reliés à la Raspberry Pi remontent leurs mesures ; la station affiche sur son écran le tableau de bord de la situation (dernier bulletin calculé, niveaux d'alerte par zone). La station reste utile même totalement isolée du réseau — avec une précision réduite : les capteurs ne voient que les conditions du point d'installation, sans prévisions ni imagerie satellite (voir §4.1).
-2. **Quand le réseau est disponible** : la station récupère automatiquement (tâches cron) les données météo observées et prévues ainsi que les données satellitaires, recalcule les risques pour les 18 zones et les 6 horizons (J0, J+1, J+3, J+7, J+10, J+14), et met les résultats à disposition de l'application mobile via son API.
-3. **Côté téléphone** : l'application interroge l'API quand elle a du réseau et met en cache chaque réponse ; hors couverture, elle affiche les dernières données connues avec leur date, sans jamais laisser l'utilisateur devant un écran vide.
+1. **En continu sur la station** : la Raspberry Pi (nommée *Cameroun*) récupère automatiquement, chaque jour à 05h00 UTC, les données météo observées et prévues ainsi que les données satellitaires, recalcule les risques pour les 18 zones et les 6 horizons (J0, J+1, J+3, J+7, J+10, J+14), et met les résultats à disposition de l'application mobile via son API, publiée sur Internet via Tailscale Funnel (`https://cameroun.tail7296d8.ts.net`).
+2. **Côté téléphone** : l'application interroge l'API quand elle a du réseau et met en cache chaque réponse ; hors couverture, elle affiche les dernières données connues avec leur date, sans jamais laisser l'utilisateur devant un écran vide — y compris pour des zones jamais consultées individuellement (voir §6.7).
+3. **Perspective validée** : une variante n'utilisant que des capteurs de terrain (sans aucune dépendance réseau) a été testée et donne des résultats quasiment identiques à la version connectée (voir §5.5) — reste une étape matérielle avant un déploiement réel.
 
-Ce découpage répond directement à la contrainte de connectivité : **aucun des trois maillons (station, écran local, téléphone) ne dépend d'une connexion permanente pour rester utile**.
+Ce découpage répond directement à la contrainte de connectivité : **aucun maillon ne dépend d'une connexion permanente pour rester utile**.
 
 ---
 
-## 4. Le serveur : la station Raspberry Pi
+## 4. Architecture technique du projet
 
-### 4.1 Rôle et composition matérielle
+### 4.1 La station serveur : de la conception au déploiement réel
 
-La station est le cerveau du système. Elle est construite autour d'une **Raspberry Pi** — choisie pour son coût (< 100 €), sa faible consommation (alimentable par panneau solaire) et sa capacité suffisante pour exécuter des modèles scikit-learn.
+La station est le cerveau du système. Elle est construite autour d'une **Raspberry Pi** — choisie pour son coût (< 100 €), sa faible consommation et sa capacité suffisante pour exécuter des modèles scikit-learn. Elle est aujourd'hui **effectivement déployée et vérifiée en fonctionnement continu**, à l'adresse publique `https://cameroun.tail7296d8.ts.net`.
+
+**Contrainte de départ** : ce Raspberry Pi (4 Go, en pratique ~2 Go utilisables) héberge **trois projets simultanément**, avec un serveur **Ollama natif partagé** entre eux. L'architecture a donc été conçue pour ne jamais dupliquer Ollama et pour isoler strictement la consommation mémoire des deux seuls services propres à SAMCAM.
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                    STATION SAMCAM (Raspberry Pi)             │
-│                                                              │
-│   ┌────────────┐    ┌─────────────────────────────────┐     │
-│   │  Capteurs  │───▶│  Raspberry Pi                   │     │
-│   │  locaux    │    │  · collecte (cron)              │     │
-│   │  T°/hum./  │    │  · pipeline de features         │     │
-│   │  pluie     │    │  · 54 modèles IA (.pkl)         │     │
-│   └────────────┘    │  · API FastAPI :8000            │     │
-│                     │  · historiques CSV (36 ans)     │     │
-│                     └───────┬──────────────┬──────────┘     │
-│                             │ HDMI         │ WiFi/4G        │
-│                     ┌───────▼──────┐   ┌───▼────────────┐   │
-│                     │ Écran local  │   │ Vers Internet  │   │
-│                     │ (dashboard)  │   │ (APIs + app)   │   │
-│                     └──────────────┘   └────────────────┘   │
+│                    STATION SAMCAM (Raspberry Pi)              │
+│                                                                │
+│   ┌──────────────────────────────────────────────────────┐   │
+│   │  Ollama (natif, partagé avec 2 autres projets)        │   │
+│   │  qwen3:0.6B                                           │   │
+│   └───────────────────────┬────────────────────────────────┘   │
+│                            │ localhost:11434                   │
+│   ┌────────────────────────▼───────────────────────────────┐   │
+│   │  Conteneur Docker « api »        (300 Mo max)          │   │
+│   │  · API FastAPI :8000                                   │   │
+│   │  · assistant IA (appel Ollama)                         │   │
+│   ├──────────────────────────────────────────────────────┤   │
+│   │  Conteneur Docker « collector »  (250 Mo max)          │   │
+│   │  · collecte quotidienne + Google Earth Engine          │   │
+│   └──────────────────────────────────────────────────────┘   │
+│                            │ WiFi/Ethernet                     │
+│                   ┌────────▼─────────┐                        │
+│                   │ Tailscale Funnel │──▶ Internet (HTTPS)     │
+│                   └──────────────────┘                        │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **Capteurs locaux** (température, humidité, pluviométrie) : ils constituent la **station météo de secours** du système. Leur rôle est double : (1) fournir une mesure de terrain en temps réel qui permet de contrôler la cohérence des données d'API, et (2) garantir qu'en **absence totale de réseau**, la station continue de mesurer les conditions locales et d'alimenter l'écran d'affichage. Cette autonomie a un prix assumé : les capteurs ne mesurent qu'en un point unique et ne remplacent ni les prévisions à 14 jours, ni les données satellitaires (humidité des sols, végétation) — le mode « capteurs seuls » est donc **complet en local mais moins précis** que le mode connecté. Dès que le réseau revient, les données d'API reprennent la priorité et les modèles retrouvent leur pleine capacité.
-- **Écran local** : branché en HDMI, il affiche en continu le tableau de bord (`dashboard/samcam-v4-dashboard.html`, servi par l'API sur `/dashboard`) : météo courante, niveaux de risque des zones, dernières alertes. Il fait de la station un point d'information public (mairie, coopérative agricole, école).
-- **Connexion réseau (WiFi/4G)** : opportuniste. Quand elle est présente, la station se synchronise avec les sources distantes et sert l'application mobile.
+- **Docker Engine natif** (pas Docker Desktop) : overhead minimal, adapté à une RAM contrainte.
+- **`network_mode: host`** sur le conteneur `api` : lui permet d'appeler Ollama sur `localhost:11434` sans configuration réseau Docker supplémentaire.
+- **Volumes montés, pas d'image figée** : le code (`data/`, `models/`, `config/`) est monté depuis le système de fichiers hôte — une mise à jour se fait en resynchronisant les fichiers, pas en reconstruisant systématiquement l'image.
+- **Tailscale Funnel** : tunnel HTTPS sortant gratuit, seule option réaliste derrière la 4G camerounaise (CGNAT, pas d'IP publique — voir §8.5).
 
 ### 4.2 Architecture logicielle du serveur
 
@@ -197,33 +207,33 @@ SAMCAM/
 │   └── community_reports/   ← Signalements terrain des utilisateurs
 ├── training/                ← Génération des labels + entraînement des modèles
 │   ├── build_labels.py              (labels par règles climatologiques + événements réels)
-│   ├── generate_zone_config.py      (calibration climatique depuis l'historique réel — §6.6)
-│   ├── calibrate_zone_thresholds.py (ré-étalonnage statistique des seuils — §6.6)
-│   ├── train_zonal_models.py        (54 modèles : 18 zones × 3 risques)
+│   ├── generate_zone_config.py      (calibration climatique depuis l'historique réel — §6.5)
+│   ├── calibrate_zone_thresholds.py (ré-étalonnage statistique des seuils — §6.5)
+│   ├── train_zonal_models.py        (54 modèles ; option --sensor-only, voir §5.5)
 │   ├── onboard_new_zones.sh         (pipeline complet d'intégration d'une nouvelle zone)
 │   └── evaluate_real_events.py      (validation contre événements réels)
 ├── inference/               ← Moteur de prédiction
 │   ├── infer_zonal.py               (inférence multi-horizon J0 → J+14)
 │   └── compute_daily_predictions.py (pré-calcul quotidien → cache)
-├── models/zonal/            ← 54 modèles entraînés (.pkl) + métriques
+├── models/
+│   ├── zonal/               ← 54 modèles de production (.pkl) + métriques
+│   └── zonal_sensor/        ← 54 modèles « capteurs seuls » (.pkl) + métriques
 ├── server/
 │   ├── api.py                       (API REST FastAPI)
-│   ├── whatsapp_bot.py              (bot WhatsApp — voir §10.2)
-│   └── send_push_alerts.py          (notifications push — voir §10.3)
+│   ├── whatsapp_bot.py              (bot WhatsApp — voir §9.1)
+│   └── send_push_alerts.py          (notifications push — voir §9.2)
 ├── docker/                  ← Images Docker (API + collecteur) pour déploiement Pi
 ├── docker-compose.yml       ← Orchestration des conteneurs SAMCAM (Ollama reste natif)
-├── install_pi.sh            ← Installation automatique sur Raspberry Pi (voir §9.2bis)
-├── dashboard/               ← Tableau de bord HTML (écran local)
-└── samcam_app/              ← Application mobile Flutter (FR/EN, lib/l10n/)
+├── install_pi.sh            ← Installation automatique sur Raspberry Pi (voir §8.2bis)
+├── dashboard/                ← Tableau de bord HTML (écran local)
+└── samcam_app/               ← Application mobile Flutter (FR/EN, lib/l10n/)
 ```
 
 ### 4.3 Le cycle quotidien de la station
 
-Chaque jour, une chaîne de tâches cron s'exécute :
-
 ```mermaid
 sequenceDiagram
-    participant C as Cron (6h00)
+    participant C as Boucle collector (05h00 UTC)
     participant COL as collect_all_zones.py
     participant HIST as append_daily_to_historical.py
     participant PRED as compute_daily_predictions.py
@@ -241,11 +251,9 @@ sequenceDiagram
     API-->>APP: Réponse < 100 ms (lecture cache)
 ```
 
-Le **cache de prédictions** est un choix d'architecture important : l'inférence complète (chargement des historiques + calcul des features glissantes + 54 modèles × 6 horizons) prend plusieurs secondes — inacceptable par requête HTTP sur une Raspberry Pi. En pré-calculant une fois par jour, l'API répond en **moins de 100 ms** quelle que soit la charge, et le calcul en direct ne sert que de secours si le cache est absent.
+Le **cache de prédictions** est un choix d'architecture important : l'inférence complète (chargement des historiques + calcul des features glissantes + 54 modèles × 6 horizons) prend plusieurs secondes — inacceptable par requête HTTP sur une Raspberry Pi. En pré-calculant une fois par jour, l'API répond en **moins de 100 ms** quelle que soit la charge.
 
 ### 4.4 L'API REST
-
-L'API (FastAPI + uvicorn, port 8000) expose des réponses JSON légères, pensées pour des connexions lentes :
 
 | Endpoint | Rôle |
 |---|---|
@@ -253,20 +261,33 @@ L'API (FastAPI + uvicorn, port 8000) expose des réponses JSON légères, pensé
 | `GET /api/zones` | Liste des zones disponibles |
 | `GET /api/risk?zone=X` | Bulletin de risque complet d'une zone (J0 → J+14) |
 | `GET /api/nearest?lat=&lon=` | Bulletin de la zone la plus proche d'une position GPS |
-| `GET /api/overview` | Niveau d'alerte des 18 zones en une requête (~58 ms) |
+| `GET /api/overview` | Niveau d'alerte des 18 zones en une requête |
 | `GET /api/history?zone=&days=` | Évolution jour par jour des scores (jusqu'à 90 j) |
 | `GET /api/meteo?zone=X` | Météo courante et prévisions |
+| `POST /api/assistant` | Résumé/question en langage naturel, ancré sur les données réelles (voir §7.1, §9.1) |
 | `POST /api/signalement` | Dépôt d'un signalement terrain par un utilisateur |
-| `GET /api/signalements` | Consultation des signalements (recalibration des modèles) |
 | `GET /dashboard` | Tableau de bord HTML (écran local) |
+
+### 4.5 Pile technologique
+
+| Couche | Technologies |
+|---|---|
+| Collecte | Python, requests/httpx, Google Earth Engine API |
+| Données | CSV (pandas), JSON |
+| ML | scikit-learn (RandomForest, GradientBoosting), TimeSeriesSplit |
+| API | FastAPI, uvicorn, pydantic |
+| Assistant IA | Ollama — Qwen 3 0.6B sur le Pi (partagé), Phi-3 mini en développement |
+| Bot WhatsApp | Meta WhatsApp Business Cloud API, httpx |
+| Déploiement Pi | Docker Engine (Linux natif), Docker Compose, Tailscale Funnel |
+| Application | Flutter/Dart, fl_chart, geolocator, shared_preferences, flutter_local_notifications, share_plus, flutter_localizations (FR/EN) |
+| Écran local | HTML/CSS/JS (servi par FastAPI) |
+| Push (préparé) | Firebase Cloud Messaging, firebase-admin |
 
 ---
 
-## 5. Le cœur intelligent : données, algorithmes et modèles IA
+## 5. Conception et implémentation
 
 ### 5.1 Schéma complet du flux de données
-
-Le schéma ci-dessous détaille tout ce qui est récupéré, comment c'est traité, et ce que produisent les modèles — l'ensemble s'exécutant sur la Raspberry Pi :
 
 ```mermaid
 flowchart TB
@@ -274,39 +295,36 @@ flowchart TB
         direction LR
         A1["Open-Meteo<br/>· température min/moy/max<br/>· précipitations<br/>· humidité, vent, ET0<br/>· prévisions 14 jours"]
         A2["NASA POWER<br/>· rayonnement solaire<br/>· évapotranspiration"]
-        A3["Google Earth Engine<br/>· Sentinel-2 : NDVI, NDWI, NDRE<br/>· MODIS : NDVI (secours)<br/>· SMAP/ERA5 : humidité des sols<br/>(0-7, 7-28, 28-100 cm)<br/>· CHIRPS + IMERG : pluie satellite"]
-        A4["Capteurs locaux<br/>· T°, humidité, pluie<br/>(secours autonome sans réseau,<br/>moins précis)"]
+        A3["Google Earth Engine<br/>· Sentinel-2 : NDVI, NDWI, NDRE<br/>· MODIS : NDVI (secours)<br/>· SMAP/ERA5 : humidité des sols<br/>· CHIRPS + IMERG : pluie satellite"]
     end
 
-    subgraph FEAT["2 — PRÉTRAITEMENT & FEATURES (23 à 31 par risque)"]
+    subgraph FEAT["2 — PRÉTRAITEMENT & FEATURES"]
         direction LR
         F1["Cumuls glissants<br/>rain_7d / 14d / 30d / 90d"]
         F2["Anomalies<br/>temp_anom_30d, SPI-3 approché"]
-        F3["Extrêmes<br/>temp_max_7d, jours consécutifs"]
-        F4["Sols & végétation<br/>humidité par couche, NDVI"]
+        F3["Extrêmes<br/>temp_max_7d"]
+        F4["Sols<br/>humidité par couche"]
         F5["Saisonnalité<br/>mois, semaine, jour de l'année"]
     end
 
     subgraph LABELS["3 — LABELS D'ENTRAÎNEMENT (par zone)"]
-        L1["Règles climatologiques<br/>calibrées sur les normales réelles<br/>de chaque zone (config/zones/*.json) :<br/>pluie vs percentiles hebdo, ET0 vs normale,<br/>humidité sol vs climatologie, T° vs seuils"]
+        L1["Règles climatologiques<br/>calibrées sur les normales réelles<br/>de chaque zone (config/zones/*.json)"]
     end
 
     subgraph TRAIN["4 — ENTRAÎNEMENT (training/)"]
         T1["54 modèles = 18 zones × 3 risques<br/>RandomForest ou GradientBoosting<br/>(sélection auto du meilleur)"]
-        T2["Validation croisée temporelle<br/>(TimeSeriesSplit, anti-fuite)<br/>AUC médian : 0,91"]
-        T3["Seuil de décision optimisé<br/>par modèle (F1)"]
+        T2["Validation croisée temporelle<br/>(TimeSeriesSplit, anti-fuite)"]
     end
 
     subgraph INF["5 — INFÉRENCE QUOTIDIENNE (inference/)"]
         I1["J0 : fenêtre des 30 derniers jours"]
-        I2["J+1 → J+14 : les prévisions météo réelles<br/>prolongent l'historique, les features<br/>glissantes sont recalculées ;<br/>l'humidité des sols est extrapolée<br/>par tendance (régression 14 j)"]
-        I3["Cache latest.json<br/>18 zones × 3 risques × 6 horizons"]
+        I2["J+1 → J+14 : prévisions météo réelles<br/>+ features glissantes recalculées"]
+        I3["Cache latest.json"]
     end
 
     subgraph OUT["6 — RESTITUTION"]
         O1["API REST → app mobile"]
-        O2["Dashboard → écran local"]
-        O3["Niveaux : VERT / JAUNE /<br/>ORANGE / ROUGE"]
+        O2["Niveaux : VERT / JAUNE / ORANGE / ROUGE"]
     end
 
     ACQ --> FEAT
@@ -323,174 +341,187 @@ flowchart TB
 |---|---|---|---|
 | **Open-Meteo** | Températures, précipitations, humidité, vent, ET0 ; prévisions à 14 jours | Quotidienne | Socle des features + horizons J+1 → J+14 |
 | **NASA POWER** | Rayonnement solaire, évapotranspiration de référence | Quotidienne | Stress hydrique (sécheresse) |
-| **Sentinel-2** (GEE) | NDVI, NDWI, NDRE (indices de végétation et d'eau, masquage des nuages) | ~5 jours | État de la végétation |
-| **MODIS** (GEE) | NDVI | Quotidien | Secours quand Sentinel-2 est trop nuageux |
-| **SMAP / ERA5** (GEE) | Humidité des sols sur 3 profondeurs (0-7, 7-28, 28-100 cm) | Quotidienne | Signal clé de la sécheresse |
-| **CHIRPS / IMERG** (GEE) | Précipitations estimées par satellite | Quotidienne | Contrôle croisé de la pluie |
-| **Capteurs locaux** | T°, humidité, pluviométrie sur site | Continue | Mode de secours autonome (sans réseau) + contrôle terrain — moins précis que les sources satellite/API |
+| **Sentinel-2** (GEE) | NDVI, NDWI, NDRE (indices de végétation, masquage des nuages) | ~5 jours | État de la végétation (moteur de secours, voir §5.4) |
+| **SMAP / ERA5** (GEE) | Humidité des sols sur 3 profondeurs | Quotidienne | Signal clé de la sécheresse |
+| **CHIRPS / IMERG** (GEE) | Précipitations estimées par satellite | Quotidienne | Contrôle croisé de la pluie — voir §6.6 pour un bug corrigé sur ce point précis |
 
-Les historiques couvrent **36 ans pour les zones du Nord** (1990-2026) et **26 ans pour les zones du Sud** (2000-2026), soit ~9 500 à 13 200 jours de données par zone — une profondeur indispensable pour apprendre la variabilité interannuelle.
+Les historiques couvrent **36 ans pour les zones du Nord** (1990-2026) et **26 ans pour les zones du Sud** (2000-2026), soit ~9 500 à 13 200 jours de données par zone.
 
 ### 5.3 Pourquoi 54 modèles et pas un seul ?
 
-Un modèle unique « Cameroun » serait dominé par les contrastes entre zones (il pleut 10 fois plus à Kribi qu'à Maroua en janvier) au lieu d'apprendre les anomalies *au sein* de chaque zone. Le choix retenu : **un modèle par zone et par risque** (18 × 3 = 54), chacun entraîné sur l'historique de sa zone avec des labels calibrés sur la climatologie locale (fichiers `config/zones/*.json` : normales mensuelles de pluie et d'ET0, percentiles hebdomadaires, climatologie de l'humidité des sols — tous recalculés depuis les données réelles).
+Un modèle unique « Cameroun » serait dominé par les contrastes entre zones (il pleut 10 fois plus à Kribi qu'à Maroua en janvier) au lieu d'apprendre les anomalies *au sein* de chaque zone. Le choix retenu : **un modèle par zone et par risque** (18 × 3 = 54), chacun entraîné sur l'historique de sa zone avec des labels calibrés sur la climatologie locale.
 
-L'entraînement (script `train_zonal_models.py`) :
+L'entraînement (`train_zonal_models.py`) :
 
-- essaie **RandomForest** et **GradientBoosting** et retient le meilleur ;
-- valide en **TimeSeriesSplit** (validation croisée temporelle) : on ne teste jamais sur le passé de ce qu'on a appris, pour éviter la fuite temporelle ;
+- essaie **RandomForest** et **GradientBoosting** et retient le meilleur (27/27 sur les 54 modèles de production) ;
+- valide en **TimeSeriesSplit** : on ne teste jamais sur le passé de ce qu'on a appris ;
 - optimise le **seuil de décision** de chaque modèle (compromis précision/rappel via F1).
 
-Résultats sur les 54 modèles : AUC de validation croisée entre 0,61 et 0,998, **médiane 0,96**. Les modèles les plus performants sont ceux des risques à forte signature saisonnière (inondation Maroua : 0,99) ; les plus difficiles restent la sécheresse en zone sahélienne (Maroua : 0,63, Garoua : 0,66), où la saison sèche « normale » ressemble beaucoup à une sécheresse anormale — un défi structurel plutôt qu'un problème d'entraînement, qui persiste sur les nouvelles zones sahéliennes (Kaélé, Guider) malgré un ré-étalonnage dédié (voir §6.6).
+Résultats : AUC de validation croisée entre 0,61 et 0,998, **médiane 0,96**. Les plus difficiles restent la sécheresse en zone sahélienne (Maroua : 0,63, Garoua : 0,66), où la saison sèche « normale » ressemble beaucoup à une sécheresse anormale — un défi structurel plutôt qu'un problème d'entraînement (voir §7.2 pour une évaluation contre événements réels).
 
 ### 5.4 La prévision multi-horizon (J+1 à J+14)
 
-C'est l'un des apports techniques du projet. Pour prédire le risque à J+7, le moteur (`infer_zonal.py`) :
+Pour prédire le risque à J+7, le moteur (`infer_zonal.py`) :
 
 1. prend l'historique réel jusqu'à aujourd'hui ;
-2. le **prolonge avec les prévisions météo réelles** d'Open-Meteo (pluie, températures prévues jour par jour) ;
-3. **recalcule toutes les features glissantes** (rain_30d, anomalies…) sur cette série étendue ;
-4. pour les variables sans prévision disponible (humidité des sols), applique une **extrapolation de tendance** (régression linéaire sur les 14 derniers jours) plutôt qu'une simple persistance ;
+2. le **prolonge avec les prévisions météo réelles** d'Open-Meteo ;
+3. **recalcule toutes les features glissantes** sur cette série étendue ;
+4. pour l'humidité des sols (sans prévision disponible), applique une **extrapolation de tendance** (régression sur les 14 derniers jours) ;
 5. applique le modèle de la zone sur la ligne correspondant à la date cible.
 
-La prédiction à J+7 reflète donc réellement la météo annoncée, et non une simple reconduction du présent.
+### 5.5 Une variante 100 % hors-ligne : les modèles « capteurs seuls »
+
+**Question posée en cours de projet** : le système peut-il fonctionner sans aucune connexion internet, avec un simple boîtier de capteurs de terrain (pression, température, humidité, pluie, sol) ?
+
+**Constat de départ, en relisant le code d'entraînement** : les 54 modèles de production n'utilisaient déjà **pas** le NDVI ni les données CHIRPS/SMAP/ERA5 pour l'apprentissage — uniquement Open-Meteo et NASA POWER (le NDVI n'intervient que dans le moteur de secours à base de règles, `risk_model.py`). Les features réellement utilisées par les modèles ML se recoupent donc fortement avec ce qu'un capteur de terrain peut mesurer.
+
+**Protocole de validation** : un nouveau mode d'entraînement (`train_zonal_models.py --sensor-only`) restreint les features aux seules variables mesurables localement (température, humidité, précipitations, humidité du sol, plus les cumuls glissants qui en dérivent) — en excluant vent, rayonnement solaire, ET0 calculé et tous les champs NASA POWER. Les 54 modèles ont été ré-entraînés dans cette configuration et comparés aux modèles de production.
+
+| | AUC médiane (54 modèles) |
+|---|---|
+| Production (satellite + NASA) | 0,960 |
+| Capteurs seuls | 0,955 |
+
+L'écart est négligeable (delta médian : +0,0006), concentré sur le risque sécheresse (pire cas : Garoua, -0,051), sans impact mesurable sur l'inondation ou la chaleur.
+
+**Conclusion** : un boîtier de terrain entièrement autonome (Raspberry Pi + capteurs + module GSM pour l'alerte SMS, sans connexion data) est réalisable avec une fiabilité quasi identique au système connecté. Les modèles (`models/zonal_sensor/`) sont prêts et versionnés ; il manque le matériel physique et le code d'ingestion embarquée — détaillé en perspective (§9.3).
 
 ---
 
-## 6. Problématiques rencontrées et solutions apportées
+## 6. Difficultés rencontrées et solutions apportées
 
-Le développement a traversé plusieurs difficultés significatives. Les plus instructives sont détaillées ici.
+Le développement a traversé plusieurs difficultés significatives, de la calibration des modèles jusqu'au déploiement matériel. Les plus instructives sont détaillées ici, sous la même forme à chaque fois : symptôme observé → diagnostic → correction.
 
 ### 6.1 Des scores de risque aberrants : l'audit des labels
 
 **Symptôme** : certaines zones affichaient des risques quasi permanents (sécheresse Kribi épinglée à 99,9 % sur tous les horizons, inondation Maroua à 100 %… en pleine saison sèche).
 
-**Diagnostic** : les modèles apprenaient des labels générés par règles, et ces règles étaient mal calibrées. Trois bugs distincts ont été identifiés par un audit systématique des 8 zones :
+**Diagnostic** : les modèles apprenaient des labels générés par règles, et ces règles étaient mal calibrées. Trois bugs distincts ont été identifiés par un audit systématique :
 
 | Bug | Cause | Effet | Correction |
 |---|---|---|---|
-| **Normales d'ET0 sous-évaluées** (~4 à 5× trop basses, 8 zones) | Valeurs de config jamais confrontées aux données réelles | Le critère « stress ET0 » de la sécheresse se déclenchait presque tous les jours de l'année | Recalcul des normales mensuelles d'ET0 depuis les historiques réels |
-| **Normales de pluie sous-évaluées** (ex. Kribi juillet : 30 mm configurés vs 224 mm réels) | Idem | Le critère « excès de pluie » de l'inondation sur-déclenchait toute la saison humide | Recalcul des normales et des percentiles hebdomadaires depuis les données réelles |
-| **Comparaison `>= 0`** | Quand la normale mensuelle de pluie vaut 0 (saison sèche profonde à Maroua), les seuils dérivés valent 0 et `pluie >= 0` est toujours vrai | Label « inondation » à 100 % à Maroua… en décembre-janvier | Remplacement de `>=` par `>` dans les critères concernés |
+| **Normales d'ET0 sous-évaluées** (~4 à 5× trop basses) | Valeurs de config jamais confrontées aux données réelles | Le critère « stress ET0 » se déclenchait presque tous les jours | Recalcul des normales depuis les historiques réels |
+| **Normales de pluie sous-évaluées** (ex. Kribi juillet : 30 mm configurés vs 224 mm réels) | Idem | Le critère « excès de pluie » sur-déclenchait toute la saison humide | Recalcul depuis les données réelles |
+| **Comparaison `>= 0`** | Quand la normale mensuelle de pluie vaut 0, les seuils dérivés valent 0 et `pluie >= 0` est toujours vrai | Label « inondation » à 100 % à Maroua en saison sèche | Remplacement de `>=` par `>` |
 
-**Leçon retenue** : dans un système à base de règles + ML, **la qualité des labels prime sur celle du modèle**. Un AUC élevé ne garantit rien si les labels sont faux ; chaque valeur « bizarre » affichée par l'application méritait d'être tracée jusqu'à la donnée source. Après correction, les 24 modèles ont été réentraînés et les taux de positifs sont revenus à des valeurs physiquement plausibles.
+**Leçon retenue** : dans un système à base de règles + ML, **la qualité des labels prime sur celle du modèle**. Un AUC élevé ne garantit rien si les labels sont faux.
 
 ### 6.2 Un historique figé
 
 **Symptôme** : l'écran « Historique » de l'app affichait la même valeur pour chaque jour passé.
 
-**Cause** : après l'introduction du cache de prédictions, l'endpoint `/api/history` relisait pour chaque jour la valeur *du jour courant* (le cache ne contient qu'une entrée par zone).
+**Cause** : l'endpoint `/api/history` relisait pour chaque jour la valeur *du jour courant* (le cache ne contient qu'une entrée par zone).
 
-**Solution** : exposer la série journalière que le modèle calcule déjà en interne (une probabilité par jour de la fenêtre d'inférence) via une nouvelle fonction `infer_zone_risk_series()`, court-circuitant le cache pour les requêtes historiques. L'historique montre désormais l'évolution réelle jour par jour.
+**Solution** : exposer la série journalière que le modèle calcule déjà en interne via une fonction dédiée (`infer_zone_risk_series()`), court-circuitant le cache pour les requêtes historiques.
 
 ### 6.3 Performance sur Raspberry Pi
 
 **Problème** : l'inférence complète par requête HTTP est trop lente pour le matériel cible.
 
-**Solution** : séparation calcul/restitution. Le pipeline quotidien pré-calcule tout (`compute_daily_predictions.py` → `latest.json`) ; l'API ne fait que lire ce cache (invalidé par mtime), avec le calcul en direct en simple secours. Résultat : `/api/overview` répond en quelques dizaines de ms pour les 18 zones.
+**Solution** : séparation calcul/restitution — le pipeline quotidien pré-calcule tout, l'API ne fait que lire le cache.
 
-### 6.4 Connectivité intermittente
+### 6.4 Connectivité intermittente (côté application)
 
-**Problème** : en zone rurale, ni la station ni les téléphones n'ont de réseau garanti.
+**Problème** : en zone rurale, les téléphones n'ont pas de réseau garanti.
 
-**Solutions** (à chaque maillon) :
+**Solution** : chaque réponse réseau réussie est mise en cache (`SharedPreferences`) ; en cas d'échec, l'app ressort la dernière donnée connue avec un bandeau « Mode hors-ligne ». La carte du Cameroun est dessinée localement, sans tuile réseau.
 
-- **Station** : les données d'API sont consolidées dans des CSV locaux ; les capteurs et l'écran fonctionnent sans réseau (mode dégradé : mesures locales seules, moins précises, sans prévisions ni satellite) ; la collecte complète reprend automatiquement au retour du réseau.
-- **Application** : chaque réponse réseau réussie est mise en cache (`SharedPreferences`) ; en cas d'échec, l'app ressort la dernière donnée connue avec un bandeau « Mode hors-ligne — données du JJ/MM à HH:MM ». La carte du Cameroun est dessinée localement (`CustomPainter`) sans aucune tuile réseau.
-- **Bulletins partageables en texte brut** (pas de pièce jointe) : transmissibles par SMS ou WhatsApp même sur une connexion minimale.
+### 6.5 Intégrer 10 nouvelles zones sans dégrader la fiabilité
 
-### 6.5 Autres difficultés notables
+**Contexte** : chaque nouvelle zone agricole (§2.3) a sa propre climatologie, inconnue au départ — impossible de dupliquer la configuration d'une zone existante.
 
-- **Fiabilité de mesure vs vérité terrain** : les labels d'entraînement restent des règles climatologiques, pas des événements confirmés — d'où le module de **signalement communautaire** (§7) et l'**évaluation contre événements réels** (§8).
-- **Nuages sur Sentinel-2** : en saison des pluies, l'optique satellite est souvent aveugle → masquage des nuages + repli automatique sur MODIS.
-- **Compatibilité des formats de modèles** : trois générations de fichiers `.pkl` coexistent (V3/V4/V5) → chargeur rétro-compatible gérant les trois formats.
+**Étape 1 — normales réelles, pas génériques.** `training/generate_zone_config.py` calcule les normales mensuelles directement depuis l'historique météo réellement collecté de chaque nouvelle zone.
 
-### 6.6 Intégrer 10 nouvelles zones sans dégrader la fiabilité
+**Étape 2 — un premier écueil : seuils trop sensibles.** Même avec des normales réelles, les facteurs de déclenchement restaient génériques : jusqu'à **68 % des jours en alerte chaleur** pour Guider et **32 % en alerte sécheresse** pour Ndop.
 
-**Contexte** : l'ajout des 10 zones agricoles (§2.3) ne pouvait pas se limiter à dupliquer la configuration climatique d'une zone existante — chaque nouvelle zone a sa propre climatologie, inconnue au départ.
+**Étape 3 — ré-étalonnage statistique automatique.** `training/calibrate_zone_thresholds.py` recherche par dichotomie le facteur de seuil qui aligne le taux d'alerte sur la moyenne des zones déjà calibrées de la même classe climatique. Résultat : Guider 68 % → 14,7 % (cible 14,8 %), Ndop 32 % → 4,4 % (cible 4,4 %).
 
-**Étape 1 — normales réelles, pas génériques.** Un script dédié (`training/generate_zone_config.py`) calcule les normales mensuelles de pluie, d'ET0, de température et les percentiles hebdomadaires **directement depuis l'historique météo réellement collecté** de chaque nouvelle zone (20 à 36 ans de données Open-Meteo/NASA POWER), plutôt que d'utiliser des profils climatiques génériques par grande catégorie (équatorial/hauts-plateaux/sahélien).
+**Étape 4 — ancrage sur des événements réels documentés.** Intégration des inondations de l'Extrême-Nord d'août-septembre 2024 (365 000 personnes touchées) et de Buea de mars 2023 comme vérité terrain forcée.
 
-**Étape 2 — un premier écueil : seuils trop sensibles.** Même avec des normales réelles, les *facteurs* de déclenchement des alertes (à partir de quel écart à la normale déclarer un risque) restaient repris des profils génériques. Résultat mesuré : jusqu'à **68 % des jours en alerte chaleur** pour Guider et **32 % en alerte sécheresse** pour Ndop — largement au-dessus des 5-20 % observés sur les zones déjà calibrées.
+**Résultat** : les 30 nouveaux modèles atteignent des AUC entre 0,73 et 0,998, cohérents avec les 24 modèles initiaux. `training/onboard_new_zones.sh` rend l'ajout d'une future zone mécanique.
 
-**Étape 3 — ré-étalonnage statistique automatique.** Un second script (`training/calibrate_zone_thresholds.py`) recherche par dichotomie, pour chaque zone et chaque risque, le facteur de seuil qui aligne le taux de jours en alerte sur la moyenne des zones déjà calibrées de la même classe climatique. Résultat : Guider passe de 68 % à 14,7 % d'alerte chaleur (cible : 14,8 %), Ndop de 32 % à 4,4 % de sécheresse (cible : 4,4 %).
+### 6.6 Le fallback pluie GPM IMERG cassé : une cause racine de fausses alertes sécheresse
 
-**Étape 4 — ancrage sur des événements réels documentés.** Pour les zones où c'était possible, des événements OCHA confirmés ont été intégrés comme vérité terrain forcée dans `KNOWN_EVENTS` (même mécanisme que pour les 8 zones initiales, voir §8.2) : les inondations de l'Extrême-Nord d'août-septembre 2024 (365 000 personnes touchées, zones Kaélé/Guider) et les inondations de Buea de mars 2023.
+**Symptôme** (remonté en usage réel, une semaine après la mise en production des 18 zones) : la zone de Kribi affichait un score de sécheresse de 0,976 (niveau ROUGE) alors qu'aucun événement réel ne le justifiait.
 
-**Résultat** : les 30 nouveaux modèles (10 zones × 3 risques) atteignent des AUC de validation croisée entre 0,73 et 0,998 — cohérents avec les 24 modèles initiaux (voir Annexe A pour le détail).
+**Diagnostic** : le système interroge en priorité CHIRPS (précipitations satellite) et, en cas d'indisponibilité (fréquente, latence de quelques jours), retombe automatiquement sur GPM IMERG. Or l'identifiant de collection utilisé pour ce repli, `NASA/GPM_L3/IMERG_V07/DAILY`, **n'existe pas dans le catalogue Google Earth Engine** — ni sa variante V06. Ce fallback échouait donc silencieusement à 100 % du temps depuis son introduction : dès que CHIRPS avait un trou de données, la pluie retombait à une valeur quasi nulle en aval, gonflant artificiellement le score de sécheresse calculé par le modèle.
 
-**Réutilisabilité** : `training/onboard_new_zones.sh` enchaîne automatiquement backfill → calibration → labellisation → entraînement pour toute zone future ; ajouter une 19ᵉ zone est désormais mécanique plutôt qu'un travail sur mesure.
+**Correction** : la collection réelle est `NASA/GPM_L3/IMERG_V07` (demi-horaire, bande `precipitation`, V06 étant dépréciée) ; le code agrège désormais les créneaux de 30 minutes en totaux journaliers avant de reproduire la logique existante. Test en direct sur Earth Engine avant/après :
 
----
+| | Pluie 30 j calculée pour Kribi |
+|---|---|
+| Avant (fallback cassé, silencieux) | ~0 mm effectifs |
+| Après correction | 128,7 mm (cohérent avec la valeur CHIRPS réelle : 123,6 mm) |
 
-## 7. L'application mobile SAMCAM
+Après relance du pipeline complet sur les 18 zones, le score sécheresse de Kribi est repassé de **0,976 (ROUGE) à 0,427 (ORANGE)**, et l'ensemble des 18 zones a retrouvé une distribution de niveaux d'alerte physiquement plausible (majorité VERT/JAUNE). Ce bug touchait potentiellement toutes les zones, pas seulement Kribi, à chaque trou de couverture CHIRPS.
 
-L'application (Flutter, Android/iOS, thème sombre) est la vitrine du système pour l'utilisateur final. Elle a été conçue autour d'un principe : **une information de risque doit être comprise en moins de cinq secondes**.
+**Leçon retenue** : un mécanisme de repli (*fallback*) doit être testé pour de vrai, pas seulement codé — un repli qui échoue toujours silencieusement est pire qu'absence de repli, car il masque le problème au lieu de le signaler.
 
-### 7.1 Écran principal
+### 6.7 Un trou dans le cache hors-ligne par zone
 
-- **Météo courante animée** : température, ressenti, humidité, vent, avec animation d'arrière-plan selon le temps (pluie, soleil, orage) ;
-- **Prévisions horaires et journalières** ;
-- **Bandeau d'alerte permanent** en haut de l'écran dès qu'un risque est modéré ou élevé (couleur + zone + niveau) ;
-- **Tuiles de prévision de risque** en grille 2×2 : 3 jours / 7 jours / 10 jours / 14 jours, chacune colorée par niveau global ;
-- **Barres de risque du jour** : inondation, sécheresse, chaleur, avec explication en langage simple (« Pluie reçue 7j : 132 mm ») ;
-- **Graphique de tendance** (fl_chart) : évolution des trois risques sur tous les horizons ;
-- **Badge de méthode** : indique si le score vient des modèles IA ou des règles de secours ;
-- **Bouton de signalement** d'événement observé (voir 7.5).
+**Symptôme** (remonté en usage réel, sur site à Kribi) : hors réseau, l'application affichait les données en cache pour la zone consultée (Kribi), mais rien pour les autres zones — alors que la vue d'ensemble, elle, affichait bien les 18 zones.
 
-### 7.2 Localisation et zones
+**Diagnostic** : le cache hors-ligne des bulletins détaillés est indexé par zone (`risk_<zone>`) et n'est rempli que lorsque cette zone précise a été consultée en ligne au moins une fois. La vue d'ensemble, elle, récupère les 18 zones en un seul appel et les met toutes en cache d'un coup — d'où l'incohérence.
 
-- **GPS automatique** : l'app trouve la zone SAMCAM la plus proche (endpoint `/api/nearest`), en affichant la distance si l'on est hors zone ;
-- **Sélecteur de zones** (tiroir latéral) : les 18 zones SAMCAM + recherche de villes par géocodage (Nominatim) pour ajouter des **lieux personnalisés** ;
-- **Zone favorite** : affichée par défaut au démarrage, configurable dans les réglages.
+**Correction** : ajout d'un repli qui reconstruit un bulletin minimal (niveau de risque actuel, sans prévisions détaillées) à partir du cache de la vue d'ensemble quand le cache dédié à la zone est absent — plutôt que de n'afficher aucune donnée.
 
-### 7.3 Vue d'ensemble nationale et carte
+### 6.8 Déploiement sur le Raspberry Pi : une connexion trop instable pour `git clone`
 
-- **Grille des 18 zones** : niveau d'alerte + les trois scores en mini-barres, en une requête (`/api/overview`) ;
-- **Carte du Cameroun** : contour du pays dessiné localement, marqueurs colorés par niveau d'alerte, sélection d'une zone au toucher, légende des niveaux — **fonctionne hors-ligne**.
+**Symptôme** : `git clone` du dépôt (~400 Mo, modèles `.pkl` inclus) échouait systématiquement sur le Pi, y compris en clone superficiel (`--depth 1`), avec une erreur `HTTP/2 stream ... CANCEL`.
 
-### 7.4 Historique
+**Diagnostic** : le protocole Git en HTTP transfère le paquet d'objets en un flux unique ; s'il est interrompu, la tentative suivante repart intégralement de zéro — sur une connexion qui coupe systématiquement avant la fin du transfert, le clone ne peut jamais aboutir, quelle que soit la taille demandée.
 
-- Évolution jour par jour des trois risques sur 14 jours, par zone (sélecteur de zone intégré), avec barres colorées par risque et par jour.
+**Correction** : contournement en deux temps —
+1. Téléchargement d'une archive tarball via `wget -c` (reprise possible par plage d'octets, contrairement au protocole Git) ;
+2. Pour les mises à jour ultérieures, remplacement de `git pull` sur le Pi par un `rsync --partial` déclenché depuis la machine de développement (transfert différentiel sur réseau local, insensible aux mêmes coupures).
 
-### 7.5 Participation communautaire
+**Leçon retenue** : sur une liaison très instable, préférer un protocole avec reprise par plage d'octets (rsync, `wget -c`) à un protocole qui ne peut réussir qu'en un seul passage complet.
 
-- **Signalement terrain** : l'utilisateur peut déclarer une inondation, sécheresse ou vague de chaleur observée (type + description + position GPS). Ces signalements sont stockés côté serveur et servent de **vérité terrain** pour recalibrer les modèles — une boucle de rétroaction entre les utilisateurs et l'IA.
+### 6.9 Incohérences relevées lors de la mise en service
 
-### 7.6 Alertes et notifications
+Plusieurs anomalies mineures, mais bloquantes ou trompeuses, ont été identifiées en testant le déploiement réel :
 
-- **Seuils d'alerte personnalisables** par risque (curseurs dans les réglages) ;
-- **Notifications locales** quand un seuil est franchi (avec déduplication pour ne pas notifier en boucle) ;
-- Push véritable (app fermée) : préparé côté serveur, voir §10.
-
-### 7.7 Partage et robustesse
-
-- **Bulletin partageable** : rapport texte complet (niveau, scores, prévisions, indicateurs) via la feuille de partage native ;
-- **Mode hors-ligne** intégral décrit en §6.4 ;
-- **Réglages** : URL du serveur, zone favorite, seuils, notifications, **langue**.
-
-### 7.8 Support multilingue (Français/Anglais)
-
-L'interface complète (accueil, réglages, vue d'ensemble, historique, tiroir de zones, signalement, assistant IA, mode démo) est disponible en français et en anglais, via le système officiel de localisation Flutter (fichiers ARB, ~130 chaînes traduites). Le choix se fait dans **Réglages → Langue**, persiste entre les sessions, et s'applique instantanément sans redémarrer l'app. Les noms de zones/lieux et le nom de marque « SAMCAM » restent inchangés dans les deux langues.
+- **Casse du tag de modèle Ollama** : le modèle installé sur le Pi apparaît comme `qwen3:0.6B` (B majuscule) dans `ollama list`, alors que la configuration attendait `qwen3:0.6b` — l'assistant IA aurait échoué à trouver le modèle. Corrigé en alignant la configuration sur le tag réel, et en rendant la vérification du script d'installation insensible à la casse.
+- **Limites mémoire Docker silencieusement ignorées** : le noyau du Pi ne supporte pas les cgroups mémoire montés par défaut, donc les limites fixées (300 Mo/250 Mo) ne sont pas réellement appliquées — signalé pour information, non bloquant à ce stade, corrigible en activant `cgroup_enable=memory` au démarrage si nécessaire.
+- **L'assistant IA répondait toujours en français**, y compris quand l'application était réglée en anglais — la langue n'était jamais transmise à l'API. Corrigé en propageant la langue active de l'app jusqu'au prompt système.
+- **Qwen 3 génère un bloc de raisonnement complet avant sa réponse** (mode « thinking »), ajoutant environ 20 secondes de calcul pur pour une simple reformulation de bulletin sur le CPU du Pi. Désactivé explicitement (`"think": false`) dans l'appel à Ollama, sans perte de qualité perceptible pour cet usage.
+- **La carte « Assistant SAMCAM » perdait son état au défilement** de l'écran (se refermait, relançait une requête à Ollama à chaque réouverture) : le widget vit dans une liste défilante qui détruit par défaut l'état des éléments sortis de l'écran. Corrigé avec `AutomaticKeepAliveClientMixin`. Le fond opaque de cette carte, incohérent avec le style translucide du reste de l'écran, a été aligné au passage.
 
 ---
 
-## 8. Évaluation de la fiabilité du système
+## 7. Résultats et fonctionnalités livrées
 
-### 8.1 Les limites de l'AUC
+### 7.1 L'application mobile SAMCAM
 
-L'AUC de validation croisée (médiane 0,96 sur les 54 modèles) mesure la capacité des modèles à **reproduire les labels climatologiques** — pas à détecter de vrais événements. Pour mesurer la fiabilité réelle, un protocole d'évaluation contre des **événements documentés** (EM-DAT, OCHA, ReliefWeb) a été développé (`training/evaluate_real_events.py`).
+L'application (Flutter, Android/iOS, thème sombre) est la vitrine du système pour l'utilisateur final, conçue autour d'un principe : **une information de risque doit être comprise en moins de cinq secondes**.
 
-### 8.2 Protocole
+**Écran principal**
+- Météo courante animée (température, ressenti, humidité, vent) avec fond animé selon le temps ;
+- Bandeau d'alerte permanent dès qu'un risque est modéré ou élevé ;
+- Tuiles de prévision (3 j / 7 j / 10 j / 14 j), barres de risque du jour avec explication en langage simple, graphique de tendance ;
+- Badge de méthode (IA vs règles de secours) ; bouton de signalement.
 
-Pour chaque événement historique documenté, on vérifie :
+**Localisation et zones** : GPS automatique (zone la plus proche via `/api/nearest`), sélecteur des 18 zones + recherche de villes personnalisées (géocodage Nominatim), zone favorite configurable.
 
-- **Détection** : la probabilité du modèle a-t-elle dépassé son seuil pendant l'événement ?
-- **Préavis** : à quelle date le seuil a-t-il été franchi pour la première fois ?
-- **Taux de fausse alerte** : sur la même fenêtre calendaire des ~35 autres années, à quelle fréquence le seuil est-il aussi dépassé ?
-- **Percentile de l'année** : la probabilité moyenne de l'année de l'événement, classée parmi toutes les années — mesure si le modèle distingue vraiment cette année-là.
+**Vue d'ensemble et carte** : grille des 18 zones en une requête ; carte du Cameroun dessinée localement (fonctionne hors-ligne), marqueurs colorés par niveau d'alerte.
 
-### 8.3 Résultats sur 10 événements majeurs (1990-2026)
+**Historique** : évolution jour par jour des trois risques sur 14 jours, par zone.
+
+**Participation communautaire** : signalement terrain (type + description + position GPS), stocké côté serveur comme future vérité terrain pour recalibrer les modèles.
+
+**Alertes et notifications** : seuils personnalisables par risque, notifications locales avec déduplication.
+
+**Robustesse** : bulletin partageable en texte brut (SMS/WhatsApp), mode hors-ligne intégral (§6.4, §6.7).
+
+**Support multilingue** : interface complète (accueil, réglages, vue d'ensemble, historique, signalement, assistant IA) disponible en français et en anglais via le système officiel de localisation Flutter (~130 chaînes traduites), y compris désormais l'assistant IA (§6.9).
+
+**Assistant IA dans l'application** : carte pliable « Assistant SAMCAM » qui reformule en langage naturel le bulletin déjà calculé, ou répond à une question libre — sans jamais calculer de risque elle-même (voir §9.1 pour le détail du principe RAG léger). Testé en conditions réelles sur le Pi : réponse correcte en français en ~30 secondes.
+
+### 7.2 Évaluation de la fiabilité du système
+
+L'AUC de validation croisée (médiane 0,96) mesure la capacité des modèles à **reproduire les labels climatologiques** — pas à détecter de vrais événements. Un protocole d'évaluation contre des **événements documentés** (EM-DAT, OCHA, ReliefWeb) a donc été développé (`training/evaluate_real_events.py`), vérifiant pour chaque événement : détection, préavis, taux de fausse alerte saisonnier, et percentile de l'année dans la distribution historique.
+
+**Résultats sur 10 événements majeurs (1990-2026)**
 
 | Événement | Zone / risque | Détecté | Percentile |
 |---|---|---|---|
@@ -505,44 +536,45 @@ Pour chaque événement historique documenté, on vérifie :
 | Canicule Sahel avril 2010 | Maroua / chaleur | ✅ | 89 % |
 | Sécheresse Sahel 2011-2012 | Maroua / sécheresse | ✅ | 59 % |
 
-**Bilan : 10/10 événements détectés**, souvent dès le premier jour de la fenêtre — mais avec un **taux de fausse alerte saisonnier de 89 %** : à ces périodes de l'année, le seuil est dépassé presque chaque année.
+**Bilan : 10/10 événements détectés**, souvent dès le premier jour de la fenêtre — mais avec un **taux de fausse alerte saisonnier de 89 %** : à ces périodes de l'année, le seuil est dépassé presque chaque année. Les modèles capturent très bien la **saisonnalité du danger** mais distinguent encore imparfaitement les **années exceptionnelles** des saisons ordinaires. Le percentile moyen de 84 % montre néanmoins que le signal discriminant existe. Cette transparence sur les limites est assumée : un système d'alerte n'est crédible que si ses performances réelles sont mesurées et publiées.
 
-### 8.4 Interprétation honnête
+### 7.3 Déploiement effectif sur Raspberry Pi
 
-Les modèles capturent très bien la **saisonnalité du danger** (« août-septembre à Maroua est une période à risque d'inondation ») mais distinguent encore imparfaitement les **années exceptionnelles** des saisons ordinaires. Le percentile moyen de 84 % montre néanmoins que le signal discriminant existe : les années à catastrophe se classent bien au-dessus des années normales.
+Contrairement à une simple procédure documentée, le déploiement a été mené à terme et **vérifié en conditions réelles** :
 
-Pistes d'amélioration identifiées (et amorcées) :
+| Vérification | Résultat |
+|---|---|
+| `GET /health` via l'URL publique | 200 OK, 18 zones, dernière collecte du jour même |
+| Collecte quotidienne automatique | Confirmée (toutes les zones à jour sans intervention manuelle) |
+| Assistant IA (Qwen 3 0.6B) | Réponse correcte en français, ~30 s, données réelles de la zone |
+| Accès public HTTPS | `https://cameroun.tail7296d8.ts.net`, actif en permanence |
+| Redémarrage automatique | `restart: unless-stopped` (Docker) + service Docker activé au démarrage système |
 
-1. **Seuils relatifs à la saison** plutôt qu'absolus (alerter quand la probabilité dépasse la normale saisonnière) ;
-2. **Labels enrichis par la vérité terrain** : les signalements communautaires (§7.5) sont automatiquement intégrés au protocole d'évaluation et pourront à terme servir de labels d'entraînement ;
-3. **Capteurs locaux** comme signal de contrôle indépendant.
-
-Cette transparence sur les limites est une caractéristique assumée du projet : un système d'alerte n'est crédible que si ses performances réelles sont mesurées et publiées.
+Ce résultat clôt la problématique initiale : le système ne dépend plus de la machine de développement, il tourne de façon autonome sur du matériel low-cost.
 
 ---
 
-## 9. Prise en main et guide d'utilisation
+## 8. Guide d'utilisation
 
 Cette section est un guide opérationnel complet : elle permet à une personne n'ayant jamais vu le projet d'installer la station serveur, de déployer l'application mobile et d'exploiter le système au quotidien.
 
-### 9.1 Prérequis
+### 8.1 Prérequis
 
 **Matériel**
 
 | Élément | Minimum | Remarque |
 |---|---|---|
-| Serveur | Raspberry Pi 4 (4 Go) ou tout PC Linux/macOS | 2 Go suffisent pour l'API seule ; 4 Go recommandés pour le réentraînement |
+| Serveur | Raspberry Pi 4 (2 à 4 Go) ou tout PC Linux/macOS | Déploiement réel validé sur Pi 4 2 Go via Docker |
 | Stockage | 16 Go | Historiques CSV + modèles ≈ 1 Go |
-| Écran (optionnel) | Tout écran HDMI | Pour le tableau de bord public |
 | Téléphone | Android 8+ | iOS possible (build non signé fourni) |
 
 **Logiciel**
 
-- **Python 3.9 minimum** (3.10+ recommandé) — le projet est testé sous 3.9.6 ;
-- **Flutter 3.44+** (Dart ≥ 3.12) pour compiler l'application — nécessaire uniquement sur la machine de développement, pas sur la station ;
-- Un compte Google Cloud avec un **service account Google Earth Engine** (gratuit) pour les données satellitaires — *optionnel : sans lui, la collecte fonctionne en mode dégradé (météo seule, sans satellite)*.
+- **Python 3.9 minimum** (3.10+ recommandé) ;
+- **Flutter 3.44+** (Dart ≥ 3.12), nécessaire uniquement sur la machine de développement ;
+- Un compte Google Cloud avec un **service account Google Earth Engine** (gratuit) — *optionnel : sans lui, la collecte fonctionne en mode dégradé (météo seule)*.
 
-### 9.2 Installation de la station serveur
+### 8.2 Installation de la station serveur (native)
 
 **Étape 1 — Récupérer le projet et créer l'environnement Python**
 
@@ -557,20 +589,16 @@ source venv/bin/activate
 
 > Sur Raspberry Pi OS (Debian bookworm), cette étape est **obligatoire** : `pip install` dans le Python système est bloqué (erreur *externally-managed-environment*, PEP 668).
 
-**Étape 2 — Installer les dépendances (trois fichiers requirements)**
+**Étape 2 — Installer les dépendances**
 
 ```bash
-pip install -r data_collection/requirements.txt   # earthengine-api, requests
-pip install -r inference/requirements_v4.txt      # scikit-learn, pandas, numpy…
-pip install -r server/requirements.txt            # fastapi, uvicorn, httpx
-pip install imbalanced-learn                      # optionnel : SMOTE au réentraînement
+pip install -r data_collection/requirements.txt
+pip install -r inference/requirements_v4.txt
+pip install -r server/requirements.txt
+pip install imbalanced-learn   # optionnel : SMOTE au réentraînement
 ```
 
-> Sur Raspberry Pi, scikit-learn s'installe en binaire via piwheels ; viser une version **1.6.x** (celle utilisée pour entraîner les 54 modèles) pour dépickler les `.pkl` sans avertissement — sinon, réentraîner sur place (étape 9.7).
-
 **Étape 3 — Configurer la clé Google Earth Engine (optionnel mais recommandé)**
-
-La collecte satellite s'authentifie par **service account** (pas de `earthengine authenticate` interactif). Depuis la console Google Cloud : créer un service account avec accès Earth Engine, générer une clé JSON, puis :
 
 ```bash
 mkdir -p ~/.config/gee
@@ -578,354 +606,190 @@ mv ~/Downloads/<votre-cle>.json ~/.config/gee/kribi-key.json
 chmod 600 ~/.config/gee/kribi-key.json
 ```
 
-Le chemin `~/.config/gee/kribi-key.json` est le chemin par défaut ; un autre emplacement se déclare via la variable d'environnement `EE_PRIVATE_KEY_PATH`. Les identifiants du projet GCP (`PROJECT_ID`, `SERVICE_ACCOUNT`) sont définis en tête de `data_collection/collect_zone.py` — à adapter si vous utilisez votre propre projet.
-
-**Sans cette clé** : Open-Meteo et NASA POWER (aucune clé requise) continuent d'alimenter le système ; seuls les indicateurs satellitaires (NDVI, humidité des sols SMAP) manqueront.
-
 **Étape 4 — Première collecte et premières prédictions**
 
 ```bash
-# 1. Collecter les 18 zones (~2 min ; --zones Kribi pour une seule)
 python3 data_collection/collect_all_zones.py
-
-# 2. Fusionner dans les historiques (recalcule les features dérivées)
 python3 data_collection/append_daily_to_historical.py
-
-# 3. Pré-calculer les prédictions J0 → J+14 (remplit data/predictions/latest.json)
 python3 inference/compute_daily_predictions.py
 ```
-
-Vérification rapide : `python3 inference/infer_zonal.py --zone Kribi` affiche un tableau lisible des probabilités par risque.
 
 **Étape 5 — Lancer le serveur**
 
 ```bash
-# Depuis la RACINE du projet (impératif : le module est server.api:app)
 bash server/start.sh          # production (2 workers, port 8000)
 bash server/start.sh --dev    # développement (hot-reload)
-# ou directement :
-uvicorn server.api:app --host 0.0.0.0 --port 8000
 ```
-
-`start.sh` installe les dépendances serveur, crée les dossiers manquants, lance une collecte si `data/` est vide, puis démarre l'API avec un planificateur intégré (pipeline quotidien à 05:00 UTC).
 
 **Étape 6 — Vérifier**
 
-| Test | URL / commande | Résultat attendu |
+| Test | Commande | Résultat attendu |
 |---|---|---|
 | Santé | `curl http://localhost:8000/health` | JSON avec version et date de mise à jour |
 | Bulletin | `curl "http://localhost:8000/api/risk?zone=Kribi"` | Scores + niveaux J0 → J+14 |
-| Doc interactive | `http://localhost:8000/docs` | Interface Swagger de tous les endpoints |
-| Écran local | `http://localhost:8000/dashboard/samcam-v4-dashboard.html` | Tableau de bord graphique |
+| Doc interactive | `http://localhost:8000/docs` | Interface Swagger |
 
-Au démarrage, la console doit afficher `[API] ✅ Moteur zonal chargé (infer_zonal.py, prioritaire)` — sinon le serveur tourne en mode dégradé (voir dépannage, 9.9).
+### 8.2bis Installation Docker sur Raspberry Pi (recommandée, déploiement réel)
 
-### 9.2bis Alternative recommandée sur Raspberry Pi 4 2 Go : installation Docker
-
-L'installation native ci-dessus (§9.2) convient à une machine de développement ou à un Pi disposant de 4 Go+ de RAM. Sur un **Raspberry Pi 4 limité à 2 Go**, en particulier s'il héberge déjà un serveur **Ollama partagé** avec d'autres projets, l'installation Docker ci-dessous est recommandée : elle isole strictement la consommation mémoire de chaque service (API, collecteur) et ne duplique jamais Ollama.
+Sur un Raspberry Pi à RAM limitée, en particulier hébergeant un **Ollama partagé** avec d'autres projets, l'installation Docker isole strictement la consommation mémoire et ne duplique jamais Ollama. C'est la méthode effectivement utilisée pour le déploiement en production.
 
 ```bash
 git clone <url-du-depot> SAMCAM && cd SAMCAM
 bash install_pi.sh
 ```
 
-`install_pi.sh` est idempotent (relançable après chaque `git pull`) et automatise :
+`install_pi.sh` est idempotent (relançable après chaque mise à jour du code) et automatise : swap, Docker Engine, vérification qu'Ollama est joignable, Tailscale + Funnel, build et démarrage des conteneurs `api` et `collector`.
 
-1. Augmentation du swap à 2 Go si insuffisant (filet de sécurité anti-OOM) ;
-2. Installation de Docker Engine + plugin Compose si absent — sur Linux natif (pas Docker Desktop), l'overhead du démon est de l'ordre de 30-50 Mo, négligeable même à 2 Go ;
-3. Vérification qu'Ollama est bien installé, démarré et joignable sur le port 11434 — **SAMCAM ne lance pas son propre conteneur Ollama**, il se connecte à l'instance native partagée (`network_mode: host`, modèle configurable via `OLLAMA_MODEL` dans `docker-compose.yml`, `qwen3:0.6b` par défaut) ;
-4. Installation de Tailscale si absent, puis activation automatique du Funnel dès que l'appareil est authentifié (même logique qu'en §9.5) — seule la toute première authentification (`sudo tailscale up --hostname=cameroun`) reste manuelle, elle nécessite de suivre un lien dans un navigateur (sur n'importe quel appareil, pas forcément le Pi) ;
-5. Build et démarrage de 2 conteneurs : `api` (FastAPI, 1 seul worker, 300 Mo max) et `collector` (pipeline météo/satellite quotidien, isolé car il embarque les dépendances Google Earth Engine, 250 Mo max — ne tourne réellement que quelques minutes par jour, le reste du temps c'est une boucle bash quasi gratuite).
+**Sur une connexion internet instable** (situation rencontrée en pratique, §6.8) : préférer un téléchargement resumable (`wget -c <url-archive-tar.gz>`) à `git clone`, et utiliser `rsync --partial` depuis une machine de développement pour les mises à jour plutôt que `git pull`.
 
-Le code et les données (`data/`, `models/`, `config/`) sont montés en volume, pas copiés dans l'image : un `git pull` suffit à mettre à jour, pas besoin de reconstruire sauf changement de dépendances Python. Guide complet, budget mémoire détaillé et pistes de repli si la RAM globale du Pi (partagée entre plusieurs projets) ne suffit pas : `docs/DEPLOIEMENT_RASPBERRY_PI.md`.
+Guide complet, budget mémoire détaillé : `docs/DEPLOIEMENT_RASPBERRY_PI.md`.
 
-### 9.3 Automatisation quotidienne
+### 8.3 Automatisation quotidienne
 
-⚠️ **Choisir UNE seule stratégie** (les cumuler provoquerait des collectes en double) :
+Le conteneur `collector` (ou le planificateur intégré à `start.sh` en installation native) exécute automatiquement la chaîne collecte → historique → prédictions chaque jour à 05h00 UTC. Suivi : `docker compose logs -f collector` (Docker) ou `tail -f logs/collect.log` (native).
 
-- **Option A (recommandée)** — cron explicite sur la chaîne moderne :
+### 8.4 Démarrage automatique et redémarrage après coupure
 
-```cron
-# crontab -e — pipeline quotidien à 05h00 UTC (06h00 WAT)
-0 5 * * *  cd /chemin/SAMCAM && venv/bin/python data_collection/collect_all_zones.py  >> logs/collect.log 2>&1
-15 5 * * * cd /chemin/SAMCAM && venv/bin/python data_collection/append_daily_to_historical.py >> logs/collect.log 2>&1
-25 5 * * * cd /chemin/SAMCAM && venv/bin/python inference/compute_daily_predictions.py >> logs/collect.log 2>&1
-```
+- **Installation Docker** : `restart: unless-stopped` sur les deux conteneurs + service Docker activé au démarrage système — un redémarrage du Pi (coupure de courant, mise à jour) relance le service sans intervention.
+- **Installation native** : créer un service `systemd` dédié (`/etc/systemd/system/samcam.service`) pour éviter que le serveur ne meure à la fermeture de la session SSH.
 
-- **Option B** — laisser faire le planificateur intégré de `start.sh` (05:00 UTC), qui exécute la même chaîne. Simple, mais lié à la vie du processus serveur.
+### 8.5 Accès distant : rendre l'API accessible depuis Internet (gratuit)
 
-Suivi : `tail -f logs/collect.log`.
-
-### 9.4 Démarrage automatique au boot (Raspberry Pi)
-
-`start.sh` tourne en avant-plan : si la session SSH se ferme, le serveur meurt. Pour un service permanent, créer `/etc/systemd/system/samcam.service` :
-
-```ini
-[Unit]
-Description=SAMCAM API
-After=network-online.target
-
-[Service]
-WorkingDirectory=/home/pi/SAMCAM
-ExecStart=/home/pi/SAMCAM/venv/bin/uvicorn server.api:app --host 0.0.0.0 --port 8000
-Restart=always
-User=pi
-
-[Install]
-WantedBy=multi-user.target
-```
+La solution retenue est **Tailscale Funnel** : gratuite, sans nom de domaine à acheter, fonctionnelle derrière la 4G (CGNAT — pas d'IP publique, la redirection de ports classique est impossible).
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now samcam
-sudo systemctl status samcam        # vérifier
-```
-
-Recommandations réseau : attribuer une **IP fixe** (ou réservation DHCP) à la station — l'application mobile pointe vers cette IP et casserait à chaque changement ; si un pare-feu est actif : `sudo ufw allow 8000/tcp` ; l'heure doit être à l'heure (NTP) pour la collecte planifiée. Pour l'écran public, ouvrir Chromium en mode kiosque sur l'URL du dashboard au démarrage de la session graphique.
-
-### 9.5 Accès distant : rendre l'API accessible depuis Internet (gratuit)
-
-Sur le réseau WiFi local, l'app joint la station via `http://<IP-locale>:8000`. Pour que **n'importe qui, n'importe où** puisse y accéder, la solution retenue est **Tailscale Funnel** : gratuite, sans nom de domaine à acheter, et fonctionnelle derrière la 4G (les connexions mobiles camerounaises sont derrière du CGNAT : pas d'adresse IP publique, donc la redirection de ports classique est impossible — un tunnel sortant est la seule approche fiable).
-
-**Principe** : la station ouvre elle-même une connexion sortante vers le réseau Tailscale, qui publie l'API sur une URL HTTPS stable du type `https://<nom-de-la-machine>.<votre-tailnet>.ts.net`. Les utilisateurs n'installent **rien** : l'URL est publique.
-
-**Installation sur le Raspberry Pi (une seule fois) :**
-
-```bash
-# 1. Installer Tailscale (même compte que les autres machines du projet —
-#    Google/GitHub/Microsoft, gratuit)
 curl -fsSL https://tailscale.com/install.sh | sh
-
-# 2. Se connecter en nommant explicitement la machine « Cameroun » : c'est
-#    ce nom qui apparaît dans l'URL publique (https://cameroun.<tailnet>.ts.net)
-sudo tailscale up --hostname=cameroun   # ouvre un lien d'authentification
-
-# 3. Activer HTTPS sur le tailnet (une fois pour tout le compte, depuis la
-#    console web https://login.tailscale.com/admin/dns → HTTPS Certificates → Enable)
-
-# 4. Activer Funnel sur le tailnet si ce n'est pas déjà fait pour une autre
-#    machine du compte (un lien d'activation s'affiche au premier essai) :
+sudo tailscale up --hostname=cameroun
 sudo tailscale funnel --bg 8000
 ```
 
-Toutes les machines connectées avec le **même compte Tailscale** partagent le même suffixe de tailnet (ex. `tail7296d8.ts.net`) — seul le nom de machine change dans l'URL. La station Raspberry Pi, nommée **Cameroun**, est donc joignable sur `https://cameroun.tail7296d8.ts.net` dès que les 4 étapes ci-dessus sont faites une fois.
+Une fois cette première connexion établie, la publication redevient automatique à chaque démarrage. **Côté application : aucune configuration** — au premier lancement, l'app teste automatiquement une liste d'adresses connues (`Config.defaultServerCandidates`, l'URL du Pi en tête) et retient la première qui répond. Une URL saisie manuellement dans **Réglages** garde toujours la priorité — à effacer si elle date d'un test antérieur.
 
-Une fois cette première connexion établie, **la publication redevient automatique à chaque démarrage** : `server/start.sh` détecte Tailscale, republie le port 8000 via Funnel et affiche l'URL dans sa console (`[funnel] API publiée sur Internet : https://cameroun.….ts.net`). Si Tailscale est absent ou déconnecté, le serveur démarre quand même en accès local. La publication est persistante et le trafic est chiffré en HTTPS.
-
-> **Piège rencontré en test** : après activation de Funnel, la première poignée de main HTTPS peut mettre 15 à 25 secondes (relais + certificat) — un client avec un délai d'expiration court (ex. `curl -m 10`) peut sembler échouer alors que le service fonctionne. L'app mobile utilise un délai de 10 s (`Config.httpTimeout`) ; si le premier essai échoue juste après un redémarrage de la station, un second essai (tirer l'écran vers le bas) suffit généralement.
-
-**Côté application : aucune configuration.** Au premier lancement, l'app teste automatiquement une liste d'adresses connues et retient la première qui répond au `/health` — voir `Config.defaultServerCandidates` dans `lib/config.dart` : l'URL publique de la station (`https://cameroun.tail7296d8.ts.net`) y est en première position, suivie de repli de développement (Mac, IP LAN, localhost, émulateur) à retirer une fois la station Cameroun en service permanent. Une URL saisie manuellement dans **Réglages → Connexion serveur** garde toujours la priorité (cas particuliers).
-
-**Limites et alternatives :**
-
-| Solution | Coût | Utilisateurs | Remarque |
-|---|---|---|---|
-| **Tailscale Funnel** (retenue) | Gratuit | Grand public | URL `.ts.net` ; bande passante adaptée à une API JSON légère |
-| Cloudflare Tunnel | Domaine ~10 €/an | Grand public | URL personnalisée (`api.samcam.cm`), protection DDoS — à envisager en production |
-| Tailscale VPN simple | Gratuit | Administrateurs seulement | Accès SSH/maintenance à distance — complément utile du Funnel |
-| Redirection de ports + DynDNS | Gratuit | Grand public | **Impossible derrière la 4G (CGNAT)** ; envisageable uniquement sur une box fibre |
-
-> **Note d'échelle** : le Funnel convient au prototype et à quelques centaines d'utilisateurs. Pour un déploiement massif, basculer vers l'architecture « miroir cloud » (la station pousse `data/predictions/latest.json` vers un petit serveur hébergé qui encaisse le trafic public — voir §10.3) : la station n'est alors plus exposée du tout.
-
-### 9.6 Installation de l'application mobile
-
-**Compiler** (sur la machine de développement, dossier `samcam_app/`) :
+### 8.6 Installation de l'application mobile
 
 ```bash
 cd samcam_app
 flutter pub get
-flutter devices                          # lister les cibles disponibles
-
-# Développement :
-flutter run                              # téléphone branché (débogage USB activé)
-flutter run -d chrome                    # test rapide dans le navigateur
-
-# Distribution :
 flutter build apk --release --split-per-abi   # APK ~17-21 Mo par architecture
-adb install build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
+adb install -r build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
 ```
 
-L'APK peut aussi être copié sur les téléphones par câble, Bluetooth ou lien de téléchargement (installation « sources inconnues »).
+### 8.7 Guide d'utilisation de l'application
 
-**Connecter l'app au serveur** — dans le cas normal, **rien à faire** : au premier lancement, l'app détecte automatiquement le serveur en testant les adresses de `Config.defaultServerCandidates` (URL publique Funnel, IP locale de la station, localhost, alias émulateur `10.0.2.2`) et retient la première qui répond.
+1. **Ouvrir l'app** → météo et risques de la zone favorite (ou GPS) se chargent ;
+2. **Lire les risques** : trois barres (inondation, sécheresse, chaleur), quatre tuiles de tendance (3j/7j/10j/14j), graphique d'évolution ;
+3. **Changer de zone** : menu latéral → 18 zones + recherche de ville ;
+4. **Vue nationale** : grille ou carte du Cameroun ;
+5. **Historique** : évolution jour par jour sur 14 jours ;
+6. **Personnaliser** : Réglages → zone favorite, seuils d'alerte, notifications, **langue** ;
+7. **Partager** : bulletin texte complet vers WhatsApp/SMS/e-mail ;
+8. **Signaler** : type + description d'un événement observé ;
+9. **Interroger l'assistant** : carte « Assistant SAMCAM » → résumé automatique ou question libre ;
+10. **Sans réseau** : dernières données connues affichées avec un bandeau « Mode hors-ligne ».
 
-La configuration manuelle (**Réglages ⚙️ → Connexion serveur → Tester → Sauvegarder**) ne sert que si la station est à une adresse inhabituelle ; une URL sauvegardée garde alors la priorité sur la détection automatique (effacer le champ pour la réactiver).
-
-| Contexte | Adresse détectée / à utiliser |
-|---|---|
-| Téléphone en 4G ou autre réseau | URL publique `https://….ts.net` (Funnel, voir 9.5) |
-| Téléphone sur le même WiFi que la station | `http://<IP-de-la-station>:8000` |
-| Émulateur Android sur la machine du serveur | `http://10.0.2.2:8000` (jamais `localhost`) |
-| Test web/desktop local | `http://localhost:8000` |
-
-### 9.7 Guide d'utilisation de l'application
-
-**Parcours quotidien type :**
-
-1. **Ouvrir l'app** → la météo et les risques de la zone favorite (ou de la zone GPS la plus proche) se chargent ; un bandeau coloré apparaît en haut si un risque est modéré ou élevé.
-2. **Lire les risques** : les trois barres (inondation, sécheresse, chaleur) donnent la situation du jour avec une explication simple ; les quatre tuiles (3 j / 7 j / 10 j / 14 j) donnent la tendance ; le graphique en bas visualise l'évolution.
-3. **Changer de zone** : menu latéral (☰) → 18 zones SAMCAM + recherche de ville pour un lieu personnalisé.
-4. **Vue nationale** : icône grille → les 18 zones d'un coup d'œil ; icône carte → la carte du Cameroun colorée par alerte (taper une zone pour l'ouvrir).
-5. **Historique** : icône horloge → l'évolution jour par jour des 14 derniers jours, par zone.
-6. **Personnaliser** : Réglages → zone favorite au démarrage, seuils d'alerte par risque (curseurs), notifications, **langue (Français/Anglais)**.
-7. **Partager** : icône de partage dans la section risques → bulletin texte complet vers WhatsApp/SMS/e-mail.
-8. **Signaler** : bouton « Signaler un événement observé » → type + description ; l'observation part au serveur et servira à améliorer les modèles.
-9. **Sans réseau** : l'app affiche les dernières données connues avec un bandeau « Mode hors-ligne — données du JJ/MM à HH:MM » ; tirer vers le bas pour réessayer.
-
-### 9.8 Réentraîner les modèles
-
-À faire après un enrichissement des historiques, une correction de configuration de zone, ou périodiquement (trimestriel) :
+### 8.8 Réentraîner les modèles
 
 ```bash
-cd /chemin/SAMCAM && source venv/bin/activate
-
-python training/build_labels.py                    # 1. Régénérer les labels (toutes zones)
-python training/train_zonal_models.py --force      # 2. Réentraîner les 54 modèles
-python training/evaluate_real_events.py            # 3. Valider contre les événements réels
-python3 inference/compute_daily_predictions.py     # 4. Rafraîchir le cache de prédictions
+python training/build_labels.py
+python training/train_zonal_models.py --force              # modèles de production
+python training/train_zonal_models.py --sensor-only --force # variante capteurs (§5.5)
+python training/evaluate_real_events.py
+python3 inference/compute_daily_predictions.py
 ```
 
-- `--zone Maroua` limite chaque étape à une zone ; `--risk inondation` limite à un risque ;
-- **sans `--force`, un modèle existant est sauté** — indispensable donc pour un vrai réentraînement ;
-- le résumé final doit annoncer `54/54 modèles entraînés avec succès` (métriques détaillées dans `models/zonal/metrics/*.json`) ;
-- lancer ces scripts **depuis la racine du projet** (chemins relatifs).
+`--zone <Nom>` limite à une zone, `--risk <risque>` à un risque, `--force` est indispensable pour un vrai réentraînement.
 
-**Ajouter une nouvelle zone** (19ᵉ zone et suivantes) : le pipeline est entièrement automatisé depuis l'intégration des 10 zones agricoles (§6.6).
-
-```bash
-python3 data_collection/collect_historical.py --zone <Nom> --start 2000-01-01
-python3 training/generate_zone_config.py --zone <Nom> --climate <equatorial|tropical_highland|sahelian>
-python3 training/calibrate_zone_thresholds.py --zone <Nom>
-python3 training/build_labels.py --zone <Nom>
-python3 training/train_zonal_models.py --zone <Nom> --force
-```
-
-Ou en une seule commande via `bash training/onboard_new_zones.sh` (édité au préalable avec le nom de la nouvelle zone) qui enchaîne les 5 étapes. Ne pas oublier d'ajouter la zone dans les listes de zones du serveur (`server/api.py`), du bot WhatsApp (`server/whatsapp_bot.py`) et de l'app (`samcam_app/lib/widgets/zone_drawer.dart`) — ces fichiers restent à modifier manuellement.
-
-### 9.9 Dépannage
+### 8.9 Dépannage
 
 | Symptôme | Cause probable | Remède |
 |---|---|---|
-| L'app affiche « Erreur serveur » | Mauvaise URL, station éteinte, pas le même réseau | Réglages → Tester ; vérifier `curl http://<IP>:8000/health` depuis un autre appareil |
-| Console serveur : « Modèle ML non disponible — fallback sur JSON » | Dépendances ML absentes ou `.pkl` illisibles | `pip install -r inference/requirements_v4.txt` ; vérifier la version scikit-learn (1.6.x) ou réentraîner |
+| L'app affiche « Erreur serveur » | Mauvaise URL, station éteinte | Réglages → effacer l'URL sauvegardée, laisser la détection auto reprendre |
 | API 503 « Aucune donnée pour la zone » | Collecte jamais lancée | `python3 data_collection/collect_all_zones.py --zones <Zone>` |
-| Valeurs qui ne changent pas d'un jour à l'autre | Cache de prédictions périmé | Relancer `compute_daily_predictions.py` ; vérifier le cron (`tail logs/collect.log`) |
-| Collecte sans données satellite | Clé GEE absente/invalide | Vérifier `~/.config/gee/kribi-key.json` et les droits (600) ; le reste fonctionne sans |
-| `pip install` échoue sur Raspberry Pi | PEP 668 (Python système protégé) | Créer et activer le venv (étape 9.2.1) |
-| `flutter pub get` échoue | Flutter trop ancien | Mettre à jour vers Flutter ≥ 3.44 (`flutter upgrade`) |
-| Build Android échoue sur flutter_local_notifications | Desugaring désactivé | Ne pas retirer `isCoreLibraryDesugaringEnabled = true` du `build.gradle.kts` |
-| Requêtes bloquées sur Android 9+ | HTTP non chiffré interdit par défaut | `android:usesCleartextTraffic="true"` est déjà dans le manifest — ne pas le retirer tant que le serveur est en `http://` |
+| Collecte sans données satellite | Clé GEE absente/invalide | Vérifier `~/.config/gee/kribi-key.json` (droits 600) |
+| `git clone` échoue sur connexion instable | Protocole Git non-résumable (§6.8) | `wget -c` (archive) puis `rsync --partial` pour les mises à jour |
+| Assistant IA introuvable / erreur modèle | Nom de tag Ollama différent (§6.9) | Vérifier `ollama list` et aligner `OLLAMA_MODEL` |
+| `pip install` échoue sur Raspberry Pi | PEP 668 (Python système protégé) | Créer et activer le venv |
 
 ---
 
-## 10. Perspectives d'évolution
+## 9. Perspectives et évolutions futures
 
-### 10.1 Assistant IA dans l'application (implémenté)
+### 9.1 Assistant IA — implémenté et déployé
 
-Les 54 modèles de risque restent l'unique source des scores — un modèle de langage **ne calcule jamais un risque**. Ce qu'il apporte : reformuler en français simple des données déjà calculées, à la demande de l'utilisateur.
-
-**Principe (RAG léger)** : le serveur calcule le bulletin réel de la zone (`_get_full_risk_payload()`, la même fonction que `/api/risk`), l'injecte tel quel dans un prompt, et un modèle de langage local le reformule. Le modèle ne peut pas inventer un chiffre : il ne voit que ceux qu'on lui donne. Le modèle utilisé dépend de la machine hôte (variable d'environnement `OLLAMA_MODEL`) : **Phi-3 mini (3.8B)** par défaut sur la machine de développement, **Qwen 3 0.6B** sur la station Raspberry Pi — un modèle nettement plus léger, choisi pour tenir dans les 2 Go de RAM du Pi 4 tout en étant **partagé avec d'autres projets hébergés sur le même appareil** (l'API SAMCAM ne fait tourner aucune instance Ollama propre, voir §9.2bis).
+Les 54 modèles de risque restent l'unique source des scores — un modèle de langage **ne calcule jamais un risque**, il reformule. **Principe (RAG léger)** : le serveur calcule le bulletin réel de la zone, l'injecte dans un prompt, et Ollama le reformule en français ou en anglais selon la langue de l'app (§6.9).
 
 ```mermaid
 flowchart LR
-    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?}"| API["server/api.py"]
-    API --> CALC["_get_full_risk_payload(zone)<br/>(mêmes données que /api/risk)"]
-    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Phi-3 mini (dev) /<br/>Qwen 3 0.6B (Pi, partagé)"]
+    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?, langue}"| API["server/api.py"]
+    API --> CALC["_get_full_risk_payload(zone)"]
+    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Qwen 3 0.6B (Pi, partagé)"]
     OLLAMA -->|"réponse en<br/>langage naturel"| APP
 ```
 
-- **Backend** : `POST /api/assistant` (`server/api.py`) — accepte `{zone, question?}` ; sans question, génère un résumé automatique du bulletin (niveau, tendance, conseil) ; avec une question libre (« puis-je semer cette semaine ? »), répond spécifiquement, toujours ancré sur les données réelles.
-- **App** : nouvelle carte pliable **« Assistant SAMCAM »** (`lib/widgets/assistant_card.dart`) sous la section risques — résumé automatique à l'ouverture, champ de question libre pour aller plus loin.
-- **Limite mesurée en test** : sur un Mac de développement, une réponse prend 20 à 30 secondes (jusqu'à 1-2 minutes au tout premier appel, le temps qu'Ollama charge le modèle en mémoire). Le design anticipe des machines plus modestes : timeout serveur de 120 s, timeout app de 90 s, et l'interface affiche explicitement « l'analyse peut prendre jusqu'à une minute » plutôt que de donner l'impression d'un blocage. Sur le Pi, un délai supplémentaire est possible si un autre projet sollicite Ollama en même temps (service partagé, pas dédié).
+Déployé et validé de bout en bout sur la station réelle (§7.3).
 
-### 10.2 Bot WhatsApp (code prêt, bloqué par une vérification anti-fraude Meta)
+### 9.2 Bot WhatsApp (code prêt, bloqué par une vérification anti-fraude Meta)
 
-Le code du bot est écrit et monté dans le serveur (`server/whatsapp_bot.py`) : c'est une simple façade qui traduit un message WhatsApp en appel aux endpoints existants (`/api/risk`, `/api/assistant`, `/api/signalement`) et renvoie la réponse formatée. Il ne recalcule jamais rien. Chaque étape a été testée par simulation de webhook (zone détectée, bulletin formaté, question libre routée vers l'assistant, signalement par message) : la logique fonctionne.
+Le code du bot est écrit et monté dans le serveur (`server/whatsapp_bot.py`) — une façade qui traduit un message WhatsApp en appel aux endpoints existants et renvoie la réponse formatée. Chaque étape a été testée par simulation de webhook.
 
-**Statut réel** : lors de la configuration du compte Meta Business nécessaire à l'activation, le compte WhatsApp Business a été **verrouillé par le système anti-fraude de Meta** (erreur 131031, « Business Account locked ») — un blocage automatique déclenché par l'enchaînement rapide de la création d'un compte Facebook récent → Business Portfolio → WhatsApp Business Account → accès API. Ce n'est pas un problème de code : c'est une procédure de vérification côté Meta, en cours de résolution (appel/support Meta), indépendante du projet. Dès le déverrouillage, le test réel (message WhatsApp → réponse du bot) peut être fait immédiatement, sans redéploiement.
+**Statut réel** : lors de la configuration du compte Meta Business, le compte WhatsApp Business a été **verrouillé par le système anti-fraude de Meta** (erreur 131031) — une procédure de vérification côté Meta, indépendante du code du projet. Dès le déverrouillage, le test réel peut être fait immédiatement, sans redéploiement.
 
-```mermaid
-flowchart LR
-    USER["👥 Utilisateur WhatsApp"] <-->|"message"| META["Meta Cloud API<br/>(WhatsApp Business)"]
-    META <-->|"webhook HTTPS<br/>(via Tailscale Funnel)"| BOT["server/whatsapp_bot.py<br/>(monté dans api.py)"]
-    BOT --> RISK["/api/risk"]
-    BOT --> ASSIST["/api/assistant<br/>(Ollama)"]
-    BOT --> SIGNAL["/api/signalement"]
-```
+**Ce qui reste à faire — uniquement des étapes côté compte** : créer un compte Meta Business et une app WhatsApp Business, récupérer un numéro et un jeton d'accès, configurer le webhook sur l'URL Tailscale Funnel déjà active. Détail complet dans le dépôt (`server/whatsapp_bot.py`, en-tête du fichier).
 
-**Ce qu'il comprend déjà** :
+### 9.3 Notifications push (préparé)
 
-| Message utilisateur | Comportement |
-|---|---|
-| `Maroua` (nom de zone seul) | Bulletin complet formaté (niveau, 3 scores, prévisions J+3→J+14) |
-| `risque à Garoua cette semaine ?` | Question libre → `/api/assistant`, réponse en langage naturel |
-| `signalement inondation Maroua eau dans les rues` | Enregistré via `/api/signalement`, confirmation renvoyée |
-| `aide` / `bonjour` / `menu` | Message d'aide avec la liste des zones et des exemples |
+Complémentaire au bot WhatsApp : de vraies notifications push app fermée (Firebase Cloud Messaging).
 
-Une petite mémoire par numéro (`data/whatsapp_state.json`) retient la dernière zone utilisée, pour ne pas avoir à la répéter à chaque message.
+- `server/send_push_alerts.py` : publie une alerte par zone dès qu'elle passe ORANGE/ROUGE, avec déduplication — testé en simulation ;
+- `docs/NOTIFICATIONS_PUSH_FCM.md` : guide d'installation complet.
 
-**Ce qui reste à faire — uniquement des étapes côté compte, pas de code :**
+### 9.4 Capteurs de terrain — faisabilité validée, matériel restant
 
-1. **Créer un compte Meta Business** (business.facebook.com, gratuit) et une **app WhatsApp Business** dans Meta for Developers (developers.facebook.com/apps) ;
-2. Dans l'app Meta, section **WhatsApp → API Setup**, récupérer un **numéro de test** (immédiat, gratuit, limité à quelques destinataires vérifiés) ou faire vérifier un numéro de production ;
-3. Récupérer le **jeton d'accès temporaire** (ou en générer un permanent via un utilisateur système) et l'**ID du numéro de téléphone** ;
-4. Configurer ces informations sur la station (jamais en dur dans le code) :
-   ```bash
-   export WHATSAPP_VERIFY_TOKEN="un-secret-choisi-par-vous"
-   export WHATSAPP_ACCESS_TOKEN="EAAxxxxx..."       # depuis la console Meta
-   export WHATSAPP_PHONE_NUMBER_ID="1234567890"     # depuis la console Meta
-   ```
-   (à placer dans un fichier chargé par `server/start.sh`, ex. `.env` + `source .env`) ;
-5. Dans la console Meta, section **Configuration → Webhook**, renseigner :
-   - URL de rappel : `https://cameroun.tail7296d8.ts.net/webhook/whatsapp` (l'URL Funnel de la station, déjà publique — §9.5)
-   - Jeton de vérification : la même valeur que `WHATSAPP_VERIFY_TOKEN`
-   - S'abonner au champ `messages` ;
-6. Redémarrer le serveur (`bash server/start.sh`) et envoyer un message WhatsApp au numéro de test pour valider.
+La faisabilité algorithmique est désormais **démontrée** (§5.5) : perte de précision négligeable entre modèles connectés et modèles « capteurs seuls ». Reste à réaliser :
 
-Le tunnel Tailscale Funnel déjà en service pour l'app mobile (§9.5) sert donc aussi de webhook WhatsApp — aucune infrastructure supplémentaire à déployer.
+1. Matériel : Raspberry Pi + capteurs (pression, température, humidité, pluie, sol) + module GSM (SIM800L/SIM7000) pour l'alerte SMS, sans connexion data ;
+2. Code d'ingestion local : lecture des capteurs, stockage de l'historique, calcul des cumuls glissants 7j/30j/90j ;
+3. Chargement du modèle `.pkl` sensor-only et inférence embarquée ;
+4. Génération de l'alerte (écran local + SMS) ;
+5. ~90 jours d'accumulation après le premier démarrage avant que les cumuls longs (30j/90j) soient pleinement fiables.
 
-**Coût** : la Cloud API WhatsApp offre un quota gratuit de conversations par mois largement suffisant pour un prototype ou un déploiement local ; au-delà, la facturation est à l'usage (par conversation), sans engagement.
+### 9.5 Domaine et accès public
 
-### 10.3 Notifications push (préparé)
+Une demande de domaine gratuit (`samcam-cameroun.eu.org`) a été soumise et est en attente de validation administrative. Les nameservers Cloudflare sont déjà configurés et validés techniquement ; il ne manque que l'approbation du registrar. À terme, ce domaine pourra remplacer l'URL Tailscale (`*.ts.net`) pour une adresse plus professionnelle.
 
-Complémentaire au bot WhatsApp : de vraies notifications push app fermée (Firebase Cloud Messaging), pour les utilisateurs de l'app mobile plutôt que de WhatsApp.
+### 9.6 Autres pistes
 
-- `server/send_push_alerts.py` : publie une alerte sur un topic par zone (`zone_maroua`, …) dès qu'une zone passe ORANGE/ROUGE, avec déduplication jour à jour — testé en simulation ;
-- `docs/NOTIFICATIONS_PUSH_FCM.md` : guide d'installation complet (~10 min, nécessite un compte Firebase).
-
-### 10.4 Autres pistes
-
-- **Miroir cloud pour le passage à l'échelle** : la station pousse quotidiennement son cache de prédictions (`data/predictions/latest.json`, quelques Ko) vers un petit serveur hébergé qui sert le trafic public ; la Raspberry Pi n'est plus exposée à Internet et une coupure de courant locale n'interrompt plus le service pour les utilisateurs (ils lisent les dernières prédictions poussées) ;
-- **Alertes proactives par WhatsApp** : diffuser automatiquement aux numéros abonnés d'une zone quand elle passe en alerte, en réutilisant la logique de `send_push_alerts.py` adaptée à l'API WhatsApp — en attente du déverrouillage du compte Meta (§10.2) ;
-- **Langues locales** : au-delà du français/anglais déjà disponibles (§7.8), le prompt de l'assistant IA pourrait être adapté pour répondre en fulfulde ou en pidgin, élargissant l'audience dans le Nord et l'Ouest ;
-- **Capteurs sur site** : un ensemble de capteurs (pression, température, humidité, pluviométrie, humidité du sol) installés dans une zone agricole est techniquement exploitable par les modèles actuels, qui utilisent déjà des variables équivalentes — actuellement estimées par satellite/réanalyse plutôt que mesurées localement. Deux limites à traiter : pas de mesure directe de l'ET0 ni des indices de végétation (NDVI) par ces capteurs (solution hybride en conservant ces deux-là via satellite), et une accumulation d'environ 90 jours de données glissantes nécessaire avant que les fenêtres de calcul (pluie 7j/30j, anomalies) soient fiables ;
-- **Ré-entraînement continu** : intégrer les signalements validés comme labels, avec ré-entraînement périodique automatisé (le pipeline `RETRAIN_GUIDE.md` existe déjà) ;
+- **Miroir cloud pour le passage à l'échelle** : la station pousse quotidiennement son cache de prédictions vers un petit serveur hébergé qui sert le trafic public — la Raspberry Pi n'est plus exposée directement à Internet ;
+- **Alertes proactives par WhatsApp** : diffusion automatique aux numéros abonnés d'une zone en alerte, en attente du déverrouillage du compte Meta (§9.2) ;
+- **Langues locales** : au-delà du français/anglais déjà disponibles, le prompt de l'assistant IA pourrait être adapté au fulfulde ou au pidgin ;
+- **Ré-entraînement continu** : intégrer les signalements validés comme labels, avec ré-entraînement périodique automatisé ;
 - **Publication Play Store** : changer l'identifiant d'application, signer la version release (le build APK release est déjà fonctionnel) ;
-- **Architecture multi-serveurs** : si plusieurs stations régionales sont déployées à terme, le bot WhatsApp (un numéro = un webhook chez Meta) devra être centralisé sur un serveur « hub » agrégeant les données de toutes les zones, plutôt que dupliqué par station.
+- **Architecture multi-serveurs** : si plusieurs stations régionales sont déployées à terme, le bot WhatsApp (un numéro = un webhook chez Meta) devra être centralisé sur un serveur « hub » agrégeant les données de toutes les zones.
 
 ---
 
-## 11. Conclusion
+## 10. Conclusion
 
-SAMCAM démontre qu'avec des **données ouvertes** (météo et satellite), du **matériel modeste** (une Raspberry Pi, des capteurs, un écran) et des **modèles d'apprentissage classiques** bien calibrés, il est possible de construire un système d'alerte climatique multirisque, multizone et multi-horizon, fonctionnel de bout en bout :
+SAMCAM démontre qu'avec des **données ouvertes** (météo et satellite), du **matériel modeste** (une Raspberry Pi à 2 Go de RAM, partagée entre plusieurs projets) et des **modèles d'apprentissage classiques** bien calibrés, il est possible de construire un système d'alerte climatique multirisque, multizone et multi-horizon, **effectivement déployé et fonctionnel de bout en bout** :
 
 - **18 zones** couvrant tous les climats du Cameroun, des grandes villes aux filières agricoles (riz, coton, cacao, café, palmier, élevage) ;
 - **3 risques** (inondation, sécheresse, chaleur) × **6 horizons** (aujourd'hui → J+14) ;
-- **54 modèles IA** entraînés sur 20 à 36 ans d'historique, validés contre 10 catastrophes réelles documentées (10/10 détectées, §8) et enrichis de 2 épisodes complémentaires intégrés comme vérité terrain pour les nouvelles zones (§6.6) ;
-- **Un déploiement reproductible en une commande** sur Raspberry Pi 4, même à 2 Go de RAM, via Docker ;
-- **Une interface bilingue** (français/anglais) et une **chaîne complète** : capteurs (perspective) et APIs → Raspberry Pi → écran local + API REST → application mobile offline-first → assistant IA local → bot WhatsApp (code prêt, activation en attente côté Meta).
+- **54 modèles IA** entraînés sur 20 à 36 ans d'historique, validés contre 10 catastrophes réelles documentées (10/10 détectées, §7.2), et **54 modèles supplémentaires** validant une variante 100 % hors-ligne à capteurs de terrain (§5.5) ;
+- **Un déploiement réel et vérifié** sur Raspberry Pi 4 à 2 Go de RAM, accessible publiquement en HTTPS, avec collecte quotidienne autonome et assistant IA local ;
+- **Une interface bilingue** (français/anglais) sur toute la chaîne, y compris l'assistant IA ;
+- **Une méthodologie de débogage rigoureuse** ayant permis d'identifier et corriger des bugs de fond (fallback météo cassé, trous de cache, incohérences de déploiement) directement responsables de fausses alertes ou de blocages, documentée en détail (§6) plutôt que dissimulée.
 
-Le projet assume ses limites — la difficulté à distinguer l'année exceptionnelle de la saison ordinaire, un bot WhatsApp bloqué par une procédure de vérification externe — et embarque les outils pour les dépasser : évaluation contre événements réels, signalements communautaires comme future vérité terrain, seuils saisonniers en perspective, et une méthode de calibration reproductible pour toute future zone (§6.6).
+Le projet assume ses limites — la difficulté à distinguer l'année exceptionnelle de la saison ordinaire, un bot WhatsApp bloqué par une procédure de vérification externe, un boîtier capteurs validé mais pas encore construit — et embarque les outils pour les dépasser : évaluation contre événements réels, signalements communautaires comme future vérité terrain, et une méthode de calibration reproductible pour toute future zone ou tout futur capteur.
 
-Au-delà de la technique, SAMCAM illustre une conviction : **l'information climatique doit aller vers les populations, dans leur langue et sur leurs canaux**, et non l'inverse. C'est le sens de l'écran public sur la station, du mode hors-ligne de l'application, de l'interface bilingue, des bulletins partageables par SMS — et du bot WhatsApp dès qu'il sera activé.
+Au-delà de la technique, SAMCAM illustre une conviction : **l'information climatique doit aller vers les populations, dans leur langue et sur leurs canaux, avec ou sans connexion internet** — et non l'inverse.
 
 ---
 
 ## Annexes
 
-### A. Métriques des 54 modèles (validation croisée temporelle)
+### A. Métriques des modèles (validation croisée temporelle)
 
-**Zones initiales**
+**Modèles de production (satellite + NASA), zones initiales**
 
 | Zone | Inondation (AUC) | Sécheresse (AUC) | Chaleur (AUC) |
 |---|---|---|---|
@@ -938,7 +802,7 @@ Au-delà de la technique, SAMCAM illustre une conviction : **l'information clima
 | Garoua | 0,81 | 0,66 | 0,84 |
 | Maroua | 0,99 | 0,63 | 0,96 |
 
-**Zones agricoles ajoutées** (voir §6.6 pour la méthode de calibration)
+**Modèles de production, zones agricoles ajoutées** (voir §6.5 pour la méthode de calibration)
 
 | Zone | Inondation (AUC) | Sécheresse (AUC) | Chaleur (AUC) |
 |---|---|---|---|
@@ -953,24 +817,11 @@ Au-delà de la technique, SAMCAM illustre une conviction : **l'information clima
 | Nkongsamba | 0,99 | 0,96 | 0,99 |
 | Buea | 0,98 | 0,96 | 0,99 |
 
-*23 à 31 features selon le risque. Algorithme retenu par sélection automatique (RandomForest ou GradientBoosting, le meilleur des deux sur validation croisée). Métriques complètes par modèle : `models/zonal/metrics/*.json`.*
+**Modèles « capteurs seuls »** (voir §5.5) : AUC médiane 0,955 sur les 54 modèles, contre 0,960 pour les modèles de production — écart négligeable, détail complet dans `models/zonal_sensor/metrics/*.json`.
 
-### B. Pile technologique
+*Algorithme retenu par sélection automatique (RandomForest ou GradientBoosting, le meilleur des deux sur validation croisée).*
 
-| Couche | Technologies |
-|---|---|
-| Collecte | Python, requests/httpx, Google Earth Engine API, cron |
-| Données | CSV/Parquet (pandas), JSON |
-| ML | scikit-learn (RandomForest, GradientBoosting), TimeSeriesSplit |
-| API | FastAPI, uvicorn, pydantic |
-| Assistant IA | Ollama (Phi-3 mini en dev, Qwen 3 0.6B partagé sur Pi) |
-| Bot WhatsApp | Meta WhatsApp Business Cloud API, httpx |
-| Déploiement Pi | Docker Engine (Linux natif), Docker Compose, Tailscale Funnel |
-| Application | Flutter/Dart, fl_chart, geolocator, shared_preferences, flutter_local_notifications, share_plus, flutter_localizations (FR/EN) |
-| Écran local | HTML/CSS/JS (servi par FastAPI) |
-| Push (préparé) | Firebase Cloud Messaging, firebase-admin |
-
-### C. Reproduire le pipeline
+### B. Reproduire le pipeline
 
 ```bash
 # 1. Collecte du jour (18 zones)
@@ -979,8 +830,11 @@ python data_collection/collect_all_zones.py
 # 2. Consolidation des historiques
 python data_collection/append_daily_to_historical.py
 
-# 3. (Ré)entraînement des 54 modèles
+# 3. (Ré)entraînement des 54 modèles de production
 python training/build_labels.py && python training/train_zonal_models.py --force
+
+# 3bis. (Ré)entraînement de la variante capteurs seuls
+python training/train_zonal_models.py --sensor-only --force
 
 # 4. Pré-calcul des prédictions
 python inference/compute_daily_predictions.py
