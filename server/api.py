@@ -670,7 +670,7 @@ def get_risk(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone (ex: Kr
 OLLAMA_URL   = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "phi3:mini")
 
-_ASSISTANT_SYSTEM = (
+_ASSISTANT_SYSTEM_FR = (
     "Tu es l'assistant SAMCAM, un système d'alerte climatique pour le Cameroun. "
     "Tu réponds UNIQUEMENT à partir des données réelles fournies (jamais d'invention "
     "de chiffres). Ton public est un habitant, un agriculteur ou une autorité locale : "
@@ -678,12 +678,27 @@ _ASSISTANT_SYSTEM = (
     "Sois bref : 3 à 5 phrases maximum, sauf si on te demande plus de détails."
 )
 
+_ASSISTANT_SYSTEM_EN = (
+    "You are the SAMCAM assistant, a climate early-warning system for Cameroon. "
+    "You answer ONLY from the real data provided (never invent numbers). "
+    "Your audience is a resident, a farmer, or a local authority: "
+    "answer in simple, concrete English, no technical jargon. "
+    "Be brief: 3 to 5 sentences maximum, unless asked for more detail."
+)
+
+
+def _assistant_system_prompt(langue: str) -> str:
+    return _ASSISTANT_SYSTEM_EN if langue == "en" else _ASSISTANT_SYSTEM_FR
+
 
 class AssistantRequest(BaseModel):
     zone: str = Field(..., min_length=2, max_length=50)
     question: Optional[str] = Field(
         None, max_length=500,
         description="Question libre. Si absente, un résumé du bulletin est généré.")
+    langue: str = Field(
+        "fr", pattern="^(fr|en)$",
+        description="Langue de la réponse — doit suivre la langue choisie dans l'app.")
 
 
 def _construire_prompt_assistant(zone: str, bulletin: dict, question: Optional[str]) -> str:
@@ -702,12 +717,17 @@ def _construire_prompt_assistant(zone: str, bulletin: dict, question: Optional[s
     )
 
 
-def _appeler_ollama(prompt: str) -> str:
+def _appeler_ollama(prompt: str, langue: str = "fr") -> str:
     payload = {
         "model":   OLLAMA_MODEL,
-        "system":  _ASSISTANT_SYSTEM,
+        "system":  _assistant_system_prompt(langue),
         "prompt":  prompt,
         "stream":  False,
+        # "think": False — désactive le mode raisonnement des modèles hybrides
+        # (Qwen3 génère sinon un bloc <think> complet avant la vraie réponse :
+        # ~20s de calcul en plus par requête sur le CPU d'un Raspberry Pi pour
+        # une simple reformulation de bulletin, sans bénéfice ici).
+        "think":   False,
         "options": {"temperature": 0.2, "top_p": 0.9, "num_predict": 350},
     }
     try:
@@ -738,7 +758,7 @@ def poser_question_assistant(req: AssistantRequest):
     _resolve_zone(req.zone)
     bulletin = _get_full_risk_payload(req.zone)
     prompt   = _construire_prompt_assistant(req.zone, bulletin, req.question)
-    reponse  = _appeler_ollama(prompt)
+    reponse  = _appeler_ollama(prompt, langue=req.langue)
     return {"zone": req.zone, "question": req.question, "reponse": reponse}
 
 

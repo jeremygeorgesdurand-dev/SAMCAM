@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/api_service.dart';
+import '../services/locale_controller.dart';
 
 class AssistantCard extends StatefulWidget {
   final String zone;
@@ -42,7 +43,10 @@ class _AssistantCardState extends State<AssistantCard> {
     setState(() { _loading = true; _error = null; });
     try {
       final reponse = await ApiService.askAssistant(
-        zone: widget.zone, question: question);
+        zone: widget.zone,
+        question: question,
+        langue: LocaleController.locale.value.languageCode,
+      );
       if (!mounted) return;
       setState(() { _reponse = reponse; _loading = false; });
     } catch (e) {

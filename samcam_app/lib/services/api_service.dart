@@ -458,7 +458,14 @@ class ApiService {
 
   /// [question] absente → l'assistant résume le bulletin actuel de [zone].
   /// [question] fournie → réponse ciblée, basée uniquement sur les données réelles.
-  static Future<String> askAssistant({required String zone, String? question}) async {
+  /// [langue] doit suivre la langue active de l'app (fr/en) — l'assistant
+  /// Ollama y répond directement dans le prompt système, sinon il répond
+  /// toujours en français par défaut côté serveur.
+  static Future<String> askAssistant({
+    required String zone,
+    String? question,
+    String langue = 'fr',
+  }) async {
     final base = await getServerUrl();
     final uri  = Uri.parse('$base/api/assistant');
 
@@ -469,6 +476,7 @@ class ApiService {
           body: jsonEncode({
             'zone': zone,
             if (question != null && question.trim().isNotEmpty) 'question': question.trim(),
+            'langue': langue,
           }),
         )
         .timeout(_assistantTimeout);
