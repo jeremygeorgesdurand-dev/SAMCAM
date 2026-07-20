@@ -16,13 +16,21 @@ class AssistantCard extends StatefulWidget {
   State<AssistantCard> createState() => _AssistantCardState();
 }
 
-class _AssistantCardState extends State<AssistantCard> {
+class _AssistantCardState extends State<AssistantCard>
+    with AutomaticKeepAliveClientMixin {
   final _questionCtrl = TextEditingController();
   String? _reponse;
   String? _error;
   bool _loading = false;
   bool _ouvert = false;
   late AppLocalizations t;
+
+  // La carte vit dans une ListView : sans ceci, Flutter détruit son State
+  // dès qu'elle sort de l'écran (scroll), et la recrée vierge en revenant —
+  // d'où la carte qui semblait se refermer et relancer une requête à chaque
+  // remontée/redescente de la page.
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void didUpdateWidget(covariant AssistantCard old) {
@@ -60,18 +68,22 @@ class _AssistantCardState extends State<AssistantCard> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // requis par AutomaticKeepAliveClientMixin
     t = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFB39DDB).withOpacity(0.25)),
+        // Même style "verre dépoli" translucide que les autres cartes de
+        // l'écran (_glassCard dans home_screen.dart), plutôt qu'un fond
+        // opaque qui détonnait visuellement.
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.15), width: 0.8),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(20),
             onTap: () {
               setState(() => _ouvert = !_ouvert);
               if (_ouvert && _reponse == null && !_loading) _demander();
