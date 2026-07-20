@@ -55,7 +55,7 @@ if ! command -v ollama >/dev/null 2>&1; then
 fi
 if curl -fsS --max-time 3 http://localhost:11434/api/tags >/dev/null 2>&1; then
     echo -e "${GREEN}[ollama]${NC} Service Ollama natif joignable sur le port 11434"
-    if curl -fsS --max-time 3 http://localhost:11434/api/tags | grep -q "qwen3:0.6b"; then
+    if curl -fsS --max-time 3 http://localhost:11434/api/tags | grep -qi "qwen3:0\.6b"; then
         echo -e "${GREEN}[ollama]${NC} Modèle qwen3:0.6b déjà présent"
     else
         echo -e "${YELLOW}[ollama]${NC} qwen3:0.6b introuvable dans 'ollama list' — vérifiez le nom exact"

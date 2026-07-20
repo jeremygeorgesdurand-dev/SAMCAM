@@ -19,7 +19,7 @@ services:
       # network_mode: host → le conteneur partage la pile réseau de l'hôte,
       # "localhost" désigne donc le Pi lui-même (où tourne Ollama nativement).
       - OLLAMA_URL=http://localhost:11434/api/generate
-      - OLLAMA_MODEL=qwen3:0.6b
+      - OLLAMA_MODEL=qwen3:0.6B
     env_file:
       - server/.env.docker
     mem_limit: 300m
