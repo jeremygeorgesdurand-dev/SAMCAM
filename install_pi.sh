@@ -68,9 +68,21 @@ fi
 
 # ── 3. Tailscale (accès distant, reste natif — voir docs/RAPPORT_SAMCAM.md §9.5) ─
 # Installe et active le Funnel automatiquement dès que possible, comme server/start.sh
-# le fait côté Mac. Seule l'authentification initiale (`tailscale up`) reste manuelle :
-# elle nécessite de visiter un lien dans un navigateur, impossible à automatiser sur
-# un appareil headless sans clé d'auth pré-générée.
+# le fait côté Mac.
+#
+# Deux modes d'authentification pour `tailscale up` :
+#   - Automatique (recommandé pour déployer plusieurs Pi) : exportez TAILSCALE_AUTHKEY
+#     avant de lancer ce script. Générez une clé réutilisable/éphémère depuis
+#     https://login.tailscale.com/admin/settings/keys — aucun clic navigateur requis,
+#     idéal pour flasher plusieurs cartes SD avec le même script.
+#   - Manuel (par défaut, sans clé) : nécessite de visiter un lien affiché dans un
+#     navigateur, une seule fois par appareil.
+#
+# SAMCAM_HOSTNAME (défaut "cameroun") : nom de la machine sur le tailnet, doit être
+# unique — indispensable à changer si vous déployez plusieurs stations
+# (ex: SAMCAM_HOSTNAME=maroua bash install_pi.sh).
+SAMCAM_HOSTNAME="${SAMCAM_HOSTNAME:-cameroun}"
+
 if ! command -v tailscale >/dev/null 2>&1; then
     echo -e "${YELLOW}[tailscale]${NC} Installation de Tailscale..."
     curl -fsSL https://tailscale.com/install.sh | sh
@@ -80,17 +92,24 @@ fi
 
 if tailscale status >/dev/null 2>&1; then
     echo -e "${GREEN}[tailscale]${NC} Déjà connecté au tailnet"
+elif [ -n "${TAILSCALE_AUTHKEY:-}" ]; then
+    echo -e "${GREEN}[tailscale]${NC} Authentification automatique (clé fournie), hostname=${SAMCAM_HOSTNAME}..."
+    sudo tailscale up --authkey="$TAILSCALE_AUTHKEY" --hostname="$SAMCAM_HOSTNAME"
+else
+    echo -e "${YELLOW}[tailscale]${NC} Pas encore authentifié sur ce Pi — étape manuelle unique requise :"
+    echo -e "${YELLOW}[tailscale]${NC}   sudo tailscale up --hostname=${SAMCAM_HOSTNAME}"
+    echo -e "${YELLOW}[tailscale]${NC}   (suivez le lien affiché pour authentifier l'appareil, une seule fois)"
+    echo -e "${YELLOW}[tailscale]${NC} Puis relancez ce script — le Funnel s'activera automatiquement ensuite."
+    echo -e "${YELLOW}[tailscale]${NC} Astuce déploiement multiple : exportez TAILSCALE_AUTHKEY pour sauter cette étape."
+fi
+
+if tailscale status >/dev/null 2>&1; then
     if sudo tailscale funnel --bg 8000 >/dev/null 2>&1; then
         FUNNEL_URL=$(tailscale funnel status 2>/dev/null | grep -o 'https://[^ ]*\.ts\.net[^ ]*' | head -1)
         echo -e "${GREEN}[funnel]${NC} API publiée sur Internet : ${FUNNEL_URL:-voir « tailscale funnel status »}"
     else
         echo -e "${YELLOW}[funnel]${NC} Activation automatique du Funnel impossible — lancez une fois : sudo tailscale funnel --bg 8000"
     fi
-else
-    echo -e "${YELLOW}[tailscale]${NC} Pas encore authentifié sur ce Pi — étape manuelle unique requise :"
-    echo -e "${YELLOW}[tailscale]${NC}   sudo tailscale up --hostname=cameroun"
-    echo -e "${YELLOW}[tailscale]${NC}   (suivez le lien affiché pour authentifier l'appareil, une seule fois)"
-    echo -e "${YELLOW}[tailscale]${NC} Puis relancez ce script — le Funnel s'activera automatiquement ensuite."
 fi
 
 # ── 4. Secrets — génère server/.env.docker (format KEY=VALUE) depuis .env.local

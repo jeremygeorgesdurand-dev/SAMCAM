@@ -19,6 +19,15 @@ RUN pip install --no-cache-dir -r /tmp/requirements-server.txt \
 # des mises à jour via `git pull` sans reconstruire l'image. En production isolée,
 # on pourrait aussi faire un `COPY . /app` ici.
 
+# Exécution en non-root par défaut (durcissement) : limite ce qu'un
+# éventuel exploit dans une dépendance Python pourrait faire sur l'hôte,
+# important puisque ce conteneur reçoit du trafic public non authentifié.
+# UID 1000 correspond au premier utilisateur créé sur Raspberry Pi OS/Debian
+# (souvent "pi" ou "admin") — si le vôtre diffère, ajustez ou passez
+# --build-arg UID=$(id -u) et remplacez 1000 ci-dessous par ${UID}.
+RUN useradd --uid 1000 --create-home samcam
+USER samcam
+
 EXPOSE 8000
 
 CMD ["uvicorn", "server.api:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

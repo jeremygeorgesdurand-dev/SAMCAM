@@ -1,43 +1,38 @@
-flowchart TB
-    subgraph ACQ["1 — ACQUISITION"]
-        direction LR
-        A1["Open-Meteo<br/>· température min/moy/max<br/>· précipitations<br/>· humidité, vent, ET0<br/>· prévisions 14 jours"]
-        A2["NASA POWER<br/>· rayonnement solaire<br/>· évapotranspiration"]
-        A3["Google Earth Engine<br/>· Sentinel-2 : NDVI, NDWI, NDRE<br/>· MODIS : NDVI (secours)<br/>· SMAP/ERA5 : humidité des sols<br/>· CHIRPS + IMERG : pluie satellite"]
+flowchart LR
+    subgraph ACQ["1 · Acquisition"]
+        direction TB
+        A1["Open-Meteo<br/>météo + prévisions 14j"]
+        A2["NASA POWER<br/>rayonnement, ET0"]
+        A3["Google Earth Engine<br/>NDVI · sols · pluie satellite"]
     end
 
-    subgraph FEAT["2 — PRÉTRAITEMENT & FEATURES"]
-        direction LR
-        F1["Cumuls glissants<br/>rain_7d / 14d / 30d / 90d"]
-        F2["Anomalies<br/>temp_anom_30d, SPI-3 approché"]
-        F3["Extrêmes<br/>temp_max_7d"]
-        F4["Sols<br/>humidité par couche"]
-        F5["Saisonnalité<br/>mois, semaine, jour de l'année"]
+    subgraph FEAT["2 · Features"]
+        direction TB
+        F1["Cumuls glissants<br/>7/14/30/90j"]
+        F2["Anomalies<br/>+ SPI-3"]
+        F3["Sols & saisonnalité"]
     end
 
-    subgraph LABELS["3 — LABELS D'ENTRAÎNEMENT (par zone)"]
-        L1["Règles climatologiques<br/>calibrées sur les normales réelles<br/>de chaque zone (config/zones/*.json)"]
+    subgraph LABELS["3 · Labels"]
+        L1["Règles climatologiques<br/>par zone (config/zones/*.json)"]
     end
 
-    subgraph TRAIN["4 — ENTRAÎNEMENT (training/)"]
-        T1["54 modèles = 18 zones × 3 risques<br/>RandomForest ou GradientBoosting<br/>(sélection auto du meilleur)"]
-        T2["Validation croisée temporelle<br/>(TimeSeriesSplit, anti-fuite)"]
+    subgraph TRAIN["4 · Entraînement"]
+        direction TB
+        T1["54 modèles<br/>RF / GradientBoosting"]
+        T2["Validation temporelle<br/>(TimeSeriesSplit)"]
     end
 
-    subgraph INF["5 — INFÉRENCE QUOTIDIENNE (inference/)"]
-        I1["J0 : fenêtre des 30 derniers jours"]
-        I2["J+1 → J+14 : prévisions météo réelles<br/>+ features glissantes recalculées"]
-        I3["Cache latest.json"]
+    subgraph INF["5 · Inférence quotidienne"]
+        direction TB
+        I1["J0 → J+14<br/>(prévisions réelles)"]
+        I2["Cache latest.json"]
     end
 
-    subgraph OUT["6 — RESTITUTION"]
-        O1["API REST → app mobile"]
-        O2["Niveaux : VERT / JAUNE / ORANGE / ROUGE"]
+    subgraph OUT["6 · Restitution"]
+        O1["API → app mobile<br/>VERT/JAUNE/ORANGE/ROUGE"]
     end
 
-    ACQ --> FEAT
-    FEAT --> LABELS
-    LABELS --> TRAIN
+    ACQ --> FEAT --> LABELS --> TRAIN
     FEAT --> INF
-    TRAIN -->|"modèles .pkl"| INF
-    INF --> OUT
+    TRAIN -->|".pkl"| INF --> OUT

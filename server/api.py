@@ -954,6 +954,22 @@ def post_signalement(request: Request, s: Signalement):
     return {"status": "OK", "signalement": entree}
 
 
+def _anonymiser_signalement(e: dict) -> dict:
+    """
+    Arrondit lat/lon à ~1,1 km de précision (2 décimales) avant exposition
+    publique — suffisant pour situer un signalement sur une carte de zone,
+    insuffisant pour identifier la maison ou le champ exact de la personne qui
+    l'a soumis. La précision d'origine reste dans SIGNALEMENTS_PATH (utile
+    pour la recalibration des modèles), seule la réponse API est dégradée.
+    """
+    e2 = dict(e)
+    if e2.get("lat") is not None:
+        e2["lat"] = round(e2["lat"], 2)
+    if e2.get("lon") is not None:
+        e2["lon"] = round(e2["lon"], 2)
+    return e2
+
+
 @app.get("/api/signalements", tags=["Communauté"])
 def get_signalements(
     zone: Optional[str] = Query(None, description="Filtrer par zone"),
@@ -971,7 +987,7 @@ def get_signalements(
 
     if zone:
         entrees = [e for e in entrees if e.get("zone", "").lower() == zone.lower()]
-    entrees = entrees[::-1][:limit]
+    entrees = [_anonymiser_signalement(e) for e in entrees[::-1][:limit]]
     return {"signalements": entrees, "total": len(entrees)}
 
 

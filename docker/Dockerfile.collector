@@ -19,4 +19,12 @@ RUN pip install --no-cache-dir -r /tmp/requirements-collect.txt \
 COPY docker/collector_loop.sh /usr/local/bin/collector_loop.sh
 RUN chmod +x /usr/local/bin/collector_loop.sh
 
+# Exécution en non-root par défaut (durcissement) : limite ce qu'un
+# éventuel exploit dans une dépendance Python pourrait faire sur l'hôte.
+# UID 1000 correspond au premier utilisateur créé sur Raspberry Pi OS/Debian
+# (souvent "pi" ou "admin") — si le vôtre diffère, ajustez ou passez
+# --build-arg UID=$(id -u) et remplacez 1000 ci-dessous par ${UID}.
+RUN useradd --uid 1000 --create-home samcam
+USER samcam
+
 CMD ["/usr/local/bin/collector_loop.sh"]

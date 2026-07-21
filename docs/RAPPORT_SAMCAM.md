@@ -437,6 +437,12 @@ L'application (Flutter, Android/iOS, thème sombre) est la vitrine du système p
 
 **Assistant IA dans l'application** : carte pliable « Assistant SAMCAM » qui reformule en langage naturel le bulletin déjà calculé, ou répond à une question libre — sans jamais calculer de risque elle-même (voir §9.1 pour le détail du principe RAG léger). Testé en conditions réelles sur le Pi : réponse correcte en français en ~30 secondes.
 
+**Même code, cible web** : le même code Flutter compile aussi pour le web (`flutter run -d chrome`), utile en développement pour itérer sans passer par un appareil physique — sans réécriture spécifique.
+
+<img src="images/screenshots/web_accueil.png" width="105" alt="Accueil (web)"> <img src="images/screenshots/web_details_meteo.png" width="105" alt="Détails météo (web)"> <img src="images/screenshots/web_vue_ensemble.png" width="105" alt="Vue d'ensemble (web)"> <img src="images/screenshots/web_historique.png" width="105" alt="Historique (web)"> <img src="images/screenshots/web_reglages.png" width="105" alt="Réglages (web)">
+
+*Même application, cible web (mode développement) — accueil, détails météo, vue d'ensemble, historique, réglages.*
+
 ### 7.2 Évaluation de la fiabilité du système
 
 L'AUC de validation croisée (médiane 0,96) mesure la capacité des modèles à **reproduire les labels climatologiques** — pas à détecter de vrais événements. Un protocole d'évaluation contre des **événements documentés** (EM-DAT, OCHA, ReliefWeb) a donc été développé (`training/evaluate_real_events.py`), vérifiant pour chaque événement : détection, préavis, taux de fausse alerte saisonnier, et percentile de l'année dans la distribution historique.
