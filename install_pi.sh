@@ -15,6 +15,20 @@ echo -e "${BLUE}\n════════════════════�
 echo -e "  SAMCAM — Installation Raspberry Pi"
 echo -e "══════════════════════════════════════════════${NC}\n"
 
+# ── 0. Secrets locaux (server/.env.local, JAMAIS committé — voir .gitignore) ──
+# Permet de définir une fois TAILSCALE_AUTHKEY, SAMCAM_HOSTNAME et les secrets
+# WhatsApp dans ce fichier plutôt que de les retaper sur la ligne de commande à
+# chaque exécution. Ne JAMAIS mettre ces valeurs dans un fichier suivi par git
+# (une clé Tailscale committée permettrait à quiconque a accès au dépôt de
+# rejoindre votre tailnet).
+if [ -f server/.env.local ]; then
+    set +u
+    # shellcheck disable=SC1091
+    source server/.env.local
+    set -u
+    echo -e "${GREEN}[secrets]${NC} server/.env.local chargé"
+fi
+
 # ── 1. Swap — indispensable à 2 Go de RAM, filet de sécurité anti-OOM ────────
 CURRENT_SWAP_MB=$(free -m | awk '/^Swap:/{print $2}')
 if [ "${CURRENT_SWAP_MB:-0}" -lt 1024 ]; then
@@ -71,10 +85,11 @@ fi
 # le fait côté Mac.
 #
 # Deux modes d'authentification pour `tailscale up` :
-#   - Automatique (recommandé pour déployer plusieurs Pi) : exportez TAILSCALE_AUTHKEY
-#     avant de lancer ce script. Générez une clé réutilisable/éphémère depuis
-#     https://login.tailscale.com/admin/settings/keys — aucun clic navigateur requis,
-#     idéal pour flasher plusieurs cartes SD avec le même script.
+#   - Automatique (recommandé pour déployer plusieurs Pi) : ajoutez
+#     "export TAILSCALE_AUTHKEY=tskey-auth-..." dans server/.env.local (voir
+#     étape 0 ci-dessus — jamais dans git). Clé à générer depuis
+#     https://login.tailscale.com/admin/settings/keys — aucun clic navigateur
+#     requis ensuite, idéal pour flasher plusieurs cartes SD avec ce script.
 #   - Manuel (par défaut, sans clé) : nécessite de visiter un lien affiché dans un
 #     navigateur, une seule fois par appareil.
 #
@@ -100,7 +115,7 @@ else
     echo -e "${YELLOW}[tailscale]${NC}   sudo tailscale up --hostname=${SAMCAM_HOSTNAME}"
     echo -e "${YELLOW}[tailscale]${NC}   (suivez le lien affiché pour authentifier l'appareil, une seule fois)"
     echo -e "${YELLOW}[tailscale]${NC} Puis relancez ce script — le Funnel s'activera automatiquement ensuite."
-    echo -e "${YELLOW}[tailscale]${NC} Astuce déploiement multiple : exportez TAILSCALE_AUTHKEY pour sauter cette étape."
+    echo -e "${YELLOW}[tailscale]${NC} Astuce déploiement multiple : ajoutez TAILSCALE_AUTHKEY dans server/.env.local pour sauter cette étape."
 fi
 
 if tailscale status >/dev/null 2>&1; then
