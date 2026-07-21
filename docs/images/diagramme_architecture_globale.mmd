@@ -1,0 +1,33 @@
+flowchart TB
+    subgraph SOURCES["☁️ SOURCES DE DONNÉES DISTANTES"]
+        OM["Open-Meteo<br/>(météo observée + prévisions)"]
+        NASA["NASA POWER<br/>(rayonnement, ET0)"]
+        GEE["Google Earth Engine<br/>Sentinel-2 · MODIS · SMAP<br/>CHIRPS · IMERG · ERA5"]
+    end
+
+    subgraph STATION["🖥️ STATION SERVEUR — RASPBERRY PI (déployée)"]
+        COLLECTE["Collecte quotidienne<br/>(conteneur collector)"]
+        PIPELINE["Prétraitement +<br/>features dérivées"]
+        IA["54 modèles IA zonaux<br/>(RandomForest / GradientBoosting)"]
+        API["API REST FastAPI<br/>(port 8000)"]
+        ASSIST["Assistant IA local<br/>(Ollama, Qwen 3 0.6B)"]
+    end
+
+    subgraph OFFLINE["🌡️ VARIANTE 100% HORS-LIGNE (validée, non déployée)"]
+        CAPTEURS["Capteurs de terrain<br/>(pression, T°, humidité, pluie, sol)"]
+        SENSORMOD["54 modèles « capteurs seuls »<br/>(models/zonal_sensor/)"]
+    end
+
+    subgraph CLIENTS["📱 CLIENTS"]
+        APP["Application mobile SAMCAM<br/>(Flutter, offline-first, FR/EN)"]
+        WA["Bot WhatsApp<br/>(code prêt, bloqué par Meta)"]
+    end
+
+    OM -->|"si réseau disponible"| COLLECTE
+    NASA -->|"si réseau disponible"| COLLECTE
+    GEE -->|"si réseau disponible"| COLLECTE
+    COLLECTE --> PIPELINE --> IA --> API
+    API --> ASSIST
+    CAPTEURS -.->|"perspective : boîtier local"| SENSORMOD
+    API -->|"JSON léger via Tailscale Funnel"| APP
+    API -.->|"perspective"| WA

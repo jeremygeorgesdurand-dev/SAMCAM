@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant C as Boucle collector (05h00 UTC)
+    participant COL as collect_all_zones.py
+    participant HIST as append_daily_to_historical.py
+    participant PRED as compute_daily_predictions.py
+    participant API as api.py (FastAPI)
+    participant APP as App mobile
+
+    C->>COL: 1. Collecte des 18 zones
+    COL->>COL: Open-Meteo + NASA POWER + GEE
+    COL->>HIST: 2. JSON du jour
+    HIST->>HIST: Fusion dans les CSV historiques<br/>+ recalcul des features dérivées
+    HIST->>PRED: 3. Historiques à jour
+    PRED->>PRED: 54 modèles × 6 horizons<br/>(J0, J+1, J+3, J+7, J+10, J+14)
+    PRED->>API: 4. Cache latest.json
+    APP->>API: GET /api/risk (quand réseau)
+    API-->>APP: Réponse < 100 ms (lecture cache)

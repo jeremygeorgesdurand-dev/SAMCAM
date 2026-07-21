@@ -1,0 +1,5 @@
+flowchart LR
+    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?, langue}"| API["server/api.py"]
+    API --> CALC["_get_full_risk_payload(zone)"]
+    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Qwen 3 0.6B (Pi, partagé)"]
+    OLLAMA -->|"réponse en<br/>langage naturel"| APP

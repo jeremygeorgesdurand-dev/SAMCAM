@@ -107,41 +107,7 @@ Les 8 zones initiales couvraient les grandes villes et leur climat régional. Un
 
 Le système suit une **architecture centrée sur la station serveur** : le traitement lourd (collecte, IA) est centralisé sur la Raspberry Pi ; l'application mobile ne fait qu'interroger une API REST légère et conserve un cache local pour fonctionner hors-ligne.
 
-```mermaid
-flowchart TB
-    subgraph SOURCES["☁️ SOURCES DE DONNÉES DISTANTES"]
-        OM["Open-Meteo<br/>(météo observée + prévisions)"]
-        NASA["NASA POWER<br/>(rayonnement, ET0)"]
-        GEE["Google Earth Engine<br/>Sentinel-2 · MODIS · SMAP<br/>CHIRPS · IMERG · ERA5"]
-    end
-
-    subgraph STATION["🖥️ STATION SERVEUR — RASPBERRY PI (déployée)"]
-        COLLECTE["Collecte quotidienne<br/>(conteneur collector)"]
-        PIPELINE["Prétraitement +<br/>features dérivées"]
-        IA["54 modèles IA zonaux<br/>(RandomForest / GradientBoosting)"]
-        API["API REST FastAPI<br/>(port 8000)"]
-        ASSIST["Assistant IA local<br/>(Ollama, Qwen 3 0.6B)"]
-    end
-
-    subgraph OFFLINE["🌡️ VARIANTE 100% HORS-LIGNE (validée, non déployée)"]
-        CAPTEURS["Capteurs de terrain<br/>(pression, T°, humidité, pluie, sol)"]
-        SENSORMOD["54 modèles « capteurs seuls »<br/>(models/zonal_sensor/)"]
-    end
-
-    subgraph CLIENTS["📱 CLIENTS"]
-        APP["Application mobile SAMCAM<br/>(Flutter, offline-first, FR/EN)"]
-        WA["Bot WhatsApp<br/>(code prêt, bloqué par Meta)"]
-    end
-
-    OM -->|"si réseau disponible"| COLLECTE
-    NASA -->|"si réseau disponible"| COLLECTE
-    GEE -->|"si réseau disponible"| COLLECTE
-    COLLECTE --> PIPELINE --> IA --> API
-    API --> ASSIST
-    CAPTEURS -.->|"perspective : boîtier local"| SENSORMOD
-    API -->|"JSON léger via Tailscale Funnel"| APP
-    API -.->|"perspective"| WA
-```
+![Architecture globale du système SAMCAM](images/diagramme_architecture_globale.png)
 
 ### 3.2 Principe de fonctionnement
 
@@ -231,25 +197,7 @@ SAMCAM/
 
 ### 4.3 Le cycle quotidien de la station
 
-```mermaid
-sequenceDiagram
-    participant C as Boucle collector (05h00 UTC)
-    participant COL as collect_all_zones.py
-    participant HIST as append_daily_to_historical.py
-    participant PRED as compute_daily_predictions.py
-    participant API as api.py (FastAPI)
-    participant APP as App mobile
-
-    C->>COL: 1. Collecte des 18 zones
-    COL->>COL: Open-Meteo + NASA POWER + GEE
-    COL->>HIST: 2. JSON du jour
-    HIST->>HIST: Fusion dans les CSV historiques<br/>+ recalcul des features dérivées
-    HIST->>PRED: 3. Historiques à jour
-    PRED->>PRED: 54 modèles × 6 horizons<br/>(J0, J+1, J+3, J+7, J+10, J+14)
-    PRED->>API: 4. Cache latest.json
-    APP->>API: GET /api/risk (quand réseau)
-    API-->>APP: Réponse < 100 ms (lecture cache)
-```
+![Cycle quotidien de la station serveur](images/diagramme_cycle_quotidien.png)
 
 Le **cache de prédictions** est un choix d'architecture important : l'inférence complète (chargement des historiques + calcul des features glissantes + 54 modèles × 6 horizons) prend plusieurs secondes — inacceptable par requête HTTP sur une Raspberry Pi. En pré-calculant une fois par jour, l'API répond en **moins de 100 ms** quelle que soit la charge.
 
@@ -289,51 +237,7 @@ Le **cache de prédictions** est un choix d'architecture important : l'inférenc
 
 ### 5.1 Schéma complet du flux de données
 
-```mermaid
-flowchart TB
-    subgraph ACQ["1 — ACQUISITION"]
-        direction LR
-        A1["Open-Meteo<br/>· température min/moy/max<br/>· précipitations<br/>· humidité, vent, ET0<br/>· prévisions 14 jours"]
-        A2["NASA POWER<br/>· rayonnement solaire<br/>· évapotranspiration"]
-        A3["Google Earth Engine<br/>· Sentinel-2 : NDVI, NDWI, NDRE<br/>· MODIS : NDVI (secours)<br/>· SMAP/ERA5 : humidité des sols<br/>· CHIRPS + IMERG : pluie satellite"]
-    end
-
-    subgraph FEAT["2 — PRÉTRAITEMENT & FEATURES"]
-        direction LR
-        F1["Cumuls glissants<br/>rain_7d / 14d / 30d / 90d"]
-        F2["Anomalies<br/>temp_anom_30d, SPI-3 approché"]
-        F3["Extrêmes<br/>temp_max_7d"]
-        F4["Sols<br/>humidité par couche"]
-        F5["Saisonnalité<br/>mois, semaine, jour de l'année"]
-    end
-
-    subgraph LABELS["3 — LABELS D'ENTRAÎNEMENT (par zone)"]
-        L1["Règles climatologiques<br/>calibrées sur les normales réelles<br/>de chaque zone (config/zones/*.json)"]
-    end
-
-    subgraph TRAIN["4 — ENTRAÎNEMENT (training/)"]
-        T1["54 modèles = 18 zones × 3 risques<br/>RandomForest ou GradientBoosting<br/>(sélection auto du meilleur)"]
-        T2["Validation croisée temporelle<br/>(TimeSeriesSplit, anti-fuite)"]
-    end
-
-    subgraph INF["5 — INFÉRENCE QUOTIDIENNE (inference/)"]
-        I1["J0 : fenêtre des 30 derniers jours"]
-        I2["J+1 → J+14 : prévisions météo réelles<br/>+ features glissantes recalculées"]
-        I3["Cache latest.json"]
-    end
-
-    subgraph OUT["6 — RESTITUTION"]
-        O1["API REST → app mobile"]
-        O2["Niveaux : VERT / JAUNE / ORANGE / ROUGE"]
-    end
-
-    ACQ --> FEAT
-    FEAT --> LABELS
-    LABELS --> TRAIN
-    FEAT --> INF
-    TRAIN -->|"modèles .pkl"| INF
-    INF --> OUT
-```
+![Flux de données et pipeline machine learning](images/diagramme_flux_donnees_ml.png)
 
 ### 5.2 Les données collectées en détail
 
@@ -718,13 +622,7 @@ python3 inference/compute_daily_predictions.py
 
 Les 54 modèles de risque restent l'unique source des scores — un modèle de langage **ne calcule jamais un risque**, il reformule. **Principe (RAG léger)** : le serveur calcule le bulletin réel de la zone, l'injecte dans un prompt, et Ollama le reformule en français ou en anglais selon la langue de l'app (§6.9).
 
-```mermaid
-flowchart LR
-    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?, langue}"| API["server/api.py"]
-    API --> CALC["_get_full_risk_payload(zone)"]
-    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Qwen 3 0.6B (Pi, partagé)"]
-    OLLAMA -->|"réponse en<br/>langage naturel"| APP
-```
+![Principe de l'assistant IA (RAG léger)](images/diagramme_assistant_ia.png)
 
 Déployé et validé de bout en bout sur la station réelle (§7.3).
 

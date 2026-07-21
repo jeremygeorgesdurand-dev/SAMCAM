@@ -837,23 +837,29 @@ def get_history(
     if _infer_zone_risk_series_fn is None:
         raise HTTPException(status_code=503, detail="Moteur d'inférence indisponible")
 
-    series = {}
-    for risque in _RISQUES:
-        r = _infer_zone_risk_series_fn(zone, risque, days=days)
-        series[risque] = {e["date"]: e["proba"] for e in r.get("serie", [])} \
-            if r.get("status") == "OK" else {}
+    try:
+        series = {}
+        for risque in _RISQUES:
+            r = _infer_zone_risk_series_fn(zone, risque, days=days)
+            series[risque] = {e["date"]: e["proba"] for e in r.get("serie", [])} \
+                if r.get("status") == "OK" else {}
 
-    toutes_dates = sorted(set().union(*[s.keys() for s in series.values()])) if any(series.values()) else []
+        toutes_dates = sorted(set().union(*[s.keys() for s in series.values()])) if any(series.values()) else []
 
-    history = []
-    for d in toutes_dates:
-        scores = {f"score_{r}": series[r].get(d, 0.0) for r in _RISQUES}
-        history.append({
-            "date":           d,
-            "risque_actuel":  scores,
-            "niveau_alerte":  _niveau_alerte(**scores),
-            "methode_risque": "ml_zonal_infer",
-        })
+        history = []
+        for d in toutes_dates:
+            scores = {f"score_{r}": series[r].get(d, 0.0) for r in _RISQUES}
+            history.append({
+                "date":           d,
+                "risque_actuel":  scores,
+                "niveau_alerte":  _niveau_alerte(**scores),
+                "methode_risque": "ml_zonal_infer",
+            })
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[API] Erreur /api/history ({zone}) : {e}")
+        raise HTTPException(status_code=500, detail=f"Erreur interne lors du calcul de l'historique : {e}")
 
     return {"zone": zone, "history": history, "total": len(history)}
 
