@@ -405,11 +405,27 @@ L'application (Flutter, Android/iOS, thème sombre) est la vitrine du système p
 - Tuiles de prévision (3 j / 7 j / 10 j / 14 j), barres de risque du jour avec explication en langage simple, graphique de tendance ;
 - Badge de méthode (IA vs règles de secours) ; bouton de signalement.
 
+<img src="images/screenshots/app_accueil.png" width="220" alt="Écran d'accueil"> <img src="images/screenshots/app_risques_tendance.png" width="220" alt="Risques climatiques et tendance">
+
+*Écran d'accueil (météo courante, bandeau d'alerte) et section risques climatiques avec tendance sur 14 jours — zone de Kribi.*
+
 **Localisation et zones** : GPS automatique (zone la plus proche via `/api/nearest`), sélecteur des 18 zones + recherche de villes personnalisées (géocodage Nominatim), zone favorite configurable.
+
+<img src="images/screenshots/app_tiroir_zones.png" width="220" alt="Tiroir de sélection des zones">
+
+*Tiroir latéral de sélection des zones SAMCAM.*
 
 **Vue d'ensemble et carte** : grille des 18 zones en une requête ; carte du Cameroun dessinée localement (fonctionne hors-ligne), marqueurs colorés par niveau d'alerte.
 
+<img src="images/screenshots/app_vue_ensemble_grille.png" width="220" alt="Vue d'ensemble en grille"> <img src="images/screenshots/app_vue_ensemble_carte.png" width="220" alt="Vue d'ensemble sur carte">
+
+*Vue d'ensemble des 18 zones — affichage grille et carte du Cameroun.*
+
 **Historique** : évolution jour par jour des trois risques sur 14 jours, par zone.
+
+<img src="images/screenshots/app_historique.png" width="220" alt="Écran historique">
+
+*Historique jour par jour des scores de risque (zone d'Ebolowa).*
 
 **Participation communautaire** : signalement terrain (type + description + position GPS), stocké côté serveur comme future vérité terrain pour recalibrer les modèles.
 
