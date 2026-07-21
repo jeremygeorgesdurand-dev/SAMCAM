@@ -98,6 +98,33 @@ fi
 # (ex: SAMCAM_HOSTNAME=maroua bash install_pi.sh).
 SAMCAM_HOSTNAME="${SAMCAM_HOSTNAME:-cameroun}"
 
+# Prompts interactifs (déploiement multi-Pi) : si le Pi n'est pas encore
+# authentifié et qu'on a un vrai terminal (pas un script automatisé), propose
+# de saisir la clé et le nom d'hôte sur place plutôt que d'attendre un
+# copier-coller dans server/.env.local. Sans terminal interactif ([ -t 0 ]
+# faux), ce bloc est sauté silencieusement — le comportement précédent
+# (variables d'env ou lien manuel) reste inchangé.
+if ! tailscale status >/dev/null 2>&1 && [ -t 0 ]; then
+    if [ -z "${TAILSCALE_AUTHKEY:-}" ]; then
+        echo -e "${BLUE}[tailscale]${NC} Clé d'authentification (tskey-auth-..., vide = lien manuel classique) :"
+        read -rs TAILSCALE_AUTHKEY
+        echo ""
+        if [ -n "$TAILSCALE_AUTHKEY" ]; then
+            read -rp "$(echo -e "${BLUE}[tailscale]${NC} Sauvegarder cette clé dans server/.env.local pour les prochains Pi ? [o/N] ")" SAVE_KEY
+            if [[ "$SAVE_KEY" =~ ^[oOyY]$ ]]; then
+                echo "export TAILSCALE_AUTHKEY=\"$TAILSCALE_AUTHKEY\"" >> server/.env.local
+                echo -e "${GREEN}[tailscale]${NC} Clé sauvegardée dans server/.env.local (jamais dans git — voir .gitignore)"
+            fi
+        fi
+    fi
+    if [ "$SAMCAM_HOSTNAME" = "cameroun" ]; then
+        # DNS n'accepte pas les underscores dans un nom d'hôte — tirets uniquement
+        # (ex: samcam-rpi1, samcam-rpi2, PAS samcam_rpi1).
+        read -rp "$(echo -e "${BLUE}[tailscale]${NC} Nom de cette station, unique sur le tailnet (ex: samcam-rpi2) [cameroun] : ")" INPUT_HOSTNAME
+        SAMCAM_HOSTNAME="${INPUT_HOSTNAME:-cameroun}"
+    fi
+fi
+
 if ! command -v tailscale >/dev/null 2>&1; then
     echo -e "${YELLOW}[tailscale]${NC} Installation de Tailscale..."
     curl -fsSL https://tailscale.com/install.sh | sh
