@@ -74,6 +74,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsUrlSaved => 'URL sauvegardée';
 
   @override
+  String get settingsUrlSavedInsecure =>
+      'URL sauvegardée — ⚠️ connexion non chiffrée (http)';
+
+  @override
+  String get settingsUrlInvalid =>
+      'URL invalide — doit commencer par http:// ou https://';
+
+  @override
   String settingsTestSuccess(String version, String lastUpdate) {
     return '✅ Connecté — Version $version | Dernière MAJ : $lastUpdate';
   }

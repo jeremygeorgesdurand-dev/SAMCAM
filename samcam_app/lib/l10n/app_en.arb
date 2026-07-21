@@ -21,6 +21,8 @@
   "settingsSave": "Save",
   "settingsTest": "Test",
   "settingsUrlSaved": "URL saved",
+  "settingsUrlSavedInsecure": "URL saved — ⚠️ unencrypted connection (http)",
+  "settingsUrlInvalid": "Invalid URL — must start with http:// or https://",
   "settingsTestSuccess": "✅ Connected — Version {version} | Last update: {lastUpdate}",
   "settingsTestFailure": "❌ Connection failed: {error}",
   "settingsLanguage": "Language",

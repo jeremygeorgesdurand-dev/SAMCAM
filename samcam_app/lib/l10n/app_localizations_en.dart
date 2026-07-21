@@ -74,6 +74,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsUrlSaved => 'URL saved';
 
   @override
+  String get settingsUrlSavedInsecure =>
+      'URL saved — ⚠️ unencrypted connection (http)';
+
+  @override
+  String get settingsUrlInvalid =>
+      'Invalid URL — must start with http:// or https://';
+
+  @override
   String settingsTestSuccess(String version, String lastUpdate) {
     return '✅ Connected — Version $version | Last update: $lastUpdate';
   }

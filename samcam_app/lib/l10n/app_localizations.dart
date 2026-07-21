@@ -218,6 +218,18 @@ abstract class AppLocalizations {
   /// **'URL sauvegardée'**
   String get settingsUrlSaved;
 
+  /// No description provided for @settingsUrlSavedInsecure.
+  ///
+  /// In fr, this message translates to:
+  /// **'URL sauvegardée — ⚠️ connexion non chiffrée (http)'**
+  String get settingsUrlSavedInsecure;
+
+  /// No description provided for @settingsUrlInvalid.
+  ///
+  /// In fr, this message translates to:
+  /// **'URL invalide — doit commencer par http:// ou https://'**
+  String get settingsUrlInvalid;
+
   /// No description provided for @settingsTestSuccess.
   ///
   /// In fr, this message translates to:

@@ -21,6 +21,8 @@
   "settingsSave": "Sauvegarder",
   "settingsTest": "Tester",
   "settingsUrlSaved": "URL sauvegardée",
+  "settingsUrlSavedInsecure": "URL sauvegardée — ⚠️ connexion non chiffrée (http)",
+  "settingsUrlInvalid": "URL invalide — doit commencer par http:// ou https://",
   "settingsTestSuccess": "✅ Connecté — Version {version} | Dernière MAJ : {lastUpdate}",
   "@settingsTestSuccess": {
     "placeholders": { "version": {"type": "String"}, "lastUpdate": {"type": "String"} }

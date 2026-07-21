@@ -80,23 +80,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await NotificationService.setThreshold(risk, value);
   }
 
+  /// Un serveur mal formé (ou pointant vers un domaine inconnu par erreur de
+  /// frappe/hameçonnage) recevrait sinon en clair la position GPS de
+  /// l'utilisateur et ses signalements — on valide au moins la forme de l'URL
+  /// avant de l'enregistrer, et on prévient si la connexion n'est pas chiffrée.
+  String? _validateUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+      return AppLocalizations.of(context)!.settingsUrlInvalid;
+    }
+    if (uri.scheme != 'http' && uri.scheme != 'https') {
+      return AppLocalizations.of(context)!.settingsUrlInvalid;
+    }
+    return null;
+  }
+
   Future<void> _saveUrl() async {
     final url = _controller.text.trim();
     if (url.isEmpty) return;
+    final error = _validateUrl(url);
+    if (error != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error), backgroundColor: const Color(0xFFC62828)),
+        );
+      }
+      return;
+    }
     await ApiService.setServerUrl(url);
     if (mounted) {
+      final insecure = Uri.parse(url).scheme == 'http';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(AppLocalizations.of(context)!.settingsUrlSaved),
-          backgroundColor: const Color(0xFF01696F),
+          content: Text(insecure
+              ? AppLocalizations.of(context)!.settingsUrlSavedInsecure
+              : AppLocalizations.of(context)!.settingsUrlSaved),
+          backgroundColor: insecure ? const Color(0xFFEF6C00) : const Color(0xFF01696F),
         ),
       );
     }
   }
 
   Future<void> _testConnection() async {
-    setState(() { _testing = true; _testResult = null; });
     final url = _controller.text.trim();
+    final error = _validateUrl(url);
+    if (error != null) {
+      setState(() { _testOk = false; _testResult = error; });
+      return;
+    }
+    setState(() { _testing = true; _testResult = null; });
     await ApiService.setServerUrl(url);
     try {
       final health = await ApiService.getHealth();
