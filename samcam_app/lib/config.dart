@@ -17,7 +17,9 @@ class Config {
   static const List<String> defaultServerCandidates = [
     // Station Raspberry Pi « Cameroun » — serveur permanent, publié via
     // Tailscale Funnel (voir install_pi.sh + docs/DEPLOIEMENT_RASPBERRY_PI.md).
-    'https://cameroun.tail7296d8.ts.net',
+    // Tailnet dédié au projet (compte Google séparé) depuis le 2026-07-22 —
+    // suffixe différent du Mac de dev, resté sur le tailnet personnel.
+    'https://cameroun.tail5aeee0.ts.net',
     // Mac de développement — conservé en secours (utile en local pendant le dev).
     'https://macbook-neo-de-jrmy.tail7296d8.ts.net',
     'http://192.168.1.186:8000', // IP LAN actuelle du Mac (change parfois — DHCP)
