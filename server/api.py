@@ -845,6 +845,53 @@ def get_report(zone: str = Query(DEFAULT_ZONE, description="Nom de la zone")):
         raise HTTPException(status_code=500, detail="Erreur interne lors de la génération du rapport")
 
 
+def _historique_depuis_cache(zone: str, days: int) -> Optional[list]:
+    """Construit la réponse /api/history depuis le cache précalculé, si présent
+    pour cette zone. Retourne None si absent (déclenche le repli en direct)."""
+    cache = _lire_cache_predictions()
+    par_date = cache.get(zone, {}).get("historique")
+    if not par_date:
+        return None
+
+    dates = sorted(par_date.keys())[-days:]
+    history = []
+    for d in dates:
+        risques = par_date[d]
+        scores = {f"score_{r}": risques.get(r, 0.0) for r in _RISQUES}
+        history.append({
+            "date":           d,
+            "risque_actuel":  scores,
+            "niveau_alerte":  _niveau_alerte(**scores),
+            "methode_risque": "ml_zonal_infer (cache)",
+        })
+    return history
+
+
+def _historique_en_direct(zone: str, days: int) -> list:
+    """Repli : recalcule l'historique en direct (lent) si le cache est absent."""
+    if _infer_zone_risk_series_fn is None:
+        raise HTTPException(status_code=503, detail="Moteur d'inférence indisponible")
+
+    series = {}
+    for risque in _RISQUES:
+        r = _infer_zone_risk_series_fn(zone, risque, days=days)
+        series[risque] = {e["date"]: e["proba"] for e in r.get("serie", [])} \
+            if r.get("status") == "OK" else {}
+
+    toutes_dates = sorted(set().union(*[s.keys() for s in series.values()])) if any(series.values()) else []
+
+    history = []
+    for d in toutes_dates:
+        scores = {f"score_{r}": series[r].get(d, 0.0) for r in _RISQUES}
+        history.append({
+            "date":           d,
+            "risque_actuel":  scores,
+            "niveau_alerte":  _niveau_alerte(**scores),
+            "methode_risque": "ml_zonal_infer",
+        })
+    return history
+
+
 @app.get("/api/history", tags=["Historique"])
 def get_history(
     zone: str = Query(DEFAULT_ZONE, description="Nom de la zone"),
@@ -852,40 +899,22 @@ def get_history(
 ):
     """
     Retourne l'évolution RÉELLE jour par jour des scores de risque pour la zone,
-    calculée directement depuis les modèles zonaux (infer_zonal.py) sur les `days`
-    derniers jours.
+    sur les `days` derniers jours.
 
-    Ancien comportement (abandonné) : relisait chaque snapshot JSON quotidien et
-    recalculait le risque via _compute_risk_for_zone(), qui passe désormais par le
-    cache de prédictions (data/predictions/latest.json) — celui-ci ne contient que
-    la valeur du jour courant, donc chaque jour de l'historique affichait la même
-    valeur figée. Ici on lit la série jour par jour que le modèle calcule déjà en
-    interne (une probabilité par jour de la fenêtre d'inférence), donc chaque jour
-    a sa propre valeur et l'historique évolue réellement.
+    Essaie d'abord le cache précalculé (data/predictions/latest.json, champ
+    "historique" — voir inference/compute_daily_predictions.py), rempli une
+    fois par jour par le pipeline quotidien : quasi-instantané. Repli sur le
+    calcul en direct (infer_zonal.py, plusieurs dizaines de secondes par zone
+    sur un Raspberry Pi) seulement si le cache est absent/incomplet pour cette
+    zone — ce calcul en direct était auparavant systématique et provoquait des
+    timeouts observés en usage réel, en particulier sous congestion réseau.
     """
     _resolve_zone(zone)
 
-    if _infer_zone_risk_series_fn is None:
-        raise HTTPException(status_code=503, detail="Moteur d'inférence indisponible")
-
     try:
-        series = {}
-        for risque in _RISQUES:
-            r = _infer_zone_risk_series_fn(zone, risque, days=days)
-            series[risque] = {e["date"]: e["proba"] for e in r.get("serie", [])} \
-                if r.get("status") == "OK" else {}
-
-        toutes_dates = sorted(set().union(*[s.keys() for s in series.values()])) if any(series.values()) else []
-
-        history = []
-        for d in toutes_dates:
-            scores = {f"score_{r}": series[r].get(d, 0.0) for r in _RISQUES}
-            history.append({
-                "date":           d,
-                "risque_actuel":  scores,
-                "niveau_alerte":  _niveau_alerte(**scores),
-                "methode_risque": "ml_zonal_infer",
-            })
+        history = _historique_depuis_cache(zone, days)
+        if history is None:
+            history = _historique_en_direct(zone, days)
     except HTTPException:
         raise
     except Exception as e:

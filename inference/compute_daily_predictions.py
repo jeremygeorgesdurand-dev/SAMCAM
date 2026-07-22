@@ -30,7 +30,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from inference.infer_zonal import infer_zone_risk, infer_zone_risk_horizon, ZONES, RISKS
+from inference.infer_zonal import (
+    infer_zone_risk, infer_zone_risk_horizon, infer_zone_risk_series, ZONES, RISKS,
+)
 
 DATA_DIR       = ROOT / "data"
 PRED_DIR       = ROOT / "data" / "predictions"
@@ -38,6 +40,28 @@ PRED_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_PATH    = PRED_DIR / "latest.json"
 
 HORIZONS = (1, 3, 7, 10, 14)  # bornés par la longueur des prévisions Open-Meteo (~16j dispo)
+
+# Nombre de jours d'historique pré-calculé et mis en cache pour /api/history —
+# supérieur aux 14 jours affichés par défaut dans l'app, pour garder une marge.
+HISTORY_DAYS = 30
+
+
+def compute_zone_history(zone: str, days: int = HISTORY_DAYS) -> dict:
+    """
+    Pré-calcule la série jour par jour des 3 risques sur `days` jours, pour le
+    cache lu par /api/history (server/api.py). Avant ce cache, /api/history
+    recalculait tout en direct à chaque requête (3 risques × inférence sur
+    toute la fenêtre) — plusieurs dizaines de secondes par zone sur un
+    Raspberry Pi, cause de timeouts observés en usage réel.
+    """
+    par_date: dict = {}
+    for risk in RISKS:
+        r = infer_zone_risk_series(zone, risk, days=days)
+        if r.get("status") != "OK":
+            continue
+        for e in r.get("serie", []):
+            par_date.setdefault(e["date"], {})[risk] = e["proba"]
+    return par_date
 
 
 def _previsions_daily_pour_zone(zone: str) -> dict:
@@ -96,6 +120,13 @@ def main():
             print(f"[{zone}] ⚠️  Erreur : {e}")
             predictions[zone] = {"zone": zone, "date_calcul": date.today().isoformat(),
                                   "risques": {}, "error": str(e)}
+
+        try:
+            predictions[zone]["historique"] = compute_zone_history(zone)
+            print(f"[{zone}] historique : {len(predictions[zone]['historique'])} jours en cache")
+        except Exception as e:
+            print(f"[{zone}] ⚠️  Erreur historique : {e}")
+            predictions[zone]["historique"] = {}
 
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(predictions, f, ensure_ascii=False, indent=2)
