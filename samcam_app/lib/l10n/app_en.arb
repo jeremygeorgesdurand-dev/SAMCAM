@@ -21,6 +21,7 @@
   "settingsSave": "Save",
   "settingsTest": "Test",
   "settingsUrlSaved": "URL saved",
+  "settingsUrlCleared": "URL cleared — automatic detection re-enabled",
   "settingsUrlSavedInsecure": "URL saved — ⚠️ unencrypted connection (http)",
   "settingsUrlInvalid": "Invalid URL — must start with http:// or https://",
   "settingsTestSuccess": "✅ Connected — Version {version} | Last update: {lastUpdate}",

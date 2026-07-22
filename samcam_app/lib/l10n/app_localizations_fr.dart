@@ -74,6 +74,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsUrlSaved => 'URL sauvegardée';
 
   @override
+  String get settingsUrlCleared =>
+      'URL effacée — détection automatique réactivée';
+
+  @override
   String get settingsUrlSavedInsecure =>
       'URL sauvegardée — ⚠️ connexion non chiffrée (http)';
 

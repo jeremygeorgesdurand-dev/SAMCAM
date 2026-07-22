@@ -74,6 +74,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsUrlSaved => 'URL saved';
 
   @override
+  String get settingsUrlCleared =>
+      'URL cleared — automatic detection re-enabled';
+
+  @override
   String get settingsUrlSavedInsecure =>
       'URL saved — ⚠️ unencrypted connection (http)';
 

@@ -97,7 +97,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _saveUrl() async {
     final url = _controller.text.trim();
-    if (url.isEmpty) return;
+    if (url.isEmpty) {
+      // Champ vidé volontairement : efface l'URL sauvegardée pour laisser la
+      // détection automatique reprendre la main (Config.defaultServerCandidates).
+      // Avant ce correctif, un champ vide ne faisait rien — une URL périmée
+      // (ex: après migration du serveur vers un nouveau tailnet) restait
+      // bloquée indéfiniment, sans aucun moyen de la retirer depuis l'app.
+      await ApiService.setServerUrl('');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.settingsUrlCleared),
+            backgroundColor: const Color(0xFF01696F),
+          ),
+        );
+      }
+      return;
+    }
     final error = _validateUrl(url);
     if (error != null) {
       if (mounted) {

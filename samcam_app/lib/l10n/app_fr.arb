@@ -21,6 +21,7 @@
   "settingsSave": "Sauvegarder",
   "settingsTest": "Tester",
   "settingsUrlSaved": "URL sauvegardée",
+  "settingsUrlCleared": "URL effacée — détection automatique réactivée",
   "settingsUrlSavedInsecure": "URL sauvegardée — ⚠️ connexion non chiffrée (http)",
   "settingsUrlInvalid": "URL invalide — doit commencer par http:// ou https://",
   "settingsTestSuccess": "✅ Connecté — Version {version} | Dernière MAJ : {lastUpdate}",

@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'URL sauvegardée'**
   String get settingsUrlSaved;
 
+  /// No description provided for @settingsUrlCleared.
+  ///
+  /// In fr, this message translates to:
+  /// **'URL effacée — détection automatique réactivée'**
+  String get settingsUrlCleared;
+
   /// No description provided for @settingsUrlSavedInsecure.
   ///
   /// In fr, this message translates to:
