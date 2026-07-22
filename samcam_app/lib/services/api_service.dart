@@ -37,9 +37,15 @@ class ApiService {
 
     for (final base in Config.defaultServerCandidates) {
       try {
+        // 3s était trop court : observé en conditions réelles sur le tailnet
+        // du Pi, une requête /health qui aboutit bien (200) peut prendre
+        // jusqu'à 14s sur une connexion mobile congestionnée — avec 3s, la
+        // détection automatique abandonnait avant même que le Pi ait eu le
+        // temps de répondre, laissant l'app sans serveur fonctionnel malgré
+        // un serveur parfaitement joignable.
         final r = await http
             .get(Uri.parse('$base/health'))
-            .timeout(const Duration(seconds: 3));
+            .timeout(const Duration(seconds: 15));
         if (r.statusCode == 200) {
           _resolvedUrl = base;
           return base;

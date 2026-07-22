@@ -27,8 +27,10 @@ class Config {
     'http://10.0.2.2:8000',      // émulateur Android → machine hôte
   ];
 
-  // Timeout des requêtes HTTP
-  static const Duration httpTimeout = Duration(seconds: 10);
+  // Timeout des requêtes HTTP — 15s plutôt que 10s : observé en conditions
+  // réelles sur le tailnet du Pi, une requête légère peut prendre jusqu'à
+  // 14s sur une connexion mobile congestionnée (courant sur le terrain).
+  static const Duration httpTimeout = Duration(seconds: 15);
 
   // Zone favorite affichée par défaut au démarrage (null = mode GPS)
   static const String prefFavoriteZone = 'samcam_favorite_zone';
