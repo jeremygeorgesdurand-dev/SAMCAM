@@ -1,33 +1,52 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#E3F1F1',
+  'primaryTextColor': '#0b3538',
+  'primaryBorderColor': '#01696F',
+  'lineColor': '#01696F',
+  'clusterBkg': '#FBF7EE',
+  'clusterBorder': '#c8bfa4',
+  'fontFamily': 'Helvetica, Arial, sans-serif',
+  'fontSize': '17px'
+}, 'flowchart': {'htmlLabels': false}}}%%
 flowchart TB
-    subgraph SOURCES["☁️ SOURCES DE DONNÉES DISTANTES"]
-        OM["Open-Meteo<br/>(météo observée + prévisions)"]
-        NASA["NASA POWER<br/>(rayonnement, ET0)"]
+    subgraph SOURCES["Sources de données distantes"]
+        OM["Open-Meteo<br/>météo observée + prévisions"]
+        NASA["NASA POWER<br/>rayonnement, ET0"]
         GEE["Google Earth Engine<br/>Sentinel-2 · MODIS · SMAP<br/>CHIRPS · IMERG · ERA5"]
     end
 
-    subgraph STATION["🖥️ STATION SERVEUR — RASPBERRY PI (déployée)"]
-        COLLECTE["Collecte quotidienne<br/>(conteneur collector)"]
+    subgraph STATION["Station serveur — Raspberry Pi (déployée)"]
+        COLLECTE["Collecte quotidienne<br/>conteneur collector"]
         PIPELINE["Prétraitement +<br/>features dérivées"]
-        IA["54 modèles IA zonaux<br/>(RandomForest / GradientBoosting)"]
-        API["API REST FastAPI<br/>(port 8000)"]
-        ASSIST["Assistant IA local<br/>(Ollama, Qwen 3 0.6B)"]
+        IA["54 modèles IA zonaux<br/>RandomForest / GradientBoosting"]
+        API["API REST FastAPI<br/>port 8000"]
+        ASSIST["Assistant IA local<br/>Ollama, Qwen 3 0.6B"]
+        COLLECTE --> PIPELINE --> IA --> API --> ASSIST
     end
 
-    subgraph OFFLINE["🌡️ VARIANTE 100% HORS-LIGNE (validée, non déployée)"]
-        CAPTEURS["Capteurs de terrain<br/>(pression, T°, humidité, pluie, sol)"]
-        SENSORMOD["54 modèles « capteurs seuls »<br/>(models/zonal_sensor/)"]
+    subgraph OFFLINE["Variante 100 % hors-ligne — validée, non déployée"]
+        CAPTEURS["Capteurs de terrain<br/>pression, T°, humidité, pluie, sol"]
+        SENSORMOD["54 modèles « capteurs seuls »<br/>models/zonal_sensor/"]
+        CAPTEURS -.->|"perspective : boîtier local"| SENSORMOD
     end
 
-    subgraph CLIENTS["📱 CLIENTS"]
-        APP["Application mobile SAMCAM<br/>(Flutter, offline-first, FR/EN)"]
-        WA["Bot WhatsApp<br/>(code prêt, bloqué par Meta)"]
+    subgraph CLIENTS["Clients"]
+        APP["Application mobile SAMCAM<br/>Flutter, offline-first, FR/EN"]
+        WA["Bot WhatsApp<br/>code prêt, bloqué par Meta"]
     end
 
     OM -->|"si réseau disponible"| COLLECTE
     NASA -->|"si réseau disponible"| COLLECTE
     GEE -->|"si réseau disponible"| COLLECTE
-    COLLECTE --> PIPELINE --> IA --> API
-    API --> ASSIST
-    CAPTEURS -.->|"perspective : boîtier local"| SENSORMOD
     API -->|"JSON léger via Tailscale Funnel"| APP
     API -.->|"perspective"| WA
+
+    classDef source fill:#E8F0FB,stroke:#2C5F8A,color:#12283a,stroke-width:1.4px;
+    classDef station fill:#E3F1F1,stroke:#01696F,color:#0b3538,stroke-width:1.4px;
+    classDef offline fill:#FBEFE3,stroke:#C97A2B,color:#4a2f10,stroke-width:1.4px;
+    classDef clients fill:#F3E9F7,stroke:#7A3E91,color:#341c3d,stroke-width:1.4px;
+
+    class OM,NASA,GEE source;
+    class COLLECTE,PIPELINE,IA,API,ASSIST station;
+    class CAPTEURS,SENSORMOD offline;
+    class APP,WA clients;

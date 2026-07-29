@@ -1,0 +1,30 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#E3F1F1',
+  'primaryTextColor': '#0b3538',
+  'primaryBorderColor': '#01696F',
+  'lineColor': '#01696F',
+  'clusterBkg': '#FBF7EE',
+  'clusterBorder': '#c8bfa4',
+  'fontFamily': 'Helvetica, Arial, sans-serif',
+  'fontSize': '17px'
+}, 'flowchart': {'htmlLabels': false}}}%%
+flowchart LR
+    subgraph PI["Station SAMCAM — Raspberry Pi (2 Go de RAM)"]
+        direction LR
+        OLLAMA["Ollama, natif<br/>partagé avec 2 autres projets<br/>qwen3:0.6B"]
+        API["Conteneur Docker « api »<br/>300 Mo max<br/>API FastAPI :8000<br/>assistant IA, appel Ollama"]
+        COLLECTOR["Conteneur Docker « collector »<br/>250 Mo max<br/>collecte quotidienne<br/>+ Google Earth Engine"]
+        FUNNEL["Tailscale Funnel"]
+        OLLAMA -->|"localhost:11434"| API
+        API -->|"WiFi / Ethernet"| FUNNEL
+        COLLECTOR -->|"WiFi / Ethernet"| FUNNEL
+    end
+    FUNNEL -->|"HTTPS"| INTERNET["Internet"]
+
+    classDef llm fill:#FBEFE3,stroke:#C97A2B,color:#4a2f10,stroke-width:1.4px;
+    classDef docker fill:#E3F1F1,stroke:#01696F,color:#0b3538,stroke-width:1.4px;
+    classDef net fill:#F3E9F7,stroke:#7A3E91,color:#341c3d,stroke-width:1.4px;
+
+    class OLLAMA llm;
+    class API,COLLECTOR docker;
+    class FUNNEL,INTERNET net;

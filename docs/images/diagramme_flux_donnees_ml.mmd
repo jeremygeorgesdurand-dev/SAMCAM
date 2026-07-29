@@ -1,38 +1,62 @@
-flowchart LR
-    subgraph ACQ["1 · Acquisition"]
-        direction TB
-        A1["Open-Meteo<br/>météo + prévisions 14j"]
-        A2["NASA POWER<br/>rayonnement, ET0"]
-        A3["Google Earth Engine<br/>NDVI · sols · pluie satellite"]
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#E3F1F1',
+  'primaryTextColor': '#0b3538',
+  'primaryBorderColor': '#01696F',
+  'lineColor': '#01696F',
+  'secondaryColor': '#FFF3DF',
+  'tertiaryColor': '#FBF7EE',
+  'clusterBkg': '#FBF7EE',
+  'clusterBorder': '#01696F',
+  'fontFamily': 'Helvetica, Arial, sans-serif',
+  'fontSize': '17px'
+}, 'flowchart': {'htmlLabels': false}}}%%
+flowchart TB
+    subgraph ROW1[" "]
+        direction LR
+        subgraph ACQ["① Acquisition"]
+            direction TB
+            A1["Open-Meteo<br/>météo + prévisions 14j"]
+            A2["NASA POWER<br/>rayonnement, ET0"]
+            A3["Google Earth Engine<br/>NDVI · sols · pluie satellite"]
+        end
+
+        subgraph FEAT["② Features"]
+            direction TB
+            F1["Cumuls glissants<br/>7/14/30/90j"]
+            F2["Anomalies<br/>+ SPI-3"]
+            F3["Sols & saisonnalité"]
+        end
+
+        subgraph LABELS["③ Labels"]
+            L1["Règles climatologiques<br/>par zone<br/>(config/zones/*.json)"]
+        end
     end
 
-    subgraph FEAT["2 · Features"]
-        direction TB
-        F1["Cumuls glissants<br/>7/14/30/90j"]
-        F2["Anomalies<br/>+ SPI-3"]
-        F3["Sols & saisonnalité"]
+    subgraph ROW2[" "]
+        direction LR
+        subgraph TRAIN["④ Entraînement"]
+            direction TB
+            T1["54 modèles<br/>RF / GradientBoosting"]
+            T2["Validation temporelle<br/>(TimeSeriesSplit)"]
+        end
+
+        subgraph INF["⑤ Inférence quotidienne"]
+            direction TB
+            I1["J0 → J+14<br/>(prévisions réelles)"]
+            I2["Cache latest.json"]
+        end
+
+        subgraph OUT["⑥ Restitution"]
+            O1["API → app mobile<br/>VERT / JAUNE / ORANGE / ROUGE"]
+        end
     end
 
-    subgraph LABELS["3 · Labels"]
-        L1["Règles climatologiques<br/>par zone (config/zones/*.json)"]
-    end
-
-    subgraph TRAIN["4 · Entraînement"]
-        direction TB
-        T1["54 modèles<br/>RF / GradientBoosting"]
-        T2["Validation temporelle<br/>(TimeSeriesSplit)"]
-    end
-
-    subgraph INF["5 · Inférence quotidienne"]
-        direction TB
-        I1["J0 → J+14<br/>(prévisions réelles)"]
-        I2["Cache latest.json"]
-    end
-
-    subgraph OUT["6 · Restitution"]
-        O1["API → app mobile<br/>VERT/JAUNE/ORANGE/ROUGE"]
-    end
-
-    ACQ --> FEAT --> LABELS --> TRAIN
-    FEAT --> INF
+    ACQ --> FEAT --> LABELS
+    LABELS ==>|"labels (JSON)"| TRAIN
+    FEAT -.->|"features (inférence)"| INF
     TRAIN -->|".pkl"| INF --> OUT
+
+    style ROW1 fill:none,stroke:none
+    style ROW2 fill:none,stroke:none
+    linkStyle 3 stroke:#C97A2B,stroke-width:1.6px;
+    linkStyle 2 stroke:#01696F,stroke-width:2.6px;

@@ -1,5 +1,29 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#E3F1F1',
+  'primaryTextColor': '#0b3538',
+  'primaryBorderColor': '#01696F',
+  'lineColor': '#01696F',
+  'actorBkg': '#E3F1F1',
+  'actorBorder': '#01696F',
+  'actorTextColor': '#0b3538',
+  'actorLineColor': '#8fb8b8',
+  'signalColor': '#0b3538',
+  'signalTextColor': '#0b3538',
+  'labelBoxBkgColor': '#FFF3DF',
+  'labelBoxBorderColor': '#C97A2B',
+  'labelTextColor': '#4a2f10',
+  'loopTextColor': '#0b3538',
+  'noteBkgColor': '#FBF7EE',
+  'noteBorderColor': '#c8bfa4',
+  'noteTextColor': '#4a2f10',
+  'activationBkgColor': '#D9EAEA',
+  'activationBorderColor': '#01696F',
+  'sequenceNumberColor': '#ffffff',
+  'fontFamily': 'Helvetica, Arial, sans-serif',
+  'fontSize': '16px'
+}}}%%
 sequenceDiagram
-    participant C as Boucle collector (05h00 UTC)
+    participant C as Boucle collector<br/>(05h00 UTC)
     participant COL as collect_all_zones.py
     participant HIST as append_daily_to_historical.py
     participant PRED as compute_daily_predictions.py
@@ -7,11 +31,18 @@ sequenceDiagram
     participant APP as App mobile
 
     C->>COL: 1. Collecte des 18 zones
+    activate COL
     COL->>COL: Open-Meteo + NASA POWER + GEE
     COL->>HIST: 2. JSON du jour
+    deactivate COL
+    activate HIST
     HIST->>HIST: Fusion dans les CSV historiques<br/>+ recalcul des features dérivées
     HIST->>PRED: 3. Historiques à jour
+    deactivate HIST
+    activate PRED
     PRED->>PRED: 54 modèles × 6 horizons<br/>(J0, J+1, J+3, J+7, J+10, J+14)
     PRED->>API: 4. Cache latest.json
+    deactivate PRED
+    Note over API: Prêt en < 100 ms,<br/>quelle que soit la charge
     APP->>API: GET /api/risk (quand réseau)
     API-->>APP: Réponse < 100 ms (lecture cache)

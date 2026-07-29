@@ -32,7 +32,7 @@ th, td { border: 1px solid #ccc; padding: 4px 7px; text-align: left; vertical-al
 th { background: #f0f4f4; font-weight: 600; }
 tr:nth-child(even) { background: #fafafa; }
 code { background: #f0f0f0; padding: 1px 4px; border-radius: 3px; font-size: 9pt; font-family: "SF Mono", Menlo, monospace; }
-pre { background: #1e1e1e; color: #e8e8e8; padding: 10px 12px; border-radius: 6px; overflow-x: auto; font-size: 8.3pt; page-break-inside: avoid; }
+pre { background: #1e1e1e; color: #e8e8e8; padding: 10px 12px; border-radius: 6px; overflow-x: auto; font-size: 8.3pt; }
 pre code { background: none; color: inherit; padding: 0; }
 blockquote { border-left: 4px solid #01696F; margin: 12px 0; padding: 2px 14px; color: #444; background: #f7f9f9; }
 img { max-width: 100%; }
@@ -40,12 +40,58 @@ hr { border: none; border-top: 1px solid #ddd; margin: 24px 0; }
 a { color: #01696F; }
 ul, ol { margin: 6px 0; padding-left: 22px; }
 li { margin: 2px 0; }
+.shots {
+  text-align: center;
+  margin: 14px 0;
+  font-size: 0;
+}
+.shots figure {
+  display: inline-block;
+  vertical-align: top;
+  margin: 0 8px 14px 8px;
+  text-align: center;
+  width: 185px;
+  page-break-inside: avoid;
+  font-size: 8.3pt;
+}
+.shots.wide figure {
+  width: 300px;
+}
+.shots.xl figure {
+  width: 600px;
+}
+.shots figure img {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: auto;
+  margin: 0 auto 6px auto;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+.shots figcaption {
+  font-size: 8.3pt;
+  color: #555;
+  font-style: italic;
+  line-height: 1.3;
+}
+.diagram-xl {
+  margin: 14px 0;
+  text-align: center;
+  page-break-inside: avoid;
+}
+.diagram-xl img {
+  max-width: 100%;
+}
 .cover {
   text-align: center;
   page-break-after: always;
-  padding-top: 30%;
+  padding-top: 12%;
 }
-.cover h1 { border: none; font-size: 26pt; }
+.cover h1 { border: none; font-size: 30pt; margin: 18px 0 4px 0; letter-spacing: 2px; }
+.cover h3 { color: #01696F; font-weight: 400; margin-top: 0; }
+.cover p { font-size: 11pt; }
+.cover img { vertical-align: middle; }
 """
 
 

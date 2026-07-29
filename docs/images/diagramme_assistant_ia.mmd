@@ -1,5 +1,21 @@
+%%{init: {'theme':'base', 'themeVariables': {
+  'primaryColor': '#E3F1F1',
+  'primaryTextColor': '#0b3538',
+  'primaryBorderColor': '#01696F',
+  'lineColor': '#01696F',
+  'fontFamily': 'Helvetica, Arial, sans-serif',
+  'fontSize': '17px'
+}, 'flowchart': {'htmlLabels': false}}}%%
 flowchart LR
-    APP["App mobile<br/>(carte Assistant SAMCAM)"] -->|"POST /api/assistant<br/>{zone, question?, langue}"| API["server/api.py"]
-    API --> CALC["_get_full_risk_payload(zone)"]
-    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Qwen 3 0.6B (Pi, partagé)"]
+    APP["App mobile<br/>carte Assistant SAMCAM"] -->|"POST /api/assistant<br/>zone, question?, langue"| API["server/api.py"]
+    API --> CALC["_get_full_risk_payload(zone)<br/>bulletin réel de la zone"]
+    CALC -->|"JSON réel injecté<br/>dans le prompt"| OLLAMA["Ollama (local)<br/>Qwen 3 0.6B, Pi partagé"]
     OLLAMA -->|"réponse en<br/>langage naturel"| APP
+
+    classDef client fill:#F3E9F7,stroke:#7A3E91,color:#341c3d,stroke-width:1.4px;
+    classDef server fill:#E3F1F1,stroke:#01696F,color:#0b3538,stroke-width:1.4px;
+    classDef llm fill:#FBEFE3,stroke:#C97A2B,color:#4a2f10,stroke-width:1.4px;
+
+    class APP client;
+    class API,CALC server;
+    class OLLAMA llm;
