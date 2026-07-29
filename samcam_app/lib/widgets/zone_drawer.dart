@@ -94,16 +94,31 @@ class _ZoneDrawerState extends State<ZoneDrawer> {
   }
 
   Future<void> _loadWeatherSummaries() async {
-    final targets = <String, (double, double)>{
-      for (final z in kSamcamZones)
-        z['name'] as String: (z['lat'] as double, z['lon'] as double),
-      for (final c in _customLocations) c.name: (c.lat, c.lon),
-    };
-    for (final entry in targets.entries) {
-      if (_weatherSummary.containsKey(entry.key)) continue;
-      WeatherService.getCurrentLight(entry.value.$1, entry.value.$2).then((w) {
+    // Zones SAMCAM : température/code météo déjà présents dans /api/overview
+    // (même appel serveur que le reste du tiroir) — pas d'appel direct à
+    // Open-Meteo depuis le navigateur, qui bloquait le tiroir hors connexion
+    // Internet (voir §7.13 : l'écran local doit rester utilisable sans elle).
+    try {
+      final overview = await ApiService.getOverview();
+      if (!mounted) return;
+      setState(() {
+        for (final z in overview) {
+          final temp = (z['temperature'] as num?)?.toDouble();
+          final code = (z['code_meteo']  as num?)?.toInt();
+          if (temp != null && code != null) {
+            _weatherSummary[z['zone'] as String] = (temp: temp, code: code);
+          }
+        }
+      });
+    } catch (_) {}
+
+    // Endroits personnalisés (coordonnées arbitraires, hors zones SAMCAM) :
+    // pas d'équivalent côté serveur, appel direct conservé au cas par cas.
+    for (final c in _customLocations) {
+      if (_weatherSummary.containsKey(c.name)) continue;
+      WeatherService.getCurrentLight(c.lat, c.lon).then((w) {
         if (w != null && mounted) {
-          setState(() => _weatherSummary[entry.key] = w);
+          setState(() => _weatherSummary[c.name] = w);
         }
       });
     }

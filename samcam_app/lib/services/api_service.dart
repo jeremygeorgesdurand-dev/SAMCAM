@@ -35,17 +35,46 @@ class ApiService {
 
     if (_resolvedUrl != null) return _resolvedUrl!;
 
+    // Cible web (écran local sur la Pi, servi par FastAPI sur /dashboard,
+    // voir §5.6/§8.1 du rapport) : l'app tourne déjà sur la même origine que
+    // l'API — pas besoin de parcourir les candidats distants (Tailscale…)
+    // pour le découvrir, ce qui est important pour fonctionner même sans
+    // aucune connexion réseau (l'appel /health reste local à la machine).
+    // Sans ce test prioritaire, un écran local hors-ligne perdrait jusqu'à
+    // 15s à attendre l'échec du candidat Tailscale avant d'essayer localhost.
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      try {
+        final r = await http
+            .get(Uri.parse('$origin/health'))
+            .timeout(const Duration(seconds: 15));
+        if (r.statusCode == 200) {
+          _resolvedUrl = origin;
+          return origin;
+        }
+      } catch (_) {}
+    }
+
     for (final base in Config.defaultServerCandidates) {
       try {
-        // 3s était trop court : observé en conditions réelles sur le tailnet
-        // du Pi, une requête /health qui aboutit bien (200) peut prendre
-        // jusqu'à 14s sur une connexion mobile congestionnée — avec 3s, la
-        // détection automatique abandonnait avant même que le Pi ait eu le
-        // temps de répondre, laissant l'app sans serveur fonctionnel malgré
-        // un serveur parfaitement joignable.
-        final r = await http
-            .get(Uri.parse('$base/health'))
-            .timeout(const Duration(seconds: 15));
+        // 3s était trop court pour le Pi : observé en conditions réelles sur
+        // son tailnet, une requête /health qui aboutit bien (200) peut prendre
+        // jusqu'à 14s sur une connexion mobile congestionnée. Mais garder 15s
+        // pour TOUS les candidats est aussi un bug : sur un vrai téléphone
+        // loin du Mac de dev, les candidats localhost/LAN/émulateur ne
+        // peuvent jamais répondre, et une IP privée injoignable peut faire
+        // « pendre » la requête jusqu'au timeout au lieu d'échouer vite —
+        // jusqu'à 5×15s = 75s avant de conclure « hors ligne » alors que le
+        // Pi (1er candidat) était peut-être seulement lent. Un timeout court
+        // pour les candidats de dev limite ce gâchis à quelques secondes.
+        final isDevCandidate = base.contains('localhost') ||
+            base.contains('127.0.0.1') ||
+            base.contains('10.0.2.2') ||
+            base.contains('192.168.');
+        final timeout = isDevCandidate
+            ? const Duration(seconds: 3)
+            : const Duration(seconds: 15);
+        final r = await http.get(Uri.parse('$base/health')).timeout(timeout);
         if (r.statusCode == 200) {
           _resolvedUrl = base;
           return base;

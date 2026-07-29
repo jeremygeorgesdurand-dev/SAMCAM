@@ -489,11 +489,26 @@ def get_overview():
 
         risk   = _compute_risk_for_zone(zone_name, indicateurs, meteo)
         actuel = risk.get("risque_actuel", {})
+
+        # Température/code météo approximatifs (moyenne min/max + code du jour),
+        # tirés des données déjà collectées — évite au client de refaire un
+        # appel externe à Open-Meteo par zone pour un simple aperçu (voir §7.13).
+        daily     = meteo.get("previsions_daily", {})
+        temp_max  = (daily.get("temperature_2m_max") or [None])[0]
+        temp_min  = (daily.get("temperature_2m_min") or [None])[0]
+        code_jour = (daily.get("weathercode") or [None])[0]
+        temperature = (
+            round((temp_max + temp_min) / 2, 1)
+            if temp_max is not None and temp_min is not None else None
+        )
+
         result.append({
             "zone":          zone_name,
             "type":          z["type"],
             "niveau_alerte": actuel.get("niveau_alerte", "INCONNU"),
             "scores":        actuel.get("scores", {}),
+            "temperature":   temperature,
+            "code_meteo":    code_jour,
         })
 
     return {"zones": result}
@@ -1022,9 +1037,14 @@ def get_signalements(
 
 # ─── STATIC FILES ──────────────────────────────────────────────────────────────
 
-_dashboard_path = os.path.join(ROOT, "dashboard")
-if os.path.isdir(_dashboard_path):
-    app.mount("/dashboard", StaticFiles(directory=_dashboard_path, html=True), name="dashboard")
+_dashboard_web_path = os.path.join(ROOT, "samcam_app", "build", "web")
+if os.path.isdir(_dashboard_web_path):
+    # Écran local = le même build web Flutter que "flutter run -d chrome",
+    # servi statiquement (voir samcam_app/build_dashboard.sh) plutôt que
+    # l'ancien dashboard HTML/JS séparé et non maintenu.
+    app.mount("/dashboard", StaticFiles(directory=_dashboard_web_path, html=True), name="dashboard")
+elif os.path.isdir(os.path.join(ROOT, "dashboard")):
+    app.mount("/dashboard", StaticFiles(directory=os.path.join(ROOT, "dashboard"), html=True), name="dashboard")
 
 
 # ─── BOT WHATSAPP ────────────────────────────────────────────────────────────
