@@ -321,12 +321,28 @@ def fetch_gee_sentinel2(lat: float, lon: float, window_days: int = 60) -> Option
         comp.normalizedDifference(["B8",  "B12"]).rename("NBR"),
         comp.normalizedDifference(["B8",  "B5"]).rename("NDRE"),
     ])
-    stats = indices.select(["NDVI","NDWI","NBR","NDRE"]).reduceRegion(
-        reducer=ee.Reducer.mean().combine(ee.Reducer.stdDev(), sharedInputs=True)
-                                 .combine(ee.Reducer.minMax(), sharedInputs=True),
-        geometry=zone, scale=20, maxPixels=1e9,
+
+    # Les zones littorales (ex: Kribi) ont un buffer de 10km qui mord sur
+    # l'océan. L'eau a un NDVI très négatif : sans masque, sa moyenne fait
+    # passer une forêt côtière saine pour une végétation "critique". On
+    # masque l'eau permanente (JRC Global Surface Water) pour les indices de
+    # végétation uniquement — le NDWI, lui, reste calculé sur toute la zone
+    # car il sert aussi de signal de submersion côtière (risque_submersion).
+    reducer = (
+        ee.Reducer.mean().combine(ee.Reducer.stdDev(), sharedInputs=True)
+                          .combine(ee.Reducer.minMax(), sharedInputs=True)
+    )
+    water_mask = (
+        ee.Image("JRC/GSW1_4/GlobalSurfaceWater").select("occurrence").lt(50).unmask(1)
+    )
+    veg_stats = indices.select(["NDVI", "NBR", "NDRE"]).updateMask(water_mask).reduceRegion(
+        reducer=reducer, geometry=zone, scale=20, maxPixels=1e9,
     ).getInfo()
-    print("  [GEE S2] ✅ NDVI, NDWI, NBR, NDRE")
+    ndwi_stats = indices.select(["NDWI"]).reduceRegion(
+        reducer=reducer, geometry=zone, scale=20, maxPixels=1e9,
+    ).getInfo()
+    stats = {**veg_stats, **ndwi_stats}
+    print("  [GEE S2] ✅ NDVI, NDWI, NBR, NDRE (végétation masquée eau permanente)")
     return {
         "capteur": "Sentinel-2",
         "periode": {"debut": start.isoformat(), "fin": today.isoformat()},
@@ -350,7 +366,12 @@ def fetch_gee_modis_fallback(lat: float, lon: float, window_days: int = 60) -> d
     if count == 0:
         return {"capteur": "MODIS-fallback", "erreur": "Aucune donnée MODIS"}
 
-    stats = modis.mean().multiply(0.0001).select(["NDVI","EVI"]).reduceRegion(
+    # Même précaution que pour Sentinel-2 : masquer l'eau permanente pour ne
+    # pas fausser le NDVI/EVI des zones littorales (voir fetch_gee_sentinel2).
+    water_mask = (
+        ee.Image("JRC/GSW1_4/GlobalSurfaceWater").select("occurrence").lt(50).unmask(1)
+    )
+    stats = modis.mean().multiply(0.0001).select(["NDVI","EVI"]).updateMask(water_mask).reduceRegion(
         reducer=ee.Reducer.mean().combine(ee.Reducer.minMax(), sharedInputs=True),
         geometry=zone, scale=500, maxPixels=1e9,
     ).getInfo()
@@ -393,26 +414,51 @@ def fetch_gee_soil_moisture(lat: float, lon: float) -> dict:
 def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
     """
     Précipitations CHIRPS (Climate Hazards Group InfraRed Precipitation with Stations).
-    Source : UCSB-CHG/CHIRPS/DAILY — résolution ~5km, latence réelle ~3-5 jours.
-    FIX : end date décalée à today-3j pour éviter les collections vides.
+    Source : UCSB-CHG/CHIRPS/DAILY — résolution ~5km.
+    FIX (2026-07-28) : la latence n'est PAS un délai fixe de 3-5 jours — le
+    produit "final" exposé par ce catalogue n'est en pratique complet que
+    jusqu'à la fin du mois précédent (observé : ~1 mois de retard, pas 3
+    jours). Un décalage fixe fonctionnait par coïncidence tant que la fenêtre
+    glissante de 30j retombait majoritairement sur un mois déjà finalisé ; en
+    fin de mois elle chevauche le mois en cours, quasi vide, et le total
+    retombe silencieusement près de 0 (fausse alerte sécheresse). On
+    interroge donc d'abord la date la plus récente réellement publiée, au
+    lieu de deviner un délai.
     """
     import ee
     today = datetime.date.today()
-    # FIX : CHIRPS latence réelle ~3-5j — on exclut les 3 derniers jours
-    end   = today - datetime.timedelta(days=3)
-    start = end   - datetime.timedelta(days=max(days_back, 30))
     zone  = ee.Geometry.Point([lon, lat]).buffer(10000)
 
     try:
+        recent = (
+            ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
+            .filterDate((today - datetime.timedelta(days=90)).isoformat(), today.isoformat())
+            .filterBounds(zone)
+            .sort("system:time_start", False)
+        )
+        latest_ts = recent.first().get("system:time_start").getInfo()
+        if latest_ts is None:
+            raise ValueError("Aucune image CHIRPS publiée sur les 90 derniers jours")
+
+        end      = datetime.date.fromtimestamp(latest_ts / 1000)
+        lag_days = (today - end).days
+        if lag_days > 14:
+            raise ValueError(f"CHIRPS a {lag_days}j de retard — trop périmé pour le risque courant")
+
+        start = end - datetime.timedelta(days=max(days_back, 30))
         col = (
             ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
             .filterDate(start.isoformat(), end.isoformat())
             .filterBounds(zone)
             .select(["precipitation"])
         )
+        count_attendu = max(days_back, 30)
         count = col.size().getInfo()
-        if count == 0:
-            raise ValueError("Aucune image CHIRPS disponible")
+        if count < count_attendu * 0.8:
+            raise ValueError(
+                f"Fenêtre CHIRPS trop incomplète ({count}/{count_attendu} jours) — "
+                "probable trou de publication récent"
+            )
 
         stats_full = col.sum().reduceRegion(
             reducer=ee.Reducer.mean(), geometry=zone, scale=5000, maxPixels=1e9,
@@ -437,10 +483,30 @@ def fetch_gee_chirps(lat: float, lon: float, days_back: int = 30) -> dict:
             .getInfo()
         )
 
-        pluie_7j  = round(stats_7j.get("precipitation")  or 0, 2)
-        pluie_30j = round(stats_full.get("precipitation") or 0, 2)
-        intensite = round(max_stats.get("precipitation")  or 0, 2)
-        nb_jours  = round(jours_pluie.get("rainy")        or 0, 1)
+        # `None` = reduceRegion n'a trouvé aucun pixel valide (images présentes
+        # dans le catalogue mais entièrement masquées/sans donnée sur la
+        # période) — à ne pas confondre avec une vraie pluie nulle mesurée.
+        # Si TOUT est `None`, on considère CHIRPS indisponible pour déclencher
+        # le fallback IMERG au lieu d'enregistrer silencieusement 0mm partout.
+        raw_7j  = stats_7j.get("precipitation")
+        raw_30j = stats_full.get("precipitation")
+        raw_max = max_stats.get("precipitation")
+        raw_j   = jours_pluie.get("rainy")
+        if raw_7j is None and raw_30j is None and raw_max is None and raw_j is None:
+            raise ValueError("reduceRegion CHIRPS sans pixel valide sur la période (données masquées)")
+
+        # Un vrai mois sec produit presque toujours un peu de variance sur au
+        # moins une des 4 métriques. Les 4 exactement à 0 en même temps est le
+        # signe d'un défaut d'ingestion CHIRPS récente (latence produit plus
+        # longue que les 3j supposés ci-dessus) plutôt qu'une vraie absence de
+        # pluie — on bascule alors sur IMERG plutôt que de publier ce zéro.
+        if not any([raw_7j, raw_30j, raw_max, raw_j]):
+            raise ValueError("CHIRPS renvoie 0 sur toutes les métriques — probable défaut d'ingestion récente")
+
+        pluie_7j  = round(raw_7j  or 0, 2)
+        pluie_30j = round(raw_30j or 0, 2)
+        intensite = round(raw_max or 0, 2)
+        nb_jours  = round(raw_j   or 0, 1)
 
         print(f"  [GEE CHIRPS] ✅ Pluie 7j={pluie_7j}mm, 30j={pluie_30j}mm, max/j={intensite}mm")
         return {
@@ -724,17 +790,20 @@ def compute_agricultural_indicators(zone: dict, openmeteo: dict, gee: dict) -> d
     if sm_rootzone is None:
         sm_rootzone = gee.get("era5", {}).get("humidite_sol_era5_7_28cm")
 
+    # None = donnée satellite indisponible (nuages, échec GEE...) ; à ne jamais
+    # confondre avec un NDVI/NDWI/NDRE réellement mesuré à 0 — sinon une panne
+    # de collecte se traduit par une fausse alerte sécheresse critique en aval.
     ndvi_val, ndwi_val, ndre_val, capteur = None, None, None, "inconnu"
     try:
         if "sentinel2" in gee:
             idx = gee["sentinel2"]["indices"]
-            ndvi_val = round(idx.get("NDVI_mean") or 0, 4)
-            ndwi_val = round(idx.get("NDWI_mean") or 0, 4)
-            ndre_val = round(idx.get("NDRE_mean") or 0, 4)
+            ndvi_val = round(idx["NDVI_mean"], 4) if idx.get("NDVI_mean") is not None else None
+            ndwi_val = round(idx["NDWI_mean"], 4) if idx.get("NDWI_mean") is not None else None
+            ndre_val = round(idx["NDRE_mean"], 4) if idx.get("NDRE_mean") is not None else None
             capteur  = "Sentinel-2"
         elif "modis" in gee:
             idx = gee["modis"]["indices"]
-            ndvi_val = round(idx.get("NDVI_mean") or 0, 4)
+            ndvi_val = round(idx["NDVI_mean"], 4) if idx.get("NDVI_mean") is not None else None
             capteur  = "MODIS"
     except Exception:
         pass

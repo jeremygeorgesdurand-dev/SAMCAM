@@ -5,9 +5,33 @@
 set -uo pipefail
 cd /app
 
+# Nombre de zones sans donnée du jour (fichier data/<slug>_<date>.json absent) —
+# sert à détecter une collecte partiellement/totalement échouée.
+zones_manquantes_aujourdhui() {
+    python3 -c "
+from data_collection.collect_all_zones import ALL_ZONES, _already_collected_today
+print(sum(1 for z in ALL_ZONES if not _already_collected_today(z)))
+" 2>/dev/null || echo "?"
+}
+
 run_pipeline() {
     echo "[collector] $(date -u) — lancement du pipeline quotidien"
     python3 data_collection/collect_all_zones.py || true
+
+    # FIX (2026-07-29) : un incident réseau bref (ex. coupure DNS de quelques
+    # minutes, voir §7.12/§7.13 du rapport) peut faire échouer les 18 zones
+    # d'un coup sans qu'aucune ne soit jamais retentée avant le lendemain —
+    # collect_all_zones.py ne relance jamais tout seul une zone en échec.
+    # Comme il ignore automatiquement les zones déjà collectées le jour même,
+    # relancer l'étape sans --force ne retente que celles qui ont vraiment
+    # échoué, sans dupliquer le travail déjà fait.
+    manquantes=$(zones_manquantes_aujourdhui)
+    if [ "$manquantes" != "0" ] && [ "$manquantes" != "?" ]; then
+        echo "[collector] $manquantes zone(s) sans donnée du jour — nouvelle tentative dans 5 min"
+        sleep 300
+        python3 data_collection/collect_all_zones.py || true
+    fi
+
     python3 data_collection/append_daily_to_historical.py || true
     python3 inference/compute_daily_predictions.py || true
     echo "[collector] $(date -u) — pipeline terminé"

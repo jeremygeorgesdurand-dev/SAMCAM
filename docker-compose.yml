@@ -32,10 +32,10 @@ services:
     restart: unless-stopped
     volumes:
       - .:/app
-      - ${GEE_KEY_DIR:-~/.config/gee}:/root/.config/gee:ro
+      - ${GEE_KEY_DIR:-~/.config/gee}:/home/samcam/.config/gee:ro
     working_dir: /app
     env_file:
       - server/.env.docker
     environment:
-      - EE_PRIVATE_KEY_PATH=/root/.config/gee/kribi-key.json
+      - EE_PRIVATE_KEY_PATH=/home/samcam/.config/gee/kribi-key.json
     mem_limit: 250m

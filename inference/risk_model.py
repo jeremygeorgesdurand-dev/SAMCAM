@@ -346,7 +346,10 @@ def construire_features_depuis_json(data: Dict[str, Any]) -> Dict[str, Any]:
         "wind_speed":              float(ind.get("vent_kmh_era5", 3.5)),
         "sm_surface":              sm_surface,
         "sm_rootzone":             sm_rootzone,
-        "ndvi":                    float(ind.get("ndvi_moyen", 0.52)),
+        # ndvi_moyen peut être `None` (donnée satellite indisponible ce jour-là) :
+        # on retombe alors sur la valeur par défaut, jamais sur un 0 littéral
+        # qui signifierait à tort "aucune végétation".
+        "ndvi":                    float(nd) if (nd := ind.get("ndvi_moyen")) is not None else 0.52,
         # ETP - pluie sur 7j, borné à 0 (déficit hydrique) — calibration seuils à revoir (Phase 4)
         "deficit_hydrique":        max(0.0, etp_7j - rain_7j),
         "trend_sm":                trend_sm,
